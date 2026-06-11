@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>EVA - Sistema de Monitoreo</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<!--BARRA LATERAL-->
+<aside class="sidebar">
+ <div class="sidebar-logo anim-float">
+  <svg viewBox="0 0 24 24" fill="none" stroke="#4fc3f7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2C12 2 5 10 5 14.5C5 18.09 8.13 21 12 21C15.87 21 19 18.09 19 14.5C19 10 12 2 12 2Z"/></svg>
+  <span>EVA</span>
+ </div>
+ <nav>
+  <ul id="sidebarNav">
+   <li data-view="resumen" class="anim-slide1"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg><span>Resumen</span></li>
+   <li data-view="tanque" class="anim-slide2"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="4" y1="18" x2="20" y2="18"/><rect x="7" y="12" width="10" height="6" rx="1" fill="currentColor" opacity="0.3"/></svg><span>Mi Tanque</span></li>
+   <li data-view="historial" class="anim-slide3"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg><span>Historial</span></li>
+   <li data-view="alertas" class="anim-slide4"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg><span>Alertas</span></li>
+   <li data-view="config" class="anim-slide5"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 01-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg><span>Configuración</span></li>
+  </ul>
+ </nav>
+ <div class="device-status">
+  <h4>Dispositivo</h4>
+  <div class="status-row">
+   <svg class="wifi-icon anim-pulse" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12.55a11 11 0 0114.08 0"/><path d="M1.42 9a16 16 0 0121.16 0"/><path d="M8.53 16.11a6 6 0 016.95 0"/><line x1="12" y1="20" x2="12.01" y2="20"/></svg>
+   <span class="status-text">Conectado</span>
+  </div>
+ </div>
+</aside>
+
+<div class="main">
+ <!-- HEADER-->
+ <header class="header">
+  <div class="header-left">
+   <button class="menu-btn"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#7a829a" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button>
+  </div>
+  <div class="header-right">
+   <button class="theme-btn" id="themeToggle" title="Cambiar tema">
+    <svg class="icon-sun" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+    <svg class="icon-moon hidden" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+   </button>
+   <div class="user-info">
+    <div class="user-details"><div class="user-name">Juan Perez</div><div class="user-role">Administrador</div></div>
+    <div class="user-avatar">JP</div>
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#7a829a" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+   </div>
+  </div>
+ </header>
+
+ <!-- VISTA RESUMEN -->
+ <div class="view" id="viewResumen">
+  <div class="resumen-grid">
+   <div class="card resumen-gauge-card anim-bounce0">
+    <div class="card-title">Nivel Actual de agua</div>
+    <div class="resumen-gauge-wrapper">
+     <svg class="resumen-gauge-svg" viewBox="0 0 200 130">
+      <defs><linearGradient id="resumenGaugeGrad" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#1565c0"/><stop offset="50%" stop-color="#42a5f5"/><stop offset="100%" stop-color="#90caf9"/></linearGradient></defs>
+      <path d="M 20 110 A 80 80 0 0 1 180 110" fill="none" stroke="#2a3042" stroke-width="12" stroke-linecap="round" class="resumen-gauge-bg"/>
+      <path id="resumenGaugeArc" d="M 20 110 A 80 80 0 0 1 180 110" fill="none" stroke="url(#resumenGaugeGrad)" stroke-width="10" stroke-linecap="round" stroke-dasharray="0 251"/>
+      <g stroke="#4a5068" stroke-width="1.5" class="resumen-gauge-ticks">
+       <line x1="20" y1="110" x2="26" y2="110"/><line x1="28" y1="80" x2="33" y2="82" transform="rotate(-36 100 110)"/><line x1="50" y1="52" x2="55" y2="55" transform="rotate(-24 100 110)"/><line x1="78" y1="32" x2="83" y2="35" transform="rotate(-12 100 110)"/><line x1="100" y1="28" x2="100" y2="34"/><line x1="122" y1="32" x2="117" y2="35" transform="rotate(12 100 110)"/><line x1="150" y1="52" x2="145" y2="55" transform="rotate(24 100 110)"/><line x1="172" y1="80" x2="167" y2="82" transform="rotate(36 100 110)"/><line x1="180" y1="110" x2="174" y2="110"/>
+      </g>
+      <g fill="#4a5068" font-size="8" text-anchor="middle" font-family="Inter, sans-serif" class="resumen-gauge-labels">
+       <text x="14" y="118">0</text><text x="18" y="82">10</text><text x="36" y="54">20</text><text x="62" y="36">30</text><text x="90" y="24">40</text><text x="100" y="20">50</text><text x="110" y="24">60</text><text x="138" y="36">70</text><text x="164" y="54">80</text><text x="182" y="82">90</text><text x="186" y="118">100</text>
+      </g>
+      <g id="resumenNeedle" transform="rotate(-16 100 110)">
+       <line x1="100" y1="110" x2="100" y2="40" stroke="#e0e4ea" stroke-width="2" stroke-linecap="round"/>
+       <circle cx="100" cy="110" r="5" fill="#2a3042" stroke="#4a5068" stroke-width="1.5"/><circle cx="100" cy="110" r="2.5" fill="#e0e4ea"/>
+      </g>
+     </svg>
+     <div class="resumen-gauge-value" id="resumenGaugeVal">70</div>
+    </div>
+   </div>
+   <div class="card resumen-status-card anim-bounce1">
+    <div class="resumen-estado-box"><div class="card-title">Estado del tanque</div><div class="resumen-estado-value" id="resumenEstado">Normal</div></div>
+    <div class="resumen-temp-box">
+     <div class="resumen-temp-icon"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 14.76V3.5a2.5 2.5 0 00-5 0v11.26a4.5 4.5 0 105 0z"/></svg></div>
+     <div class="resumen-temp-data"><div class="resumen-temp-value" id="resumenTemp">20°C</div><div class="resumen-temp-label">Ambiente optimo</div></div>
+    </div>
+   </div>
+   <div class="card resumen-rapido-card anim-bounce2">
+    <div class="card-title">Resumen rápido</div>
+    <div class="resumen-rapido-list">
+     <div class="resumen-rapido-item"><span class="resumen-rapido-label">Capacidad del tanque</span><span class="resumen-rapido-val">4.000 L</span></div>
+     <div class="resumen-rapido-item"><span class="resumen-rapido-label">Agua disponible</span><span class="resumen-rapido-val" id="resumenDisponible">3.120 L</span></div>
+     <div class="resumen-rapido-item"><span class="resumen-rapido-label">Consumo hoy</span><span class="resumen-rapido-val" id="resumenConsumo">880 L</span></div>
+     <div class="resumen-rapido-item"><span class="resumen-rapido-label">Promedio diario</span><span class="resumen-rapido-val" id="resumenPromedio">1.250 L</span></div>
+    </div>
+   </div>
+   <div class="card resumen-chart-card anim-bounce3">
+    <div class="resumen-chart-header"><div class="card-title">Consumo de agua (litros)</div>
+     <select class="resumen-chart-select" id="resumenChartSelect"><option value="semana">Esta semana</option><option value="mes">Este mes</option><option value="anio">Este año</option></select>
+    </div>
+    <svg class="resumen-mini-chart" id="resumenMiniChart" viewBox="0 0 500 170" preserveAspectRatio="xMidYMid meet"></svg>
+   </div>
+  </div>
+ </div>
+
+ <!--VISTA TANQUE -->
+ <div class="view" id="viewTanque">
+  <div class="tank-view-grid">
+   <div class="card tank-card anim-bounce0">
+    <div class="card-title">Mi tanque Principal</div>
+    <div class="tank-visual">
+     <div class="tank-body-wrapper anim-glow">
+      <svg class="tank-svg" viewBox="0 0 140 220">
+       <defs>
+        <clipPath id="tankClip"><path d="M16 34c0-4.4 3.6-8 8-8h92c4.4 0 8 3.6 8 8v162c0 4.4-3.6 8-8 8H24c-4.4 0-8-3.6-8-8z"/></clipPath>
+        <clipPath id="waterClip"><rect x="0" y="0" width="140" height="220"/></clipPath>
+        <linearGradient id="waterGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#4fc3f7"/><stop offset="30%" stop-color="#29b6f6"/><stop offset="70%" stop-color="#0288d1"/><stop offset="100%" stop-color="#01579b"/></linearGradient>
+        <linearGradient id="glassGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="rgba(255,255,255,0.12)"/><stop offset="40%" stop-color="rgba(255,255,255,0.02)"/><stop offset="100%" stop-color="rgba(255,255,255,0.06)"/></linearGradient>
+        <linearGradient id="glassEdge" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="rgba(255,255,255,0.15)"/><stop offset="15%" stop-color="rgba(255,255,255,0.02)"/><stop offset="85%" stop-color="rgba(255,255,255,0.02)"/><stop offset="100%" stop-color="rgba(255,255,255,0.1)"/></linearGradient>
+        <filter id="tankShadow"><feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="rgba(0,0,0,0.35)"/></filter>
+        <filter id="innerGlow"><feGaussianBlur in="SourceAlpha" stdDeviation="3" result="blur"/><feOffset dx="0" dy="0"/><feComposite in2="SourceAlpha" operator="arithmetic" k2="-1" k3="1"/><feFlood flood-color="#4fc3f7" flood-opacity="0.15"/><feComposite operator="in" in2="SourceGraphic"/><feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+       </defs>
+       <path d="M16 34c0-4.4 3.6-8 8-8h92c4.4 0 8 3.6 8 8v162c0 4.4-3.6 8-8 8H24c-4.4 0-8-3.6-8-8z" fill="#1e2433" stroke="#3a4158" stroke-width="2.5" filter="url(#tankShadow)"/>
+       <g clip-path="url(#tankClip)">
+        <rect id="waterRect" x="16" y="80" width="108" height="120" fill="url(#waterGrad)"><animate attributeName="y" values="80;78;80" dur="3s" repeatCount="indefinite"/></rect>
+        <path id="waterWave" d="M16 82 Q40 74 64 82 T112 82 T160 82" fill="none" stroke="rgba(255,255,255,0.25)" stroke-width="2"><animate attributeName="d" values="M16 82 Q40 74 64 82 T112 82 T160 82;M16 80 Q40 88 64 80 T112 80 T160 80;M16 78 Q44 70 70 78 T118 78 T160 78;M16 80 Q40 88 64 80 T112 80 T160 80;M16 82 Q40 74 64 82 T112 82 T160 82" dur="4s" repeatCount="indefinite"/></path>
+        <path d="M16 82 Q40 74 64 82 T112 82 T160 82" fill="rgba(79,195,247,0.08)"><animate attributeName="d" values="M16 82 Q40 74 64 82 T112 82 T160 82;M16 80 Q40 88 64 80 T112 80 T160 80;M16 78 Q44 70 70 78 T118 78 T160 78;M16 80 Q40 88 64 80 T112 80 T160 80;M16 82 Q40 74 64 82 T112 82 T160 82" dur="4s" repeatCount="indefinite"/></path>
+        <rect id="waterShine" x="16" y="78" width="108" height="6" fill="rgba(255,255,255,0.1)" rx="3"><animate attributeName="y" values="78;76;78" dur="3s" repeatCount="indefinite"/><animate attributeName="opacity" values="0.1;0.05;0.1" dur="2s" repeatCount="indefinite"/></rect>
+        <circle cx="40" cy="160" r="3.5" fill="rgba(255,255,255,0.2)"><animate attributeName="cy" values="160;60" dur="5s" repeatCount="indefinite"/><animate attributeName="opacity" values="0.2;0" dur="5s" repeatCount="indefinite"/><animate attributeName="r" values="3.5;4.5;3.5" dur="2s" repeatCount="indefinite"/></circle>
+        <circle cx="60" cy="180" r="2" fill="rgba(255,255,255,0.15)"><animate attributeName="cy" values="180;55" dur="6s" repeatCount="indefinite"/><animate attributeName="opacity" values="0.15;0" dur="6s" repeatCount="indefinite"/><animate attributeName="cx" values="60;70;60" dur="3s" repeatCount="indefinite"/></circle>
+        <circle cx="85" cy="150" r="2.5" fill="rgba(255,255,255,0.18)"><animate attributeName="cy" values="150;50" dur="4.5s" repeatCount="indefinite"/><animate attributeName="opacity" values="0.18;0" dur="4.5s" repeatCount="indefinite"/><animate attributeName="r" values="2.5;3.5;2.5" dur="1.5s" repeatCount="indefinite"/></circle>
+        <circle cx="105" cy="170" r="1.8" fill="rgba(255,255,255,0.12)"><animate attributeName="cy" values="170;65" dur="5.5s" repeatCount="indefinite"/><animate attributeName="opacity" values="0.12;0" dur="5.5s" repeatCount="indefinite"/><animate attributeName="cx" values="105;95;105" dur="4s" repeatCount="indefinite"/></circle>
+        <circle cx="50" cy="140" r="1.5" fill="rgba(255,255,255,0.1)"><animate attributeName="cy" values="140;45" dur="7s" repeatCount="indefinite"/><animate attributeName="opacity" values="0.1;0" dur="7s" repeatCount="indefinite"/><animate attributeName="cx" values="50;60;50" dur="5s" repeatCount="indefinite"/></circle>
+        <circle cx="75" cy="190" r="1.2" fill="rgba(255,255,255,0.08)"><animate attributeName="cy" values="190;40" dur="8s" repeatCount="indefinite"/><animate attributeName="opacity" values="0.08;0" dur="8s" repeatCount="indefinite"/></circle>
+        <circle cx="95" cy="160" r="2.8" fill="rgba(79,195,247,0.15)"><animate attributeName="cy" values="160;55" dur="6.5s" repeatCount="indefinite"/><animate attributeName="opacity" values="0.15;0" dur="6.5s" repeatCount="indefinite"/></circle>
+       </g>
+       <path d="M16 34c0-4.4 3.6-8 8-8h92c4.4 0 8 3.6 8 8v162c0 4.4-3.6 8-8 8H24c-4.4 0-8-3.6-8-8z" fill="url(#glassEdge)" stroke="rgba(255,255,255,0.08)" stroke-width="1"/>
+       <path d="M20 38c0-2.2 1.8-4 4-4h88c2.2 0 4 1.8 4 4v154c0 2.2-1.8 4-4 4H24c-2.2 0-4-1.8-4-4z" fill="url(#glassGrad)"/>
+       <path d="M24 34h12v162H24c-2.2 0-4-1.8-4-4V38c0-2.2 1.8-4 4-4z" fill="rgba(255,255,255,0.06)"/>
+       <path d="M104 34h12c2.2 0 4 1.8 4 4v154c0 2.2-1.8 4-4 4h-12V34z" fill="rgba(255,255,255,0.03)"/>
+       <line x1="20" y1="72" x2="120" y2="72" stroke="rgba(255,255,255,0.04)" stroke-width="0.5"/>
+       <line x1="20" y1="110" x2="120" y2="110" stroke="rgba(255,255,255,0.04)" stroke-width="0.5"/>
+       <line x1="20" y1="148" x2="120" y2="148" stroke="rgba(255,255,255,0.04)" stroke-width="0.5"/>
+       <line x1="20" y1="186" x2="120" y2="186" stroke="rgba(255,255,255,0.04)" stroke-width="0.5"/>
+       <rect x="28" y="16" width="84" height="16" rx="4" fill="#2a3042" stroke="#3a4158" stroke-width="1.5" filter="url(#tankShadow)"/>
+       <rect x="50" y="6" width="40" height="14" rx="5" fill="#2a3042" stroke="#3a4158" stroke-width="1.5"/>
+       <rect x="56" y="0" width="28" height="8" rx="3" fill="#3a4158" stroke="#4a5068" stroke-width="0.8"/>
+       <circle cx="70" cy="10" r="3" fill="#4a5068"/>
+       <circle cx="70" cy="10" r="1.5" fill="#7a829a"/>
+       <rect x="56" y="22" width="28" height="3" rx="1.5" fill="#4a5068"/>
+      </svg>
+     </div>
+     <div class="tank-data">
+      <div class="tank-percent anim-float-slow" id="tankPercent">78%</div>
+      <div class="tank-label">Nivel actual</div>
+      <div class="tank-volume" id="tankVolume">3.120 L</div>
+      <div class="tank-capacity">de 4.000 L</div>
+     </div>
+    </div>
+    <div class="estado-box"><h4>Estado</h4><div class="estado-text" id="estadoText">Normal</div><div class="estado-desc" id="estadoDesc">Todo funciona correctamente</div></div>
+    <div class="last-update">Última actualización: <span id="lastUpdate">Hoy: --:--</span></div>
+   </div>
+   <div class="card gauge-card anim-bounce4">
+    <div class="card-title">Temperatuta del agua</div>
+    <div class="gauge-wrapper anim-glow-slow">
+     <svg class="gauge-svg" viewBox="0 0 260 160">
+      <defs><linearGradient id="gaugeGrad" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#42a5f5"/><stop offset="30%" stop-color="#26c6da"/><stop offset="60%" stop-color="#66bb6a"/><stop offset="80%" stop-color="#ffa726"/><stop offset="100%" stop-color="#ef5350"/></linearGradient></defs>
+      <path d="M 30 140 A 100 100 0 0 1 230 140" fill="none" stroke="#2a3042" stroke-width="18" stroke-linecap="round"/>
+      <path id="gaugeArc" d="M 30 140 A 100 100 0 0 1 230 140" fill="none" stroke="url(#gaugeGrad)" stroke-width="14" stroke-linecap="round" stroke-dasharray="0 314"/>
+      <g fill="#7a829a" font-size="9" text-anchor="middle" font-family="Inter, sans-serif"><text x="26" y="142">0</text><text x="32" y="102">10</text><text x="50" y="68">20</text><text x="78" y="44">30</text><text x="110" y="32">40</text><text x="130" y="28">50</text><text x="150" y="32">60</text><text x="182" y="44">70</text><text x="210" y="68">80</text><text x="228" y="102">90</text><text x="234" y="142">100</text></g>
+      <g stroke="#4a5068" stroke-width="1"><line x1="30" y1="140" x2="34" y2="140"/><line x1="34" y1="115" x2="38" y2="118" transform="rotate(-36 130 140)"/><line x1="50" y1="80" x2="54" y2="83" transform="rotate(-24 130 140)"/><line x1="75" y1="52" x2="79" y2="55" transform="rotate(-12 130 140)"/><line x1="110" y1="40" x2="114" y2="40"/><line x1="130" y1="38" x2="130" y2="42"/><line x1="150" y1="40" x2="146" y2="40"/><line x1="185" y1="52" x2="181" y2="55" transform="rotate(12 130 140)"/><line x1="210" y1="80" x2="206" y2="83" transform="rotate(24 130 140)"/><line x1="226" y1="115" x2="222" y2="118" transform="rotate(36 130 140)"/><line x1="230" y1="140" x2="226" y2="140"/></g>
+      <g id="gaugeNeedle" transform="rotate(-50 130 140)"><line x1="130" y1="140" x2="130" y2="55" stroke="#e0e4ea" stroke-width="2.5" stroke-linecap="round"/><circle cx="130" cy="140" r="6" fill="#2a3042" stroke="#4a5068" stroke-width="1.5"/><circle cx="130" cy="140" r="3" fill="#e0e4ea"/></g>
+     </svg>
+     <div class="gauge-value-text" id="gaugeValue">70°</div>
+    </div>
+   </div>
+   <div class="card chart-card anim-bounce5">
+    <div class="card-title">Promedio de Temperatura</div>
+    <div class="chart-container">
+     <div class="chart-y-axis"><span>250</span><span>200</span><span>150</span><span>100</span><span>50</span><span>0</span></div>
+     <div class="chart-bars" id="chartBars"></div>
+    </div>
+   </div>
+  </div>
+ </div>
+
+ <!--VISTA HISTORIAL -->
+ <div class="view" id="viewHistorial">
+  <div class="history-card anim-bounce0">
+   <div class="history-header">
+    <div class="history-title">Historial de consumo</div>
+    <div class="history-tabs"><button class="history-tab" data-period="dia">Día</button><button class="history-tab active" data-period="semana">Semana</button><button class="history-tab" data-period="mes">Mes</button><button class="history-tab" data-period="anio">Año</button></div>
+   </div>
+   <div class="line-chart-area"><svg class="line-chart-svg" id="lineChartSvg" viewBox="0 0 700 280" preserveAspectRatio="xMidYMid meet"></svg></div>
+   <div class="history-stats">
+    <div class="history-stat"><div class="history-stat-label">Consumo promedio diario</div><div class="history-stat-value blue" id="statPromedio">1.234 L</div><div class="history-stat-sub" id="statPromedioSub">12% vs la semana anterior</div></div>
+    <div class="history-stat"><div class="history-stat-label">Consumo total (semana)</div><div class="history-stat-value blue" id="statTotal">8.750 L</div><div class="history-stat-sub" id="statTotalSub"></div></div>
+    <div class="history-stat"><div class="history-stat-label">Día de mayor consumo</div><div class="history-stat-value" id="statMayor">Miércoles</div><div class="history-stat-sub" id="statMayorVal">730 L</div></div>
+    <div class="history-stat"><div class="history-stat-label">Día de menor consumo</div><div class="history-stat-value" id="statMenor">Sábado</div><div class="history-stat-sub" id="statMenorVal">3.120 L</div></div>
+   </div>
+  </div>
+ </div>
+
+ <!--VISTA ALERTAS-->
+ <div class="view" id="viewAlertas">
+  <div class="alertas-card anim-bounce0">
+   <div class="alertas-header">
+    <div class="alertas-header-top"><div class="alertas-title">Alertas</div><a class="alertas-config-link">Configurar alertas</a></div>
+    <div class="alertas-subtitle">Gestiona las alertas y notificaciones de tu sistema</div>
+   </div>
+   <div class="alertas-filters"><button class="alertas-filter" data-filter="todas">Todas</button><button class="alertas-filter active" data-filter="activas">Activas</button><button class="alertas-filter" data-filter="resueltas">Resueltas</button></div>
+   <div class="alertas-list" id="alertasList"></div>
+  </div>
+ </div>
+
+ <!-- VISTA CONFIGURACION -->
+ <div class="view" id="viewConfig">
+  <div class="config-page-title">Configuración de alertas</div>
+  <div class="config-page-subtitle">Personaliza los umbrales y metodos de notificacion</div>
+  <div class="config-card anim-bounce0">
+   <div class="config-card-title">Umbrales de nivel</div>
+   <div class="config-card-subtitle">Configura los niveles que activaran las alertas</div>
+   <div class="config-divider"></div>
+   <div class="config-threshold">
+    <div class="config-threshold-header"><div class="config-threshold-icon orange"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></div><div class="config-threshold-name">Nivel bajo</div></div>
+    <div class="config-threshold-desc">Alerta cuando el nivel de agua sea menor o igual a:</div>
+    <div class="slider-row"><span class="slider-range-label left">10%</span><div class="slider-container"><input type="range" class="slider-input" id="sliderLow" min="10" max="50" value="20"></div><span class="slider-range-label">50%</span><span class="slider-value" id="sliderLowVal">20 %</span></div>
+   </div>
+   <div class="config-threshold">
+    <div class="config-threshold-header"><div class="config-threshold-icon red"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></div><div class="config-threshold-name">Nivel alto</div></div>
+    <div class="config-threshold-desc">Alerta cuando el nivel de agua sea mayor o igual a:</div>
+    <div class="slider-row"><span class="slider-range-label left">50%</span><div class="slider-container"><input type="range" class="slider-input" id="sliderHigh" min="50" max="100" value="90"></div><span class="slider-range-label">100%</span><span class="slider-value" id="sliderHighVal">90 %</span></div>
+   </div>
+  </div>
+ </div>
+</div>
+<script src="js/app.js"></script>
+</body>
+</html>
