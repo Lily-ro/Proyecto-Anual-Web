@@ -69,8 +69,8 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--tx);display
 
 /* BARRA LATERAL  */
 .sidebar{width:200px;min-height:100vh;background:var(--bg3);display:flex;flex-direction:column;padding:24px 0;position:fixed;top:0;left:0;bottom:0;z-index:10;border-right:1px solid var(--bd)}
-.sidebar-logo{padding:0 24px;margin-bottom:40px;display:flex;align-items:center;gap:8px}
-.sidebar-logo svg{width:24px;height:24px}
+.sidebar-logo{padding:0 24px;margin-bottom:40px;display:flex;align-items:center;gap:8px;text-decoration:none}
+.sidebar-logo svg,.sidebar-logo .logo-svg{width:24px;height:auto}
 .sidebar-logo span{font-size:20px;font-weight:700;color:var(--tx3);letter-spacing:2px}
 .sidebar nav{flex:1}
 .sidebar nav ul{list-style:none}
@@ -79,6 +79,8 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--tx);display
 .sidebar nav li.active{background:var(--ac);color:#fff;font-weight:500}
 .sidebar nav li svg{width:18px;height:18px;opacity:.7;flex-shrink:0}
 .sidebar nav li.active svg{opacity:1}
+.sidebar nav li a{display:flex;align-items:center;gap:10px;text-decoration:none;color:inherit;width:100%}
+.sidebar nav li.active a{color:#fff}
 .device-status{margin:auto 20px 20px;background:rgba(76,175,80,0.08);border:1px solid rgba(76,175,80,0.15);border-radius:12px;padding:14px 16px;animation:pulseGlowGreen 3s ease-in-out infinite}
 .device-status h4{font-size:12px;font-weight:500;color:var(--tx4);margin-bottom:6px}
 .device-status .status-row{display:flex;align-items:center;gap:6px}
@@ -93,6 +95,7 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--tx);display
 .theme-btn svg{color:var(--tx4);transition:transform .5s}
 .theme-btn:hover svg{transform:rotate(180deg)}
 .theme-btn:hover{background:var(--hvr)}
+.user-dropdown{position:relative}
 .user-info{display:flex;align-items:center;gap:10px;cursor:pointer;padding:6px 12px;border-radius:10px;transition:background .2s}
 .user-info:hover{background:var(--hvr)}
 .user-avatar{width:38px;height:38px;border-radius:50%;background:linear-gradient(135deg,var(--ac),var(--ac2));display:flex;align-items:center;justify-content:center;color:#fff;font-weight:600;font-size:14px;transition:transform .3s}
@@ -100,6 +103,11 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--tx);display
 .user-details{text-align:right}
 .user-name{font-size:13px;font-weight:600;color:var(--tx2)}
 .user-role{font-size:11px;color:var(--tx4)}
+.user-menu{position:absolute;top:100%;right:0;margin-top:8px;background:var(--bg2);border:1px solid var(--bd3);border-radius:12px;min-width:180px;padding:6px;box-shadow:0 8px 30px rgba(0,0,0,.2);z-index:100;transition:opacity .2s,transform .2s}
+.user-menu.hidden{opacity:0;transform:translateY(-8px);pointer-events:none}
+.user-menu-item{display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:8px;color:var(--tx);text-decoration:none;font-size:13px;font-weight:500;transition:background .2s}
+.user-menu-item:hover{background:var(--hvr)}
+.user-menu-item svg{flex-shrink:0;opacity:.7}
 
 /*  TARJETAS  */
 .card{background:var(--bg2);border-radius:16px;padding:24px;border:1px solid var(--bd);transition:transform .3s,box-shadow .3s}

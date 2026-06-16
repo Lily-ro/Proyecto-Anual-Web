@@ -1,44 +1,37 @@
 // ====== ESTADO GLOBAL ======
 const CAP = 4000;
-let lvl = 78, tmp = 70, cv = 'resumen';
-const nav = document.querySelectorAll('#sidebarNav li');
-const views = { resumen: document.getElementById('viewResumen'), tanque: document.getElementById('viewTanque'), historial: document.getElementById('viewHistorial'), alertas: document.getElementById('viewAlertas'), config: document.getElementById('viewConfig') };
-
-// ====== NAVEGACION ENTRE VISTAS ======
-function view(v) {
- if (!views[v]) return;
- cv = v;
- Object.values(views).forEach(x => x.classList.remove('active'));
- views[v].classList.add('active');
- nav.forEach(l => l.classList.toggle('active', l.dataset.view === v));
- views[v].querySelectorAll('.card, .history-card, .alertas-card, .config-card').forEach((el, i) => { el.style.animation = 'none'; el.offsetHeight; el.style.animation = `bounceIn .5s ${i * .1}s backwards`; });
- if (v === 'historial') lines();
- if (v === 'alertas') alertas();
- if (v === 'resumen') resumen();
-}
-nav.forEach(l => l.addEventListener('click', () => view(l.dataset.view)));
+let lvl = 78, tmp = 70;
+const page = location.pathname.split('/').pop() || 'index.html';
 
 // ====== ACTUALIZAR NIVEL DEL TANQUE ======
 function tank(pct) {
+ const e = document.getElementById('waterRect');
+ if (!e) return;
  const m = 162, h = (pct / 100) * m, y = 34 + m - h;
- document.getElementById('waterRect').setAttribute('y', y);
- document.getElementById('waterRect').setAttribute('height', h);
- document.getElementById('waterShine').setAttribute('y', y - 2);
- document.getElementById('tankPercent').textContent = `${Math.round(pct)}%`;
- document.getElementById('tankVolume').textContent = `${Math.round(CAP * pct / 100).toLocaleString('es-AR')} L`;
+ e.setAttribute('y', y);
+ e.setAttribute('height', h);
+ const s = document.getElementById('waterShine');
+ if (s) s.setAttribute('y', y - 2);
+ const p = document.getElementById('tankPercent');
+ if (p) p.textContent = `${Math.round(pct)}%`;
+ const v = document.getElementById('tankVolume');
+ if (v) v.textContent = `${Math.round(CAP * pct / 100).toLocaleString('es-AR')} L`;
 }
 
 // ====== ACTUALIZAR MEDIDOR DE TEMPERATURA ======
 function gauge(v) {
- const p = v / 100, a = -90 + p * 180, l = p * 314;
- document.getElementById('gaugeNeedle').setAttribute('transform', `rotate(${a} 130 140)`);
- document.getElementById('gaugeArc').setAttribute('stroke-dasharray', `${l} 314`);
- document.getElementById('gaugeValue').textContent = `${Math.round(v)}°`;
+ const n = document.getElementById('gaugeNeedle'), a = document.getElementById('gaugeArc'), g = document.getElementById('gaugeValue');
+ if (!n) return;
+ const p = v / 100, ang = -90 + p * 180, l = p * 314;
+ n.setAttribute('transform', `rotate(${ang} 130 140)`);
+ if (a) a.setAttribute('stroke-dasharray', `${l} 314`);
+ if (g) g.textContent = `${Math.round(v)}°`;
 }
 
 // ====== ESTADO DEL TANQUE ======
 function status() {
  const e = document.getElementById('estadoText'), d = document.getElementById('estadoDesc');
+ if (!e) return;
  if (lvl <= 10) { e.className = 'estado-text alert'; e.textContent = 'Crítico'; d.textContent = 'Nivel de agua peligrosamente bajo'; }
  else if (lvl >= 90) { e.className = 'estado-text warning'; e.textContent = 'Sobrecarga'; d.textContent = 'Nivel de agua por encima del máximo'; }
  else if (lvl <= 25) { e.className = 'estado-text warning'; e.textContent = 'Bajo'; d.textContent = 'Nivel de agua bajo, considerar recarga'; }
@@ -47,14 +40,18 @@ function status() {
 
 // ====== RELOJ ======
 function clock() {
+ const e = document.getElementById('lastUpdate');
+ if (!e) return;
  const n = new Date();
- document.getElementById('lastUpdate').textContent = `Hoy: ${String(n.getHours()).padStart(2,'0')}:${String(n.getMinutes()).padStart(2,'0')}`;
+ e.textContent = `Hoy: ${String(n.getHours()).padStart(2,'0')}:${String(n.getMinutes()).padStart(2,'0')}`;
 }
 
 // ====== GRAFICO DE BARRAS (vista Tanque) ======
 const bd = [{year:'2012',bottom:100,top:60},{year:'2013',bottom:120,top:50},{year:'2014',bottom:110,top:70},{year:'2015',bottom:130,top:60},{year:'2016',bottom:90,top:50},{year:'2017',bottom:100,top:55},{year:'2018',bottom:115,top:60}];
 function bars() {
- const c = document.getElementById('chartBars'); c.innerHTML = '';
+ const c = document.getElementById('chartBars');
+ if (!c) return;
+ c.innerHTML = '';
  bd.forEach((d, i) => {
   const g = document.createElement('div'); g.className = 'chart-bar-group';
   const s = document.createElement('div'); s.className = 'bar-stack'; s.style.height = '0px';
@@ -75,7 +72,9 @@ const hd = {
  anio: { values:[35000,38000,42000,40000,45000,43000,48000,46000,50000,47000,44000,41000], labels:['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'], avg:'42.417 L', avgSub:'Promedio mensual', total:'509.000 L', totalSub:'Total del año', mayor:'Sepiembre', mayorVal:'50.000 L', menor:'Enero', menorVal:'35.000 L' }
 };
 function lines(p = 'semana') {
- const d = hd[p], svg = document.getElementById('lineChartSvg');
+ const svg = document.getElementById('lineChartSvg');
+ if (!svg) return;
+ const d = hd[p];
  const L = 40, R = 20, T = 15, B = 35, w = 700 - L - R, h = 280 - T - B, max = Math.max(...d.values) * 1.15, n = d.values.length, sx = w / (n - 1);
  let html = '';
  for (let i = 0; i <= 5; i++) { const y = T + (h / 5) * i; html += `<line x1="${L}" y1="${y}" x2="${L + w}" y2="${y}" class="grid-line"/><text x="${L - 8}" y="${y + 4}" class="axis-label" text-anchor="end">${Math.round(max - (max / 5) * i)}</text>`; }
@@ -87,7 +86,7 @@ function lines(p = 'semana') {
  svg.innerHTML = html;
  const line = document.getElementById('animatedLine');
  if (line) { const len = line.getTotalLength(); line.style.strokeDasharray = len; line.style.strokeDashoffset = len; line.style.transition = 'none'; requestAnimationFrame(() => { line.style.transition = 'stroke-dashoffset 1s cubic-bezier(0.4,0,0.2,1)'; line.style.strokeDashoffset = '0'; }); }
- ['statPromedio','statPromedioSub','statTotal','statTotalSub','statMayor','statMayorVal','statMenor','statMenorVal'].forEach((id, i) => document.getElementById(id).textContent = [d.avg, d.avgSub, d.total, d.totalSub, d.mayor, d.mayorVal, d.menor, d.menorVal][i]);
+ ['statPromedio','statPromedioSub','statTotal','statTotalSub','statMayor','statMayorVal','statMenor','statMenorVal'].forEach((id, i) => { const el = document.getElementById(id); if (el) el.textContent = [d.avg, d.avgSub, d.total, d.totalSub, d.mayor, d.mayorVal, d.menor, d.menorVal][i]; });
 }
 document.querySelectorAll('.history-tab').forEach(t => t.addEventListener('click', () => { document.querySelectorAll('.history-tab').forEach(x => x.classList.remove('active')); t.classList.add('active'); lines(t.dataset.period); }));
 
@@ -106,7 +105,9 @@ function alertIcon(t) {
  return `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>`;
 }
 function alertas() {
- const list = document.getElementById('alertasList'); list.innerHTML = '';
+ const list = document.getElementById('alertasList');
+ if (!list) return;
+ list.innerHTML = '';
  ad.filter(a => af === 'todas' ? true : a.status === af.slice(0,-1)).forEach((a, i) => {
   const d = document.createElement('div'); d.className = 'alert-item'; d.style.animationDelay = `${i * 0.06}s`;
   const ic = a.icon === 'warning' ? (a.type === 'danger' ? 'danger-icon' : 'warning-icon') : a.icon === 'info' ? 'info-icon' : 'success-icon';
@@ -115,33 +116,43 @@ function alertas() {
  });
 }
 document.querySelectorAll('.alertas-filter').forEach(b => b.addEventListener('click', () => { document.querySelectorAll('.alertas-filter').forEach(x => x.classList.remove('active')); b.classList.add('active'); af = b.dataset.filter; alertas(); }));
-document.querySelector('.alertas-config-link').addEventListener('click', () => view('config'));
 
 // ====== SLIDERS DE CONFIGURACION ======
-const sL = document.getElementById('sliderLow'), sH = document.getElementById('sliderHigh'), sLv = document.getElementById('sliderLowVal'), sHv = document.getElementById('sliderHighVal');
-function sliderFill(s) { const p = ((s.value - s.min) / (s.max - s.min)) * 100; s.style.background = `linear-gradient(to right, #2c6cef 0%, #2c6cef ${p}%, #2a3042 ${p}%, #2a3042 100%)`; }
-sL.addEventListener('input', () => { sLv.textContent = `${sL.value} %`; sliderFill(sL); });
-sH.addEventListener('input', () => { sHv.textContent = `${sH.value} %`; sliderFill(sH); });
-sliderFill(sL); sliderFill(sH);
+const sL = document.getElementById('sliderLow'), sH = document.getElementById('sliderHigh');
+function sliderFill(s) { if (!s) return; const p = ((s.value - s.min) / (s.max - s.min)) * 100; s.style.background = `linear-gradient(to right, #2c6cef 0%, #2c6cef ${p}%, #2a3042 ${p}%, #2a3042 100%)`; }
+if (sL) { const sLv = document.getElementById('sliderLowVal'); sL.addEventListener('input', () => { sLv.textContent = `${sL.value} %`; sliderFill(sL); }); sliderFill(sL); }
+if (sH) { const sHv = document.getElementById('sliderHighVal'); sH.addEventListener('input', () => { sHv.textContent = `${sH.value} %`; sliderFill(sH); }); sliderFill(sH); }
 
 // ====== VISTA RESUMEN ======
 function resumen() {
- const pct = Math.round(lvl), arc = (pct / 100) * 251, angle = -90 + (pct / 100) * 180;
- document.getElementById('resumenGaugeArc').setAttribute('stroke-dasharray', `${arc} 251`);
- document.getElementById('resumenNeedle').setAttribute('transform', `rotate(${angle} 100 110)`);
- document.getElementById('resumenGaugeVal').textContent = pct;
+ const arc = document.getElementById('resumenGaugeArc');
+ if (!arc) return;
+ const pct = Math.round(lvl), a = (pct / 100) * 251, angle = -90 + (pct / 100) * 180;
+ arc.setAttribute('stroke-dasharray', `${a} 251`);
+ const n = document.getElementById('resumenNeedle');
+ if (n) n.setAttribute('transform', `rotate(${angle} 100 110)`);
+ const v = document.getElementById('resumenGaugeVal');
+ if (v) v.textContent = pct;
  const e = document.getElementById('resumenEstado');
- if (pct <= 20) { e.textContent = 'Crítico'; e.className = 'resumen-estado-value danger'; }
- else if (pct <= 40) { e.textContent = 'Bajo'; e.className = 'resumen-estado-value warning'; }
- else { e.textContent = 'Normal'; e.className = 'resumen-estado-value'; }
- document.getElementById('resumenTemp').textContent = `${Math.round(tmp)}°C`;
- document.getElementById('resumenDisponible').textContent = `${Math.round(CAP * pct / 100).toLocaleString('es-AR')} L`;
- document.getElementById('resumenConsumo').textContent = `${Math.round(CAP * (100 - pct) / 100).toLocaleString('es-AR')} L`;
- document.getElementById('resumenPromedio').textContent = '1.250 L';
+ if (e) {
+  if (pct <= 20) { e.textContent = 'Crítico'; e.className = 'resumen-estado-value danger'; }
+  else if (pct <= 40) { e.textContent = 'Bajo'; e.className = 'resumen-estado-value warning'; }
+  else { e.textContent = 'Normal'; e.className = 'resumen-estado-value'; }
+ }
+ const t = document.getElementById('resumenTemp');
+ if (t) t.textContent = `${Math.round(tmp)}°C`;
+ const d = document.getElementById('resumenDisponible');
+ if (d) d.textContent = `${Math.round(CAP * pct / 100).toLocaleString('es-AR')} L`;
+ const c = document.getElementById('resumenConsumo');
+ if (c) c.textContent = `${Math.round(CAP * (100 - pct) / 100).toLocaleString('es-AR')} L`;
+ const p = document.getElementById('resumenPromedio');
+ if (p) p.textContent = '1.250 L';
  rChart();
 }
 function rChart() {
- const svg = document.getElementById('resumenMiniChart'), data = [65,78,52,85,90,45,72], labels = ['L','M','X','J','V','S','D'];
+ const svg = document.getElementById('resumenMiniChart');
+ if (!svg) return;
+ const data = [65,78,52,85,90,45,72], labels = ['L','M','X','J','V','S','D'];
  const W = 500, H = 170, L = 40, R = 20, T = 10, B = 30, gW = W - L - R, gH = H - T - B, max = 100;
  const pts = data.map((v, i) => ({ x: L + (i / (data.length - 1)) * gW, y: T + gH - (v / max) * gH }));
  const lt = document.body.classList.contains('light-theme'), gc = lt?'rgba(0,0,0,0.06)':'rgba(255,255,255,0.04)', tc = lt?'#6b7280':'#4a5068', cf = lt?'#fff':'#1a1f2e';
@@ -155,7 +166,8 @@ function rChart() {
  html += `<defs><linearGradient id="resumenAreaGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#42a5f5" stop-opacity="0.4"/><stop offset="100%" stop-color="#42a5f5" stop-opacity="0"/></linearGradient></defs>`;
  svg.innerHTML = html;
 }
-document.getElementById('resumenChartSelect').addEventListener('change', rChart);
+const chartSelect = document.getElementById('resumenChartSelect');
+if (chartSelect) chartSelect.addEventListener('change', rChart);
 
 // ====== SIMULACION EN TIEMPO REAL ======
 function simulate() {
@@ -163,16 +175,30 @@ function simulate() {
  lvl = Math.round(lvl * 10) / 10;
  tmp = Math.max(10, Math.min(100, tmp + (Math.random() - 0.5) * 6));
  tmp = Math.round(tmp);
- tank(lvl); gauge(tmp); status(); clock();
- if (cv === 'resumen') resumen();
+ if (page === 'mitanque.html') { tank(lvl); gauge(tmp); status(); clock(); }
+ if (page === 'index.html') resumen();
 }
 
 // ====== CAMBIAR TEMA (oscuro/claro) ======
-const themeToggle = document.getElementById('themeToggle'), iconSun = themeToggle.querySelector('.icon-sun'), iconMoon = themeToggle.querySelector('.icon-moon');
-let isLight = localStorage.getItem('eva-theme') === 'light';
-function theme() { document.body.classList.toggle('light-theme', isLight); iconSun.classList.toggle('hidden', isLight); iconMoon.classList.toggle('hidden', !isLight); }
-theme();
-themeToggle.addEventListener('click', () => { isLight = !isLight; localStorage.setItem('eva-theme', isLight ? 'light' : 'dark'); theme(); if (cv === 'resumen') rChart(); });
+const themeToggle = document.getElementById('themeToggle');
+if (themeToggle) {
+ const iconSun = themeToggle.querySelector('.icon-sun'), iconMoon = themeToggle.querySelector('.icon-moon');
+ let isLight = localStorage.getItem('eva-theme') === 'light';
+ function theme() { document.body.classList.toggle('light-theme', isLight); iconSun.classList.toggle('hidden', isLight); iconMoon.classList.toggle('hidden', !isLight); }
+ theme();
+ themeToggle.addEventListener('click', () => { isLight = !isLight; localStorage.setItem('eva-theme', isLight ? 'light' : 'dark'); theme(); if (page === 'index.html') rChart(); });
+}
 
-// ====== INICIALIZACION ======
-bars(); gauge(tmp); tank(lvl); clock(); lines('semana'); resumen(); view('resumen'); setInterval(simulate, 3000);
+// ====== DROPDOWN DE USUARIO ======
+const userDropdown = document.getElementById('userDropdown');
+const userMenu = document.getElementById('userMenu');
+if (userDropdown && userMenu) {
+ userDropdown.querySelector('.user-info').addEventListener('click', (e) => { e.stopPropagation(); userMenu.classList.toggle('hidden'); });
+ document.addEventListener('click', () => { userMenu.classList.add('hidden'); });
+ userMenu.addEventListener('click', (e) => { e.stopPropagation(); });
+}
+
+// ====== INICIALIZACION SEGUN PAGINA ======
+if (page === 'index.html') { resumen(); setInterval(simulate, 3000); }
+if (page === 'mitanque.html') { bars(); gauge(tmp); tank(lvl); clock(); setInterval(simulate, 3000); }
+if (page === 'alertas.html') { alertas(); }
