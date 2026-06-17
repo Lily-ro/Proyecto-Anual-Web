@@ -1,3 +1,70 @@
+<?php
+session_start();
+require_once(__DIR__ . '/config/db.php');
+
+if(isset($_SESSION['rol'])){
+    switch($_SESSION['rol']){
+        case 'ADMIN':
+            header("Location: admin/index.html");
+            exit;
+        case 'TECNICO':
+            header("Location: tecnico/indextec.html");
+            exit;
+        case 'USUARIO':
+            header("Location: cliente/indexcli.html");
+            exit;
+    }
+}
+
+$error = '';
+
+if($_SERVER['REQUEST_METHOD'] === 'POST'){
+    $email = trim($_POST['email']);
+    $password = $_POST['password'];
+
+    $sql = "SELECT u.id_usuario, u.nombre, u.apellido, u.email, u.password_hash, u.activo, r.nombre AS rol FROM usuarios u INNER JOIN roles r ON u.id_rol = r.id_rol WHERE u.email = ? LIMIT 1";
+    $stmt = $conn->prepare($sql);
+    if(!$stmt){ die("Error SQL: " . $conn->error); }
+    $stmt->bind_param("s", $email);
+    $stmt->execute();
+    $resultado = $stmt->get_result();
+
+    if($resultado->num_rows === 1){
+        $usuario = $resultado->fetch_assoc();
+        if($usuario['activo'] != 1){
+            $error = "Usuario deshabilitado.";
+        }elseif(password_verify($password, $usuario['password_hash'])){
+            $_SESSION['id_usuario'] = $usuario['id_usuario'];
+            $_SESSION['nombre'] = $usuario['nombre'];
+            $_SESSION['apellido'] = $usuario['apellido'];
+            $_SESSION['email'] = $usuario['email'];
+            $_SESSION['rol'] = $usuario['rol'];
+
+            $update = $conn->prepare("UPDATE usuarios SET ultimo_acceso = NOW() WHERE id_usuario = ?");
+            if($update){ $update->bind_param("i", $usuario['id_usuario']); $update->execute(); }
+
+            switch($usuario['rol']){
+                case 'ADMIN':
+                    header("Location: admin/index.html");
+                    exit;
+                case 'TECNICO':
+                    header("Location: tecnico/indextec.html");
+                    exit;
+                case 'USUARIO':
+                    header("Location: cliente/indexcli.html");
+                    exit;
+                default:
+                    $error = "Rol inválido.";
+            }
+        }else{
+            $error = "Contraseña incorrecta.";
+        }
+    }else{
+        $error = "Usuario no encontrado.";
+    }
+}
+?>
+
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -48,6 +115,24 @@ body{background:#0b1120;min-height:100vh;display:flex;padding:30px;gap:30px}
 .login-footer{text-align:center;margin-top:24px;color:#8892a4;font-size:13px}
 .login-footer a{color:#2563eb;text-decoration:none;font-weight:500}
 .login-footer a:hover{text-decoration:underline}
+
+@media(max-width:900px){
+    body{flex-direction:column;padding:20px;gap:20px}
+    .login-left{display:none}
+    .login-right{width:100%;margin-right:0;border-radius:20px;padding:40px 30px}
+    .login-box{max-width:400px}
+}
+
+@media(max-width:480px){
+    body{padding:10px;gap:10px}
+    .login-right{padding:30px 20px;border-radius:16px}
+    .login-header .logo-row span{font-size:22px;letter-spacing:4px}
+    .login-header p{font-size:13px}
+    .form-group label{font-size:13px}
+    .input-wrap input{padding:11px 38px 11px 12px;font-size:13px}
+    .btn-submit{padding:12px;font-size:14px}
+    .extras{flex-direction:column;gap:10px;align-items:flex-start}
+}
 </style>
 </head>
 <body>
