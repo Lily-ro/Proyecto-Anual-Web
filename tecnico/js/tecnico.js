@@ -1,4 +1,4 @@
-// ====== ESTADO GLOBAL ======
+// ESTADO GLOBAL 
 const page = location.pathname.split('/').pop() || 'indextec.html';
 let isLight = localStorage.getItem('eva-theme') === 'light';
 const themeToggle = document.getElementById('themeToggle');
