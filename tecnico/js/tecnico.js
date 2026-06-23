@@ -1,5 +1,5 @@
 // ESTADO GLOBAL 
-const page = location.pathname.split('/').pop() || 'indextec.html';
+const page = location.pathname.split('/').pop() || 'indextec.php';
 let isLight = localStorage.getItem('eva-theme') === 'light';
 const themeToggle = document.getElementById('themeToggle');
 if (themeToggle) {
@@ -52,4 +52,4 @@ function drawDonut() {
   offset += len;
  });
 }
-if (page === 'indextec.html') drawDonut();
+if (page === 'indextec.php') drawDonut();

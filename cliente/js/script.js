@@ -1,7 +1,7 @@
 // ====== ESTADO GLOBAL ======
 const CAP = 4000;
 let lvl = 78, tmp = 70;
-const page = location.pathname.split('/').pop() || 'index.html';
+const page = location.pathname.split('/').pop() || 'indexcli.php';
 
 // ====== ACTUALIZAR NIVEL DEL TANQUE ======
 function tank(pct) {
@@ -175,8 +175,8 @@ function simulate() {
  lvl = Math.round(lvl * 10) / 10;
  tmp = Math.max(10, Math.min(100, tmp + (Math.random() - 0.5) * 6));
  tmp = Math.round(tmp);
- if (page === 'mitanque.html') { tank(lvl); gauge(tmp); status(); clock(); }
- if (page === 'index.html') resumen();
+ if (page === 'mitanque.php') { tank(lvl); gauge(tmp); status(); clock(); }
+ if (page === 'indexcli.php') resumen();
 }
 
 // ====== CAMBIAR TEMA (oscuro/claro) ======
@@ -186,7 +186,7 @@ if (themeToggle) {
  let isLight = localStorage.getItem('eva-theme') === 'light';
  function theme() { document.body.classList.toggle('light-theme', isLight); iconSun.classList.toggle('hidden', isLight); iconMoon.classList.toggle('hidden', !isLight); }
  theme();
- themeToggle.addEventListener('click', () => { isLight = !isLight; localStorage.setItem('eva-theme', isLight ? 'light' : 'dark'); theme(); if (page === 'index.html') rChart(); });
+ themeToggle.addEventListener('click', () => { isLight = !isLight; localStorage.setItem('eva-theme', isLight ? 'light' : 'dark'); theme(); if (page === 'indexcli.php') rChart(); });
 }
 
 // ====== DROPDOWN DE USUARIO ======
@@ -199,6 +199,6 @@ if (userDropdown && userMenu) {
 }
 
 // ====== INICIALIZACION SEGUN PAGINA ======
-if (page === 'index.html') { resumen(); setInterval(simulate, 3000); }
-if (page === 'mitanque.html') { bars(); gauge(tmp); tank(lvl); clock(); setInterval(simulate, 3000); }
-if (page === 'alertas.html') { alertas(); }
+if (page === 'indexcli.php') { resumen(); setInterval(simulate, 3000); }
+if (page === 'mitanque.php') { bars(); gauge(tmp); tank(lvl); clock(); setInterval(simulate, 3000); }
+if (page === 'alertas.php') { alertas(); }
