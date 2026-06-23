@@ -5,13 +5,13 @@ require_once(__DIR__ . '/config/db.php');
 if(isset($_SESSION['rol'])){
     switch($_SESSION['rol']){
         case 'ADMIN':
-            header("Location: admin/index.html");
+            header("Location: admin/index.php");
             exit;
         case 'TECNICO':
-            header("Location: tecnico/indextec.html");
+            header("Location: tecnico/indextec.php");
             exit;
         case 'USUARIO':
-            header("Location: cliente/indexcli.html");
+            header("Location: cliente/indexcli.php");
             exit;
     }
 }
@@ -45,13 +45,13 @@ if($_SERVER['REQUEST_METHOD'] === 'POST'){
 
             switch($usuario['rol']){
                 case 'ADMIN':
-                    header("Location: admin/index.html");
+                    header("Location: admin/index.php");
                     exit;
                 case 'TECNICO':
-                    header("Location: tecnico/indextec.html");
+                    header("Location: tecnico/indextec.php");
                     exit;
                 case 'USUARIO':
-                    header("Location: cliente/indexcli.html");
+                    header("Location: cliente/indexcli.php");
                     exit;
                 default:
                     $error = "Rol inválido.";
