@@ -53,7 +53,7 @@ if(!isset($_SESSION['rol']) || $_SESSION['rol'] !== 'USUARIO'){
    </button>
     <div class="user-dropdown" id="userDropdown">
      <div class="user-info">
-      <div class="user-details"><div class="user-name"><?php echo $_SESSION['nombre'] ?? 'Usuario'; ?></div><div class="user-role">Plebeyo</div></div>
+      <div class="user-details"><div class="user-name"><?php echo $_SESSION['nombre'] ?? 'Usuario'; ?></div><div class="user-role">Cliente</div></div>
       <div class="user-avatar"><?php echo strtoupper(substr($_SESSION['nombre'] ?? 'U', 0, 2)); ?></div>
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#7a829a" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
      </div>

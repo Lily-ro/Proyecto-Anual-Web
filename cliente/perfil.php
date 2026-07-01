@@ -87,11 +87,9 @@ if(!isset($_SESSION['rol']) || $_SESSION['rol'] !== 'USUARIO'){
     <div class="profile-field"><div class="profile-field-label">Rol</div><div class="profile-field-value">Cliente</div></div>
    </div>
    <div class="content-divider"></div>
-   <div style="padding:20px 0;text-align:center">
-    <a href="../config/logout.php" style="display:inline-flex;align-items:center;gap:8px;padding:12px 32px;background:var(--rd,#f44336);color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:600;text-decoration:none;cursor:pointer;transition:opacity .2s" onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">
-     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-     Cerrar sesión
-    </a>
+   <div class="content-divider"></div>
+   <div class="actions-row">
+    <a href="../config/logout.php" class="btn btn-danger" style="text-decoration:none;text-align:center;display:inline-block">Cerrar sesión</a>
    </div>
   </div>
  </div>

@@ -278,6 +278,105 @@ body.light-theme .resumen-gauge-bg{stroke:var(--gbg)}
 body.light-theme .resumen-gauge-ticks{stroke:var(--gtk)}
 body.light-theme .resumen-gauge-labels{fill:var(--glb)}
 
+/* ====== TEMA CLARO - SVG Y ELEMENTOS HARDCODEADOS ====== */
+
+/* Tarjetas - sombra suave en modo claro */
+body.light-theme .card:hover{box-shadow:0 8px 30px rgba(0,0,0,.06)}
+
+/* Gauge del tanque */
+body.light-theme .gauge-bg{stroke:#e0e3e8}
+body.light-theme .gauge-arc{stroke:var(--ac)}
+body.light-theme .gauge-ticks line{stroke:#9ca3af}
+body.light-theme .gauge-labels text{fill:#6b7280}
+body.light-theme .gauge-value-text{color:#1a1f2e}
+body.light-theme .gauge-card .gauge-wrapper{border-color:var(--ac);background:rgba(21,101,192,0.03)}
+
+/* Tanque visual */
+body.light-theme .tank-body{stroke:#d1d5db}
+body.light-theme .tank-water{fill:#42a5f5}
+body.light-theme .tank-water-shine{fill:rgba(255,255,255,0.3)}
+body.light-theme .tank-percent{color:#1a1f2e}
+body.light-theme .tank-label{color:#6b7280}
+body.light-theme .tank-volume{color:#1a1f2e}
+body.light-theme .tank-capacity{color:#6b7280}
+
+/* Estado del tanque */
+body.light-theme .estado-box{background:#f5f7fa;border-color:#e0e3e8}
+body.light-theme .estado-box h4{color:#1a1f2e}
+body.light-theme .estado-text{color:#2e7d32}
+body.light-theme .estado-text.alert{color:#c62828}
+body.light-theme .estado-text.warning{color:#e65100}
+body.light-theme .estado-desc{color:#6b7280}
+body.light-theme .last-update{color:#9ca3af}
+
+/* Grafico de barras */
+body.light-theme .bar-top{background:linear-gradient(180deg,#f48fb1,#e57373)}
+body.light-theme .bar-bottom{background:linear-gradient(180deg,#7986cb,#5c6bc0)}
+body.light-theme .bar-label{color:#6b7280}
+body.light-theme .chart-y-axis span{color:#9ca3af}
+
+/* Historial - grafico de lineas */
+body.light-theme .grid-line{stroke:#e0e3e8}
+body.light-theme .axis-label{fill:#6b7280}
+body.light-theme .data-line{stroke:#1565c0}
+body.light-theme .data-dot{fill:#1565c0;stroke:#fff}
+body.light-theme .history-stat{background:#f5f7fa;border-color:#e0e3e8}
+body.light-theme .history-stat:hover{box-shadow:0 6px 20px rgba(0,0,0,.06)}
+body.light-theme .history-tab{color:#6b7280}
+body.light-theme .history-tab:hover:not(.active){color:#1a1f2e}
+
+/* Alertas */
+body.light-theme .alert-item{background:#fff;border-color:#e0e3e8}
+body.light-theme .alert-item:hover{background:#f5f7fa;border-color:#d1d5db}
+body.light-theme .alertas-filter:hover:not(.active){border-color:#d1d5db}
+body.light-theme .alert-icon.warning-icon{background:rgba(230,81,0,0.08)}
+body.light-theme .alert-icon.danger-icon{background:rgba(198,40,40,0.08)}
+body.light-theme .alert-icon.info-icon{background:rgba(21,101,192,0.08)}
+body.light-theme .alert-icon.success-icon{background:rgba(46,125,50,0.08)}
+body.light-theme .alert-badge.activo{background:rgba(198,40,40,0.1);color:#c62828}
+body.light-theme .alert-badge.resuelta{background:rgba(46,125,50,0.1);color:#2e7d32}
+
+/* Configuracion */
+body.light-theme .slider-input{background:#e0e3e8}
+body.light-theme .slider-input::-webkit-slider-thumb{background:#fff;border-color:var(--ac)}
+body.light-theme .slider-input::-moz-range-thumb{background:#fff;border-color:var(--ac)}
+body.light-theme .config-threshold-icon.orange{background:rgba(230,81,0,0.08)}
+body.light-theme .config-threshold-icon.red{background:rgba(198,40,40,0.08)}
+
+/* Resumen - valores rapidos */
+body.light-theme .resumen-rapido-item{border-color:#e0e3e8}
+body.light-theme .resumen-rapido-item:hover{background:#f5f7fa}
+body.light-theme .resumen-chart-select{background:#f5f7fa;border-color:#e0e3e8}
+body.light-theme .resumen-chart-select option{background:#fff}
+
+/* Resumen - estado y temperatura */
+body.light-theme .resumen-estado-box{background:#f5f7fa;border-color:#e0e3e8}
+body.light-theme .resumen-estado-value{color:#2e7d32}
+body.light-theme .resumen-estado-value.warning{color:#e65100}
+body.light-theme .resumen-estado-value.danger{color:#c62828}
+body.light-theme .resumen-temp-box{background:#f5f7fa;border-color:#e0e3e8}
+body.light-theme .resumen-temp-icon{background:rgba(21,101,192,0.08)}
+body.light-theme .resumen-temp-value{color:#1a1f2e}
+body.light-theme .resumen-temp-label{color:#6b7280}
+
+/* User menu */
+body.light-theme .user-menu{box-shadow:0 8px 30px rgba(0,0,0,.1)}
+
+/* Dispositivo status glow */
+body.light-theme .device-status{background:rgba(46,125,50,0.06);border-color:rgba(46,125,50,0.12)}
+
+/* Menu hamburguesa */
+body.light-theme .menu-btn{color:#6b7280}
+
+/* Perfil (paginas de perfil) */
+body.light-theme .profile-avatar{color:#fff}
+body.light-theme .profile-field{border-color:#e0e3e8}
+body.light-theme .content-card{background:#fff;border-color:#e0e3e8}
+body.light-theme .content-divider{background:#e0e3e8}
+body.light-theme .profile-section-title{color:#1a1f2e}
+body.light-theme .profile-field-label{color:#6b7280}
+body.light-theme .profile-field-value{color:#1a1f2e}
+
 /*RESPONSIVE (max 900px) */
 @media(max-width:900px){
  .sidebar{width:60px;padding:16px 0}

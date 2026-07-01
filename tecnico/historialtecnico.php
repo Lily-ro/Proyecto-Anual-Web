@@ -10,7 +10,7 @@ if(!isset($_SESSION['rol']) || $_SESSION['rol'] !== 'TECNICO'){
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>EVA - Histórico Técnico</title>
+<title>EVA - Historial Técnico</title>
 <link rel="stylesheet" href="css/tecnico.css">
 </head>
 <body>
@@ -30,8 +30,6 @@ if(!isset($_SESSION['rol']) || $_SESSION['rol'] !== 'TECNICO'){
    <ul class="sub-menu"><li><a href="mantagregar.php">Agregar sensor</a></li><li><a href="manteliminar.php">Eliminar sensor</a></li></ul>
    <li class="anim-slide3" data-toggle="inst"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v16"/></svg><span>Instalación</span><span class="arrow">▶</span></li>
    <ul class="sub-menu"><li><a href="instprogramar.php">Programar instalación</a></li><li><a href="instalar.php">Instalar sistema EVA</a></li></ul>
-   <li class="anim-slide4" data-toggle="sen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg><span>Sensores</span><span class="arrow">▶</span></li>
-   <ul class="sub-menu"><li><a href="senconfig.php">Configurar sensores</a></li></ul>
    <li class="active anim-slide5"><a href="historialtecnico.php"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg><span>Histórico Técnico</span></a></li>
    <li class="anim-slide6"><a href="perfil.php"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><span>Perfil</span></a></li>
   </ul>

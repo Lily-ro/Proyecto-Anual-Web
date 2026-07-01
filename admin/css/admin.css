@@ -160,6 +160,31 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--tx);display
 .quick-action-icon.purple{background:rgba(156,39,176,0.1);color:#9c27b0}
 .quick-action-text{font-size:13px;font-weight:500;color:var(--tx2)}
 
+/* ====== TEMA CLARO - SVG Y ELEMENTOS HARDCODEADOS ====== */
+
+body.light-theme .stat-card:hover{box-shadow:0 6px 20px rgba(0,0,0,.06)}
+body.light-theme .card{background:#fff}
+body.light-theme .card:hover{box-shadow:0 6px 20px rgba(0,0,0,.06)}
+body.light-theme .donut-bg{stroke:#e0e3e8}
+body.light-theme .donut-val{color:#1a1f2e}
+body.light-theme .donut-label{color:#6b7280}
+body.light-theme .donut-legend-text{color:#6b7280}
+body.light-theme .donut-legend-val{color:#1a1f2e}
+body.light-theme .donut-legend-pct{color:#9ca3af}
+body.light-theme .table th{color:#9ca3af}
+body.light-theme .table td{color:#374151}
+body.light-theme .badge.alta{background:rgba(198,40,40,0.08);color:#c62828}
+body.light-theme .badge.media{background:rgba(230,81,0,0.08);color:#e65100}
+body.light-theme .badge.baja{background:rgba(46,125,50,0.08);color:#2e7d32}
+body.light-theme .badge.activo{background:rgba(46,125,50,0.08);color:#2e7d32}
+body.light-theme .badge.inactivo{background:rgba(198,40,40,0.08);color:#c62828}
+body.light-theme .quick-action{background:#fff;border-color:#e0e3e8}
+body.light-theme .quick-action:hover{background:#f5f7fa;border-color:#d1d5db}
+body.light-theme .quick-action-text{color:#1a1f2e}
+body.light-theme .bell-badge{background:#c62828}
+body.light-theme .user-menu{box-shadow:0 8px 30px rgba(0,0,0,.1)}
+body.light-theme .header{background:#fff}
+
 /* LINE CHART */
 .line-chart{width:100%;height:160px}
 

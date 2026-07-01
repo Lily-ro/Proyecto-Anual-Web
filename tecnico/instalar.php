@@ -33,8 +33,6 @@ if(!isset($_SESSION['rol']) || $_SESSION['rol'] !== 'TECNICO'){
     <li><a href="instprogramar.php">Programar instalación</a></li>
     <li><a href="instalar.php" style="font-weight:600">Instalar sistema EVA</a></li>
    </ul>
-   <li class="anim-slide4" data-toggle="sen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg><span>Sensores</span><span class="arrow">▶</span></li>
-   <ul class="sub-menu"><li><a href="senconfig.php">Configurar sensores</a></li></ul>
    <li class="anim-slide5"><a href="historialtecnico.php"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg><span>Histórico Técnico</span></a></li>
    <li class="anim-slide6"><a href="perfil.php"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><span>Perfil</span></a></li>
   </ul>
