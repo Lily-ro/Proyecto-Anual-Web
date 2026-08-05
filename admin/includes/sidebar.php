@@ -18,26 +18,58 @@ if (!isset($currentPage)) $currentPage = 'inicio';
      <span>Inicio</span>
     </a>
    </li>
-   <li data-toggle="usuarios" class="<?php echo $currentPage === 'usuarios' ? 'open' : ''; ?>">
+   <li data-toggle="usuarios" class="<?php echo in_array($currentPage, ['usuarios','roles']) ? 'open' : ''; ?>">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
     <span>Usuarios</span>
     <span class="arrow">&#9654;</span>
    </li>
-   <ul class="sub-menu <?php echo $currentPage === 'usuarios' ? 'open' : ''; ?>">
-    <li><a href="#">Gestionar usuarios</a></li>
-    <li><a href="#">Roles y permisos</a></li>
-   </ul>
-   <li data-toggle="tecnicos" class="<?php echo in_array($currentPage, ['tecnicos', 'tecnicos_historial']) ? 'open' : ''; ?>">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/></svg>
-    <span>Técnicos</span>
-    <span class="arrow">&#9654;</span>
-   </li>
-   <ul class="sub-menu <?php echo in_array($currentPage, ['tecnicos', 'tecnicos_historial']) ? 'open' : ''; ?>">
-    <li><a href="tecnicos.php">Gestión de Técnicos</a></li>
-    <li><a href="#">Asignar instalaciones</a></li>
-    <li><a href="#">Supervisar mantenimientos</a></li>
-   </ul>
-   <li data-toggle="dispositivos" class="<?php echo $currentPage === 'dispositivos' ? 'open' : ''; ?>">
+    <ul class="sub-menu <?php echo in_array($currentPage, ['usuarios','roles']) ? 'open' : ''; ?>">
+     <li><a href="usuarios.php">Gestionar usuarios</a></li>
+     <li><a href="roles.php">Roles y permisos</a></li>
+    </ul>
+   <li class="<?php echo $currentPage === 'empresas' ? 'active' : ''; ?>">
+     <a href="empresas.php">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21h18M3 7v14M9 7v14M15 7v14M21 7v14M6 11h.01M6 15h.01M12 11h.01M12 15h.01M18 11h.01M18 15h.01"/></svg>
+      <span>Empresas</span>
+     </a>
+    </li>
+    <li class="<?php echo $currentPage === 'edificios' ? 'active' : ''; ?>">
+     <a href="edificios.php">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21h18M9 8h1M9 12h1M9 16h1M14 8h1M14 12h1M14 16h1M5 21V5a2 2 0 012-2h10a2 2 0 012 2v16"/></svg>
+      <span>Edificios</span>
+     </a>
+    </li>
+    <li class="<?php echo $currentPage === 'sensores' ? 'active' : ''; ?>">
+     <a href="sensores.php">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+      <span>Sensores</span>
+     </a>
+    </li>
+    <li class="<?php echo $currentPage === 'alertas' ? 'active' : ''; ?>">
+     <a href="alertas.php">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>
+      <span>Alertas</span>
+     </a>
+    </li>
+    <li class="<?php echo $currentPage === 'mantenimientos' ? 'active' : ''; ?>">
+     <a href="mantenimientos.php">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/></svg>
+      <span>Mantenimientos</span>
+     </a>
+    </li>
+    <li class="<?php echo $currentPage === 'instalaciones' ? 'active' : ''; ?>">
+     <a href="instalaciones.php">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v16"/></svg>
+      <span>Instalaciones</span>
+     </a>
+    </li>
+    <li class="<?php echo $currentPage === 'inventario' ? 'active' : ''; ?>">
+     <a href="inventario.php">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+      <span>Inventario</span>
+     </a>
+    </li>
+    <li data-toggle="dispositivos" class="<?php echo $currentPage === 'dispositivos' ? 'open' : ''; ?>">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><line x1="9" y1="1" x2="9" y2="4"/><line x1="15" y1="1" x2="15" y2="4"/><line x1="9" y1="20" x2="9" y2="23"/><line x1="15" y1="20" x2="15" y2="23"/><line x1="20" y1="9" x2="23" y2="9"/><line x1="20" y1="14" x2="23" y2="14"/><line x1="1" y1="9" x2="4" y2="9"/><line x1="1" y1="14" x2="4" y2="14"/></svg>
     <span>Dispositivos EVA</span>
     <span class="arrow">&#9654;</span>

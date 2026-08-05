@@ -77,7 +77,7 @@ $pageSubtitle = 'Generación de reportes y estadísticas generales';
       <select class="form-input" id="reportTipo">
        <option value="">Seleccionar tipo...</option>
        <option value="usuarios">Reporte de usuarios</option>
-       <option value="tecnicos">Reporte de técnicos</option>
+        <option value="empresas">Reporte de empresas</option>
        <option value="dispositivos">Reporte de dispositivos</option>
        <option value="tanques">Reporte de tanques</option>
        <option value="compras">Reporte de compras</option>
