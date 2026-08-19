@@ -10,7 +10,7 @@ if(!isset($_SESSION['rol']) || $_SESSION['rol'] !== 'USUARIO'){
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>EVA - Alertas</title>
+<title>EVA - Mantenimiento</title>
 <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
@@ -27,10 +27,10 @@ if(!isset($_SESSION['rol']) || $_SESSION['rol'] !== 'USUARIO'){
   <ul>
    <li class="anim-slide1"><a href="indexcli.php"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg><span>Resumen</span></a></li>
    <li class="anim-slide2"><a href="mitanque.php"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="4" y1="18" x2="20" y2="18"/><rect x="7" y="12" width="10" height="6" rx="1" fill="currentColor" opacity="0.3"/></svg><span>Mi Tanque</span></a></li>
-   <li class="active anim-slide3"><a href="alertas.php"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg><span>Alertas</span></a></li>
+   <li class="anim-slide3"><a href="alertas.php"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg><span>Alertas</span></a></li>
    <li class="anim-slide4"><a href="configuracion.php"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 01-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg><span>Configuración</span></a></li>
    <li class="anim-slide5"><a href="historial.php"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg><span>Historial</span></a></li>
-   <li class="anim-slide6"><a href="mantenimiento.php"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/></svg><span>Mantenimiento</span></a></li>
+   <li class="active anim-slide6"><a href="mantenimiento.php"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/></svg><span>Mantenimiento</span></a></li>
   </ul>
  </nav>
  <div class="device-status">
@@ -77,16 +77,93 @@ if(!isset($_SESSION['rol']) || $_SESSION['rol'] !== 'USUARIO'){
    </div>
   </header>
 
- <!--VISTA ALERTAS-->
- <div class="view active" id="viewAlertas">
-  <div class="alertas-card anim-bounce0">
-   <div class="alertas-header">
-    <div class="alertas-header-top"><div class="alertas-title">Alertas</div><a class="alertas-config-link" href="configuracion.php">Configurar alertas</a></div>
-    <div class="alertas-subtitle">Gestiona las alertas y notificaciones de tu sistema</div>
-   </div>
-   <div class="alertas-filters"><button class="alertas-filter" data-filter="todas">Todas</button><button class="alertas-filter active" data-filter="activas">Activas</button><button class="alertas-filter" data-filter="resueltas">Resueltas</button></div>
-   <div class="alertas-list" id="alertasList"></div>
+ <!--VISTA MANTENIMIENTO-->
+ <div class="view active" id="viewMantenimiento">
+  <div class="mt-page-title anim-bounce0">Solicitar mantenimiento</div>
+  <div class="mt-page-subtitle anim-bounce0">Deberas seleccionar un problema con tu dispositivo, completar el formulario y nuestro equipo tecnico revisara tu solicitud.</div>
+
+  <!-- BOTON RESPUESTAS -->
+  <div class="anim-bounce0" style="margin-bottom:20px">
+   <button class="mt-respuestas-btn" id="btnVerRespuestas">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>
+    Respuestas
+   </button>
   </div>
+
+  <!-- DOS COLUMNAS -->
+  <div class="mt-grid">
+
+   <!-- COMO FUNCIONA -->
+   <div class="mt-card anim-bounce1">
+    <div class="mt-card-title">Como funciona?</div>
+    <div class="mt-steps">
+     <div class="mt-step">
+      <div class="mt-step-num">1</div>
+      <div class="mt-step-text">Envias tu solicitud describiendo el problema.</div>
+     </div>
+     <div class="mt-step">
+      <div class="mt-step-num">2</div>
+      <div class="mt-step-text">Un tecnico revisa tu solicitud.</div>
+     </div>
+     <div class="mt-step">
+      <div class="mt-step-num">3</div>
+      <div class="mt-step-text">Te informaremos el estado y la solucion.</div>
+     </div>
+    </div>
+   </div>
+
+   <!-- FORMULARIO -->
+   <div class="mt-card anim-bounce2">
+    <div class="mt-card-title">Nueva Solicitud de mantenimiento</div>
+    <form id="mtForm" onsubmit="return false">
+     <div class="mt-field">
+      <select id="mtTanque" class="mt-select">
+       <option value="">Seleccionar tanque...</option>
+       <option value="tanque1">Mi tanque principal (10000L)</option>
+       <option value="tanque2">Tanque secundario (5000L)</option>
+       <option value="tanque3">Tanque reserva (3000L)</option>
+      </select>
+     </div>
+     <div class="mt-field">
+      <label class="mt-label">Descripcion del problema</label>
+      <textarea id="mtDescripcion" class="mt-textarea" maxlength="500" placeholder="Describe brevemente que esta sucediendo..."></textarea>
+      <div class="mt-charcount"><span id="mtCharCount">0</span>/500</div>
+     </div>
+     <div class="mt-upload" id="mtUpload">
+      <svg class="mt-upload-icon" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+      <div class="mt-upload-title">Adjuntar imagen (opcional)</div>
+      <div class="mt-upload-desc">Arrastra una imagen aqui o hace click</div>
+      <div class="mt-upload-hint">(Formatos: JPG, PNG. Max. 5MB)</div>
+      <input type="file" id="mtFileInput" accept="image/*" style="display:none">
+     </div>
+     <button type="button" class="mt-enviar-btn" id="mtEnviar">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+      Enviar solicitud
+     </button>
+    </form>
+   </div>
+
+  </div>
+
+  <!-- TABLA DE SOLICITUDES -->
+  <div class="mt-card anim-bounce3" style="margin-top:20px">
+   <div style="overflow-x:auto">
+    <table class="mt-table">
+     <thead>
+      <tr>
+       <th>N Solicitud</th>
+       <th>Fecha</th>
+       <th>Problema</th>
+       <th>Estado</th>
+       <th>Ult. Actualizacion</th>
+       <th></th>
+      </tr>
+     </thead>
+     <tbody id="mtTablaBody"></tbody>
+    </table>
+   </div>
+  </div>
+
  </div>
 </div>
 <script src="js/script.js"></script>

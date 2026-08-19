@@ -10,7 +10,7 @@ if(!isset($_SESSION['rol']) || $_SESSION['rol'] !== 'USUARIO'){
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>EVA - Alertas</title>
+<title>EVA - Historial</title>
 <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
@@ -27,9 +27,9 @@ if(!isset($_SESSION['rol']) || $_SESSION['rol'] !== 'USUARIO'){
   <ul>
    <li class="anim-slide1"><a href="indexcli.php"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg><span>Resumen</span></a></li>
    <li class="anim-slide2"><a href="mitanque.php"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="4" y1="18" x2="20" y2="18"/><rect x="7" y="12" width="10" height="6" rx="1" fill="currentColor" opacity="0.3"/></svg><span>Mi Tanque</span></a></li>
-   <li class="active anim-slide3"><a href="alertas.php"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg><span>Alertas</span></a></li>
+   <li class="anim-slide3"><a href="alertas.php"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg><span>Alertas</span></a></li>
    <li class="anim-slide4"><a href="configuracion.php"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 01-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg><span>Configuración</span></a></li>
-   <li class="anim-slide5"><a href="historial.php"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg><span>Historial</span></a></li>
+   <li class="active anim-slide5"><a href="historial.php"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg><span>Historial</span></a></li>
    <li class="anim-slide6"><a href="mantenimiento.php"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/></svg><span>Mantenimiento</span></a></li>
   </ul>
  </nav>
@@ -77,16 +77,101 @@ if(!isset($_SESSION['rol']) || $_SESSION['rol'] !== 'USUARIO'){
    </div>
   </header>
 
- <!--VISTA ALERTAS-->
- <div class="view active" id="viewAlertas">
-  <div class="alertas-card anim-bounce0">
-   <div class="alertas-header">
-    <div class="alertas-header-top"><div class="alertas-title">Alertas</div><a class="alertas-config-link" href="configuracion.php">Configurar alertas</a></div>
-    <div class="alertas-subtitle">Gestiona las alertas y notificaciones de tu sistema</div>
+ <!--VISTA HISTORIAL-->
+ <div class="view active" id="viewHistorial">
+
+  <div class="config-page-title">Historial de mediciones</div>
+  <div class="config-page-subtitle">Consulta el registro historico del nivel, temperatura y humedad de tus tanques</div>
+
+  <!-- FILTROS -->
+  <div class="card anim-bounce0" style="margin-bottom:20px">
+   <div class="card-title">Filtros de busqueda</div>
+   <div class="alertas-filters" style="margin-bottom:0;flex-wrap:wrap;gap:10px;align-items:flex-end">
+    <div style="display:flex;flex-direction:column;gap:5px;flex:1;min-width:140px">
+     <span style="font-size:12px;color:var(--tx4)">Tanque</span>
+     <select id="histTankSelect" style="background:var(--inp);border:1px solid var(--bd3);border-radius:8px;padding:9px 12px;color:var(--tx);font-size:13px;font-family:inherit;outline:none;width:100%">
+      <option value="todos">Todos los tanques</option>
+      <option value="tanque1">Tanque Principal - Planta Baja</option>
+      <option value="tanque2">Tanque Secundario - Piso 2</option>
+      <option value="tanque3">Tanque Reserva - Terraza</option>
+     </select>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:5px;flex:1;min-width:140px">
+     <span style="font-size:12px;color:var(--tx4)">Desde</span>
+     <input type="date" id="histDateFrom" value="2025-05-01" style="background:var(--inp);border:1px solid var(--bd3);border-radius:8px;padding:9px 12px;color:var(--tx);font-size:13px;font-family:inherit;outline:none;width:100%">
+    </div>
+    <div style="display:flex;flex-direction:column;gap:5px;flex:1;min-width:140px">
+     <span style="font-size:12px;color:var(--tx4)">Hasta</span>
+     <input type="date" id="histDateTo" value="2025-05-15" style="background:var(--inp);border:1px solid var(--bd3);border-radius:8px;padding:9px 12px;color:var(--tx);font-size:13px;font-family:inherit;outline:none;width:100%">
+    </div>
+    <button class="alertas-filter active" id="histBtnFilter" style="white-space:nowrap">
+     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-right:4px"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
+     Filtrar
+    </button>
    </div>
-   <div class="alertas-filters"><button class="alertas-filter" data-filter="todas">Todas</button><button class="alertas-filter active" data-filter="activas">Activas</button><button class="alertas-filter" data-filter="resueltas">Resueltas</button></div>
-   <div class="alertas-list" id="alertasList"></div>
   </div>
+
+  <!-- TABLA -->
+  <div class="card anim-bounce1" style="margin-bottom:20px">
+   <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px">
+    <div class="card-title" style="margin-bottom:0">Mediciones historicas</div>
+    <span id="histTableCount" style="font-size:12px;color:var(--tx4)">12 registros</span>
+   </div>
+   <div style="overflow-x:auto">
+    <table style="width:100%;border-collapse:collapse">
+     <thead>
+      <tr>
+       <th style="padding:10px 14px;text-align:left;font-size:12px;font-weight:600;color:var(--tx4);border-bottom:2px solid var(--bd2);white-space:nowrap">Fecha</th>
+       <th style="padding:10px 14px;text-align:left;font-size:12px;font-weight:600;color:var(--tx4);border-bottom:2px solid var(--bd2);white-space:nowrap">Hora</th>
+       <th style="padding:10px 14px;text-align:left;font-size:12px;font-weight:600;color:var(--tx4);border-bottom:2px solid var(--bd2);white-space:nowrap">Nivel (cm)</th>
+       <th style="padding:10px 14px;text-align:left;font-size:12px;font-weight:600;color:var(--tx4);border-bottom:2px solid var(--bd2);white-space:nowrap">Porcentaje</th>
+       <th style="padding:10px 14px;text-align:left;font-size:12px;font-weight:600;color:var(--tx4);border-bottom:2px solid var(--bd2);white-space:nowrap">Temperatura</th>
+       <th style="padding:10px 14px;text-align:left;font-size:12px;font-weight:600;color:var(--tx4);border-bottom:2px solid var(--bd2);white-space:nowrap">Humedad</th>
+       <th style="padding:10px 14px;text-align:left;font-size:12px;font-weight:600;color:var(--tx4);border-bottom:2px solid var(--bd2);white-space:nowrap">Estado</th>
+      </tr>
+     </thead>
+     <tbody id="histTableBody"></tbody>
+    </table>
+   </div>
+  </div>
+
+  <!-- GRAFICO -->
+  <div class="card anim-bounce2">
+   <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:10px">
+    <div class="card-title" style="margin-bottom:0">Evolucion del nivel del tanque</div>
+    <div class="history-tabs">
+     <button class="history-tab active" data-period="semana">Semana</button>
+     <button class="history-tab" data-period="mes">Mes</button>
+     <button class="history-tab" data-period="trimestre">Trimestre</button>
+    </div>
+   </div>
+   <div class="line-chart-area">
+    <svg class="line-chart-svg" id="histChartSvg" viewBox="0 0 700 300" preserveAspectRatio="xMidYMid meet"></svg>
+   </div>
+   <div class="history-stats">
+    <div class="history-stat">
+     <div class="history-stat-label">Promedio</div>
+     <div class="history-stat-value blue" id="statPromedio">67%</div>
+     <div class="history-stat-sub" id="statPromedioSub">134 cm promedio</div>
+    </div>
+    <div class="history-stat">
+     <div class="history-stat-label">Total lecturas</div>
+     <div class="history-stat-value" id="statTotal">12</div>
+     <div class="history-stat-sub" id="statTotalSub">mediciones</div>
+    </div>
+    <div class="history-stat">
+     <div class="history-stat-label">Maximo</div>
+     <div class="history-stat-value" id="statMayor">85%</div>
+     <div class="history-stat-sub" id="statMayorVal">13 May 14:00</div>
+    </div>
+    <div class="history-stat">
+     <div class="history-stat-label">Minimo</div>
+     <div class="history-stat-value" id="statMenor">42%</div>
+     <div class="history-stat-sub" id="statMenorVal">12 May 08:00</div>
+    </div>
+   </div>
+  </div>
+
  </div>
 </div>
 <script src="js/script.js"></script>

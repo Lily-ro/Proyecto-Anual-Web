@@ -202,3 +202,196 @@ if (userDropdown && userMenu) {
 if (page === 'indexcli.php') { resumen(); setInterval(simulate, 3000); }
 if (page === 'mitanque.php') { bars(); gauge(tmp); tank(lvl); clock(); setInterval(simulate, 3000); }
 if (page === 'alertas.php') { alertas(); }
+if (page === 'historial.php') { historialInit(); }
+if (page === 'mantenimiento.php') { mantenimientoInit(); }
+
+// ====== VISTA HISTORIAL ======
+const histData = [
+ {fecha:'15/05/2025',hora:'14:00',nivel:134,pct:67,tmp:22,hum:55,estado:'Normal'},
+ {fecha:'15/05/2025',hora:'08:00',nivel:140,pct:70,tmp:19,hum:60,estado:'Normal'},
+ {fecha:'14/05/2025',hora:'20:00',nivel:128,pct:64,tmp:24,hum:50,estado:'Normal'},
+ {fecha:'14/05/2025',hora:'14:00',nivel:150,pct:75,tmp:26,hum:45,estado:'Normal'},
+ {fecha:'14/05/2025',hora:'08:00',nivel:146,pct:73,tmp:20,hum:58,estado:'Normal'},
+ {fecha:'13/05/2025',hora:'20:00',nivel:160,pct:80,tmp:23,hum:52,estado:'Normal'},
+ {fecha:'13/05/2025',hora:'14:00',nivel:170,pct:85,tmp:27,hum:42,estado:'Normal'},
+ {fecha:'13/05/2025',hora:'08:00',nivel:155,pct:78,tmp:21,hum:56,estado:'Normal'},
+ {fecha:'12/05/2025',hora:'20:00',nivel:142,pct:71,tmp:25,hum:48,estado:'Normal'},
+ {fecha:'12/05/2025',hora:'14:00',nivel:130,pct:65,tmp:28,hum:40,estado:'Normal'},
+ {fecha:'12/05/2025',hora:'08:00',nivel:84,pct:42,tmp:18,hum:65,estado:'Bajo'},
+ {fecha:'11/05/2025',hora:'20:00',nivel:100,pct:50,tmp:22,hum:55,estado:'Normal'}
+];
+
+function historialTabla(data) {
+ const tbody = document.getElementById('histTableBody');
+ if (!tbody) return;
+ tbody.innerHTML = '';
+ data.forEach(r => {
+  const tr = document.createElement('tr');
+  const st = r.estado === 'Normal' ? 'color:var(--gn)' : r.estado === 'Bajo' ? 'color:var(--or)' : 'color:var(--rd2)';
+  tr.innerHTML = `<td style="padding:10px 14px;font-size:13px;color:var(--tx);border-bottom:1px solid var(--bd);white-space:nowrap">${r.fecha}</td><td style="padding:10px 14px;font-size:13px;color:var(--tx);border-bottom:1px solid var(--bd);white-space:nowrap">${r.hora}</td><td style="padding:10px 14px;font-size:13px;color:var(--tx);border-bottom:1px solid var(--bd);white-space:nowrap">${r.nivel}</td><td style="padding:10px 14px;font-size:13px;color:var(--tx);border-bottom:1px solid var(--bd);white-space:nowrap">${r.pct}%</td><td style="padding:10px 14px;font-size:13px;color:var(--tx);border-bottom:1px solid var(--bd);white-space:nowrap">${r.tmp}°C</td><td style="padding:10px 14px;font-size:13px;color:var(--tx);border-bottom:1px solid var(--bd);white-space:nowrap">${r.hum}%</td><td style="padding:10px 14px;font-size:13px;border-bottom:1px solid var(--bd);white-space:nowrap"><span style="padding:3px 10px;border-radius:6px;font-size:11px;font-weight:600;${st};background:${r.estado==='Normal'?'rgba(76,175,80,0.12)':r.estado==='Bajo'?'rgba(255,152,0,0.12)':'rgba(244,67,54,0.12)'}">${r.estado}</span></td>`;
+  tbody.appendChild(tr);
+ });
+ const count = document.getElementById('histTableCount');
+ if (count) count.textContent = `${data.length} registros`;
+}
+
+const histChartData = {
+ semana: {values:[67,70,64,75,73,80,85,78,71,65,42,50],labels:['08:00','14:00','20:00','08:00','14:00','20:00','08:00','14:00','20:00','08:00','14:00','20:00']},
+ mes: {values:[50,55,60,58,62,67,70,65,68,72,75,78,80,82,75,70,65,60,58,55,60,65,70,72,75,78,80,85,82,78],labels:Array.from({length:30},(_,i)=>`${i+1}`)},
+ trimestre: {values:[40,45,50,55,60,65,70,75,78,80,82,85],labels:['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic']}
+};
+
+function historialChart(p) {
+ const svg = document.getElementById('histChartSvg');
+ if (!svg) return;
+ const d = histChartData[p];
+ const L = 40, R = 20, T = 15, B = 35, w = 700 - L - R, h = 300 - T - B;
+ const max = 100, n = d.values.length, sx = w / Math.max(n - 1, 1);
+ let html = '';
+ for (let i = 0; i <= 5; i++) {
+  const y = T + (h / 5) * i;
+  html += `<line x1="${L}" y1="${y}" x2="${L + w}" y2="${y}" class="grid-line"/>`;
+  html += `<text x="${L - 8}" y="${y + 4}" class="axis-label" text-anchor="end">${Math.round(max - (max / 5) * i)}</text>`;
+ }
+ const pts = d.values.map((v, i) => ({x: L + i * sx, y: T + h - (v / max) * h}));
+ html += `<path d="M${pts[0].x},${T + h} ${pts.map(p => `L${p.x},${p.y}`).join(' ')} L${pts[pts.length - 1].x},${T + h} Z" fill="rgba(79,195,247,0.06)"/>`;
+ html += `<path d="${pts.map((p, i) => `${i ? 'L' : 'M'}${p.x},${p.y}`).join(' ')}" class="data-line" id="histAnimatedLine"/>`;
+ pts.forEach(p => { html += `<circle cx="${p.x}" cy="${p.y}" r="4.5" class="data-dot"/>`; });
+ if (n <= 14) {
+  pts.forEach((p, i) => {
+   if (i % Math.ceil(n / 12) === 0) {
+    html += `<text x="${p.x}" y="${T + h + 20}" class="axis-label" text-anchor="middle">${d.labels[i]}</text>`;
+   }
+  });
+ }
+ svg.innerHTML = html;
+ const line = document.getElementById('histAnimatedLine');
+ if (line) {
+  const len = line.getTotalLength();
+  line.style.strokeDasharray = len;
+  line.style.strokeDashoffset = len;
+  line.style.transition = 'none';
+  requestAnimationFrame(() => { line.style.transition = 'stroke-dashoffset 1s cubic-bezier(0.4,0,0.2,1)'; line.style.strokeDashoffset = '0'; });
+ }
+}
+
+function historialStats(data) {
+ const pcts = data.map(r => r.pct);
+ const avg = Math.round(pcts.reduce((a, b) => a + b, 0) / pcts.length);
+ const max = Math.max(...pcts);
+ const min = Math.min(...pcts);
+ const maxIdx = pcts.indexOf(max);
+ const minIdx = pcts.indexOf(min);
+ const sp = document.getElementById('statPromedio');
+ const ss = document.getElementById('statPromedioSub');
+ const st = document.getElementById('statTotal');
+ const sts = document.getElementById('statTotalSub');
+ const sm = document.getElementById('statMayor');
+ const smv = document.getElementById('statMayorVal');
+ const sn = document.getElementById('statMenor');
+ const snv = document.getElementById('statMenorVal');
+ if (sp) sp.textContent = `${avg}%`;
+ if (ss) ss.textContent = `${Math.round(avg * 2)} cm promedio`;
+ if (st) st.textContent = data.length;
+ if (sts) sts.textContent = 'mediciones';
+ if (sm) sm.textContent = `${max}%`;
+ if (smv) smv.textContent = data[maxIdx] ? `${data[maxIdx].fecha} ${data[maxIdx].hora}` : '-';
+ if (sn) sn.textContent = `${min}%`;
+ if (snv) snv.textContent = data[minIdx] ? `${data[minIdx].fecha} ${data[minIdx].hora}` : '-';
+}
+
+function historialInit() {
+ historialTabla(histData);
+ historialChart('semana');
+ historialStats(histData);
+ document.querySelectorAll('.history-tab').forEach(t => t.addEventListener('click', () => {
+  document.querySelectorAll('.history-tab').forEach(x => x.classList.remove('active'));
+  t.classList.add('active');
+  historialChart(t.dataset.period);
+ }));
+ const btnFilter = document.getElementById('histBtnFilter');
+ if (btnFilter) btnFilter.addEventListener('click', () => { historialTabla(histData); historialStats(histData); });
+}
+
+// ====== MANTENIMIENTO ======
+const mtSolicitudes = [
+ {id:'SOL-001',fecha:'15/05/2025',problema:'Fuga de agua en la base del tanque',estado:'Pendiente',actualizacion:'15/05/2025 14:30'},
+ {id:'SOL-002',fecha:'12/05/2025',problema:'Sensor de nivel no responde correctamente',estado:'En Revision',actualizacion:'13/05/2025 10:15'},
+ {id:'SOL-003',fecha:'08/05/2025',problema:'Tapa del tanque dificil de abrir',estado:'Resuelto',actualizacion:'10/05/2025 16:45'},
+ {id:'SOL-004',fecha:'01/05/2025',problema:'Manometro muestra lectura inconsistente',estado:'Resuelto',actualizacion:'03/05/2025 09:20'},
+ {id:'SOL-005',fecha:'28/04/2025',problema:'Vibracion excesiva en la bomba de extraccion',estado:'Resuelto',actualizacion:'30/04/2025 11:00'}
+];
+
+function mtEstadoClass(estado) {
+ if (estado === 'Pendiente') return 'activo';
+ if (estado === 'En Revision') return 'en-revision';
+ return 'resuelta';
+}
+
+function mtTabla(data) {
+ const tbody = document.getElementById('mtTablaBody');
+ if (!tbody) return;
+ const counter = {total: data.length};
+ tbody.innerHTML = data.map((s, i) => {
+  const num = String(counter.total - i).padStart(4, '0');
+  return `
+  <tr style="animation:slideUp .3s ${i * .05}s backwards">
+   <td>#${num}</td>
+   <td>${s.fecha}</td>
+   <td>${s.problema}</td>
+   <td><span class="alert-badge ${mtEstadoClass(s.estado)}">${s.estado}</span></td>
+   <td style="font-size:12px;color:var(--tx5)">${s.actualizacion}</td>
+   <td>
+    <button class="mt-info-btn" title="Ver detalles">
+     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+    </button>
+   </td>
+  </tr>`;
+ }).join('');
+}
+
+function mantenimientoInit() {
+ mtTabla(mtSolicitudes);
+
+ const desc = document.getElementById('mtDescripcion');
+ const charCount = document.getElementById('mtCharCount');
+ if (desc && charCount) {
+  desc.addEventListener('input', () => { charCount.textContent = desc.value.length; });
+ }
+
+ const upload = document.getElementById('mtUpload');
+ const fileInput = document.getElementById('mtFileInput');
+ if (upload && fileInput) {
+  upload.addEventListener('click', () => fileInput.click());
+  upload.addEventListener('dragover', (e) => { e.preventDefault(); upload.style.borderColor = 'var(--ac)'; upload.style.background = 'rgba(44,108,239,0.06)'; });
+  upload.addEventListener('dragleave', () => { upload.style.borderColor = ''; upload.style.background = ''; });
+  upload.addEventListener('drop', (e) => { e.preventDefault(); upload.style.borderColor = ''; upload.style.background = ''; });
+ }
+
+ const btnEnviar = document.getElementById('mtEnviar');
+ if (btnEnviar) {
+  btnEnviar.addEventListener('click', () => {
+   const tanque = document.getElementById('mtTanque');
+   const descripcion = document.getElementById('mtDescripcion');
+   if (!tanque.value || !descripcion.value.trim()) {
+    alert('Por favor completa todos los campos obligatorios.');
+    return;
+   }
+   const now = new Date();
+   const fecha = `${String(now.getDate()).padStart(2,'0')}/${String(now.getMonth()+1).padStart(2,'0')}/${now.getFullYear()}`;
+   const hora = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+   mtSolicitudes.unshift({
+    id: `SOL-${String(mtSolicitudes.length + 1).padStart(3,'0')}`,
+    fecha,
+    problema: descripcion.value.trim(),
+    estado: 'Pendiente',
+    actualizacion: `${fecha} ${hora}`
+   });
+   mtTabla(mtSolicitudes);
+   tanque.value = '';
+   descripcion.value = '';
+   charCount.textContent = '0';
+   alert('Solicitud enviada correctamente.');
+  });
+ }
+}
