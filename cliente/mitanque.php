@@ -4,6 +4,71 @@ if(!isset($_SESSION['rol']) || $_SESSION['rol'] !== 'USUARIO'){
     header("Location: ../index.php");
     exit;
 }
+require_once __DIR__ . '/../config/db.php';
+require_once __DIR__ . '/includes/helpers.php';
+
+$capacidad = 0;
+$tanqueNombre = null;
+$pct = 0;
+$litros = 0;
+$temp = 0;
+$estadoTexto = 'Sin datos';
+$estadoDesc = 'No hay datos disponibles';
+$estadoClass = '';
+$lastUpdate = null;
+$deviceStatus = 'Desconectado';
+$barsData = [];
+$idTanqueSel = null;
+$hasRealData = false;
+
+try {
+    $pdo = eva_pdo();
+    $uid = eva_current_user_id();
+    $tanque = eva_first_tanque($pdo, $uid);
+    if ($tanque) {
+        $hasRealData = true;
+        $idTanqueSel = (int)($tanque['id_tanque'] ?? 0);
+        $capacidad = (int)($tanque['capacidad_litros'] ?? 0);
+        $tanqueNombre = $tanque['nombre'] ?? null;
+        $deviceStatus = eva_device_status($pdo, $idTanqueSel);
+        $med = eva_latest_medicion($pdo, $idTanqueSel);
+        if ($med) {
+            if (isset($med['porcentaje']) && is_numeric($med['porcentaje'])) $pct = (int)round((float)$med['porcentaje']);
+            elseif (isset($med['nivel_porcentaje']) && is_numeric($med['nivel_porcentaje'])) $pct = (int)round((float)$med['nivel_porcentaje']);
+            elseif (isset($med['distancia']) && isset($tanque['altura_cm']) && $tanque['altura_cm']>0) {
+                $nivel = (float)$tanque['altura_cm'] - (float)$med['distancia'];
+                $pct = max(0,min(100,(int)round($nivel / (float)$tanque['altura_cm'] *100)));
+            }
+            if (isset($med['temperatura']) && is_numeric($med['temperatura'])) $temp = (int)round((float)$med['temperatura']);
+            $fechaStr = $med['fecha'] ?? $med['created_at'] ?? null;
+            $horaStr = $med['hora'] ?? null;
+            if ($fechaStr) {
+                $ts = strtotime(trim($fechaStr . ' ' . ($horaStr ?? '')));
+                if ($ts) $lastUpdate = date('d/m/Y H:i', $ts);
+                else $lastUpdate = h($fechaStr . ' ' . ($horaStr ?? ''));
+            } elseif (!empty($med['hora'])) {
+                $lastUpdate = h($med['hora']);
+            }
+        }
+        $pct = max(0,min(100,(int)$pct));
+        $litros = (int)round($capacidad * $pct / 100);
+        [$estadoTexto, $estadoDesc, $estadoClass] = eva_estado_texto($pct);
+        // barras: datos reales de mediciones - sin demo
+        try {
+            $col = $pdo->query("SHOW COLUMNS FROM mediciones LIKE 'id_tanque'");
+            if ($col && $col->rowCount()>0) {
+                $st = $pdo->prepare("SELECT porcentaje, fecha FROM mediciones WHERE id_tanque=:id ORDER BY fecha DESC, hora DESC LIMIT 7");
+                $st->execute([':id'=>$idTanqueSel]);
+                $rows = array_reverse($st->fetchAll());
+                if (count($rows)>=3) {
+                    foreach ($rows as $r) {
+                        $barsData[] = ['year'=> date('d/m', strtotime($r['fecha'] ?? 'now')), 'bottom'=> (int)round((float)($r['porcentaje']??0)*0.6), 'top'=> (int)round((float)($r['porcentaje']??0)*0.4)];
+                    }
+                }
+            }
+        } catch (Throwable $e) {}
+    }
+} catch (Throwable $e) { error_log('mitanque error: '.$e->getMessage()); }
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -37,7 +102,7 @@ if(!isset($_SESSION['rol']) || $_SESSION['rol'] !== 'USUARIO'){
   <h4>Dispositivo</h4>
   <div class="status-row">
    <svg class="wifi-icon anim-pulse" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12.55a11 11 0 0114.08 0"/><path d="M1.42 9a16 16 0 0121.16 0"/><path d="M8.53 16.11a6 6 0 016.95 0"/><line x1="12" y1="20" x2="12.01" y2="20"/></svg>
-   <span class="status-text">Conectado</span>
+   <span class="status-text"><?php echo h($deviceStatus); ?></span>
   </div>
  </div>
 </aside>
@@ -54,8 +119,8 @@ if(!isset($_SESSION['rol']) || $_SESSION['rol'] !== 'USUARIO'){
    </button>
     <div class="user-dropdown" id="userDropdown">
      <div class="user-info">
-      <div class="user-details"><div class="user-name"><?php echo $_SESSION['nombre'] ?? 'Usuario'; ?></div><div class="user-role">Cliente</div></div>
-      <div class="user-avatar"><?php echo strtoupper(substr($_SESSION['nombre'] ?? 'U', 0, 2)); ?></div>
+      <div class="user-details"><div class="user-name"><?php echo h($_SESSION['nombre'] ?? 'Usuario'); ?></div><div class="user-role">Cliente</div></div>
+      <div class="user-avatar"><?php echo h(strtoupper(substr($_SESSION['nombre'] ?? 'U', 0, 2))); ?></div>
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#7a829a" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
      </div>
       <div class="user-menu hidden" id="userMenu">
@@ -69,8 +134,8 @@ if(!isset($_SESSION['rol']) || $_SESSION['rol'] !== 'USUARIO'){
 
  <div class="view active" id="viewTanque">
   <div class="tank-view-grid">
-   <div class="card tank-card anim-bounce0">
-    <div class="card-title">Mi tanque Principal</div>
+    <div class="card tank-card anim-bounce0">
+     <div class="card-title"><?php echo h($tanqueNombre ?? 'No hay datos disponibles'); ?></div>
     <div class="tank-visual">
      <div class="tank-body-wrapper anim-glow">
       <svg class="tank-svg" viewBox="0 0 140 220">
@@ -103,14 +168,14 @@ if(!isset($_SESSION['rol']) || $_SESSION['rol'] !== 'USUARIO'){
       </svg>
      </div>
      <div class="tank-data">
-      <div class="tank-percent anim-float-slow" id="tankPercent">78%</div>
+      <div class="tank-percent anim-float-slow" id="tankPercent"><?php echo (int)$pct; ?>%</div>
       <div class="tank-label">Nivel actual</div>
-      <div class="tank-volume" id="tankVolume">3.120 L</div>
-      <div class="tank-capacity">de 4.000 L</div>
+      <div class="tank-volume" id="tankVolume"><?php echo number_format($litros, 0, ',', '.'); ?> L</div>
+      <div class="tank-capacity">de <?php echo number_format($capacidad, 0, ',', '.'); ?> L</div>
      </div>
     </div>
-    <div class="estado-box"><h4>Estado</h4><div class="estado-text" id="estadoText">Normal</div><div class="estado-desc" id="estadoDesc">Todo funciona correctamente</div></div>
-    <div class="last-update">Última actualización: <span id="lastUpdate">Hoy: --:--</span></div>
+    <div class="estado-box"><h4>Estado</h4><div class="estado-text <?php echo h($estadoClass); ?>" id="estadoText"><?php echo h($estadoTexto); ?></div><div class="estado-desc" id="estadoDesc"><?php echo h($estadoDesc); ?></div></div>
+     <div class="last-update">Última actualización: <span id="lastUpdate"><?php echo h($lastUpdate ?? 'No hay datos disponibles'); ?></span></div>
    </div>
    <div class="card gauge-card anim-bounce4">
     <div class="card-title">Temperatuta del agua</div>
@@ -122,7 +187,7 @@ if(!isset($_SESSION['rol']) || $_SESSION['rol'] !== 'USUARIO'){
       <g fill="#7a829a" font-size="9" text-anchor="middle" font-family="Inter, sans-serif"><text x="26" y="142">0</text><text x="32" y="102">10</text><text x="50" y="68">20</text><text x="78" y="44">30</text><text x="110" y="32">40</text><text x="130" y="28">50</text><text x="150" y="32">60</text><text x="182" y="44">70</text><text x="210" y="68">80</text><text x="228" y="102">90</text><text x="234" y="142">100</text></g>
       <g id="gaugeNeedle" transform="rotate(-50 130 140)"><line x1="130" y1="140" x2="130" y2="55" stroke="#e0e4ea" stroke-width="2.5" stroke-linecap="round"/><circle cx="130" cy="140" r="6" fill="#2a3042" stroke="#4a5068" stroke-width="1.5"/><circle cx="130" cy="140" r="3" fill="#e0e4ea"/></g>
      </svg>
-     <div class="gauge-value-text" id="gaugeValue">70°</div>
+     <div class="gauge-value-text" id="gaugeValue"><?php echo (int)$temp; ?>°</div>
     </div>
    </div>
    <div class="card chart-card anim-bounce5">
@@ -135,6 +200,21 @@ if(!isset($_SESSION['rol']) || $_SESSION['rol'] !== 'USUARIO'){
   </div>
  </div>
 </div>
+<script>
+window.EVA_TANQUE = <?php echo json_encode([
+    'pct' => (int)$pct,
+    'temp' => (int)$temp,
+    'capacidad' => (int)$capacidad,
+    'litros' => (int)$litros,
+    'estadoTexto' => $estadoTexto,
+    'estadoDesc' => $estadoDesc,
+    'estadoClass' => $estadoClass,
+    'lastUpdate' => $lastUpdate,
+    'barsData' => $barsData,
+    'tanqueNombre' => $tanqueNombre,
+    'idTanque' => $idTanqueSel
+], JSON_UNESCAPED_UNICODE); ?>;
+</script>
 <script src="js/script.js"></script>
 </body>
 </html>

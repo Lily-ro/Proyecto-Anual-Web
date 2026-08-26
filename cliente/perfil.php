@@ -4,6 +4,42 @@ if(!isset($_SESSION['rol']) || $_SESSION['rol'] !== 'USUARIO'){
     header("Location: ../index.php");
     exit;
 }
+require_once __DIR__ . '/../config/db.php';
+require_once __DIR__ . '/includes/helpers.php';
+
+$perfil = [
+    'nombre' => $_SESSION['nombre'] ?? 'Usuario',
+    'apellido' => $_SESSION['apellido'] ?? '',
+    'email' => $_SESSION['email'] ?? '-',
+    'rol' => $_SESSION['rol'] ?? 'USUARIO',
+    'ultimo_acceso' => null,
+    'telefono' => null,
+    'direccion' => null,
+];
+try {
+    $pdo = eva_pdo();
+    $uid = eva_current_user_id();
+    if ($uid) {
+        $st = $pdo->prepare("SELECT u.*, r.nombre AS rol_nombre FROM usuarios u LEFT JOIN roles r ON r.id_rol = u.id_rol WHERE u.id_usuario = :id LIMIT 1");
+        $st->execute([':id'=>$uid]);
+        $row = $st->fetch();
+        if ($row) {
+            $perfil['nombre'] = $row['nombre'] ?? $perfil['nombre'];
+            $perfil['apellido'] = $row['apellido'] ?? $perfil['apellido'];
+            $perfil['email'] = $row['email'] ?? $perfil['email'];
+            $perfil['rol'] = $row['rol_nombre'] ?? $perfil['rol'];
+            $perfil['ultimo_acceso'] = $row['ultimo_acceso'] ?? null;
+            $perfil['telefono'] = $row['telefono'] ?? $row['celular'] ?? null;
+            $perfil['direccion'] = $row['direccion'] ?? null;
+            // actualizar sesion por si cambió
+            $_SESSION['nombre'] = $perfil['nombre'];
+            $_SESSION['apellido'] = $perfil['apellido'];
+            $_SESSION['email'] = $perfil['email'];
+        }
+    }
+} catch (Throwable $e) { error_log('perfil error: '.$e->getMessage()); }
+$iniciales = strtoupper(substr($perfil['nombre'] ?? 'U',0,1) . substr($perfil['apellido'] ?? '',0,1));
+if (trim($iniciales)==='') $iniciales = strtoupper(substr($perfil['nombre'] ?? 'U',0,2));
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -25,7 +61,7 @@ if(!isset($_SESSION['rol']) || $_SESSION['rol'] !== 'USUARIO'){
  <nav>
   <ul>
    <li class="anim-slide1"><a href="indexcli.php"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg><span>Resumen</span></a></li>
-   <li class="anim-slide2"><a href="mitanque.php"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="4" y1="18" x2="20" y2="18"/><rect x="7" y1="12" width="10" height="6" rx="1" fill="currentColor" opacity="0.3"/></svg><span>Mi Tanque</span></a></li>
+   <li class="anim-slide2"><a href="mitanque.php"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="4" y1="18" x2="20" y2="18"/><rect x="7" y="12" width="10" height="6" rx="1" fill="currentColor" opacity="0.3"/></svg><span>Mi Tanque</span></a></li>
    <li class="anim-slide3"><a href="alertas.php"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg><span>Alertas</span></a></li>
    <li class="anim-slide4"><a href="configuracion.php"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 01-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg><span>Configuración</span></a></li>
   </ul>
@@ -51,8 +87,8 @@ if(!isset($_SESSION['rol']) || $_SESSION['rol'] !== 'USUARIO'){
    </button>
    <div class="user-dropdown" id="userDropdown">
     <div class="user-info">
-     <div class="user-details"><div class="user-name"><?php echo $_SESSION['nombre'] ?? 'Usuario'; ?></div><div class="user-role">Cliente</div></div>
-     <div class="user-avatar"><?php echo strtoupper(substr($_SESSION['nombre'] ?? 'U', 0, 2)); ?></div>
+     <div class="user-details"><div class="user-name"><?php echo h($perfil['nombre'] ?? 'Usuario'); ?></div><div class="user-role">Cliente</div></div>
+     <div class="user-avatar"><?php echo h($iniciales); ?></div>
      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#7a829a" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
     </div>
     <div class="user-menu hidden" id="userMenu">
@@ -72,19 +108,22 @@ if(!isset($_SESSION['rol']) || $_SESSION['rol'] !== 'USUARIO'){
  <div class="view active">
   <div class="content-card anim-bounce0">
    <div class="profile-header">
-    <div class="profile-avatar"><?php echo strtoupper(substr($_SESSION['nombre'] ?? 'U', 0, 2)); ?></div>
+    <div class="profile-avatar"><?php echo h($iniciales); ?></div>
     <div class="profile-info">
-     <div class="profile-name"><?php echo ($_SESSION['nombre'] ?? 'Usuario') . ' ' . ($_SESSION['apellido'] ?? ''); ?></div>
-     <div class="profile-role">Cliente</div>
+     <div class="profile-name"><?php echo h(trim(($perfil['nombre']??'').' '.($perfil['apellido']??''))) ?: 'Usuario'; ?></div>
+     <div class="profile-role"><?php echo h($perfil['rol'] ?? 'Cliente'); ?></div>
+     <?php if (!empty($perfil['ultimo_acceso'])): ?><div style="font-size:12px;color:var(--tx4);margin-top:4px">Último acceso: <?php echo h(date('d/m/Y H:i', strtotime($perfil['ultimo_acceso']))); ?></div><?php endif; ?>
     </div>
    </div>
    <div class="content-divider"></div>
    <div class="profile-section">
     <div class="profile-section-title">Información Personal</div>
-    <div class="profile-field"><div class="profile-field-label">Nombre</div><div class="profile-field-value"><?php echo $_SESSION['nombre'] ?? '-'; ?></div></div>
-    <div class="profile-field"><div class="profile-field-label">Apellido</div><div class="profile-field-value"><?php echo $_SESSION['apellido'] ?? '-'; ?></div></div>
-    <div class="profile-field"><div class="profile-field-label">Correo electrónico</div><div class="profile-field-value"><?php echo $_SESSION['email'] ?? '-'; ?></div></div>
-    <div class="profile-field"><div class="profile-field-label">Rol</div><div class="profile-field-value">Cliente</div></div>
+    <div class="profile-field"><div class="profile-field-label">Nombre</div><div class="profile-field-value"><?php echo h($perfil['nombre'] ?? '-'); ?></div></div>
+    <div class="profile-field"><div class="profile-field-label">Apellido</div><div class="profile-field-value"><?php echo h($perfil['apellido'] ?? '-'); ?></div></div>
+    <div class="profile-field"><div class="profile-field-label">Correo electrónico</div><div class="profile-field-value"><?php echo h($perfil['email'] ?? '-'); ?></div></div>
+    <div class="profile-field"><div class="profile-field-label">Rol</div><div class="profile-field-value"><?php echo h($perfil['rol'] ?? 'Cliente'); ?></div></div>
+    <?php if (!empty($perfil['telefono'])): ?><div class="profile-field"><div class="profile-field-label">Teléfono</div><div class="profile-field-value"><?php echo h($perfil['telefono']); ?></div></div><?php endif; ?>
+    <?php if (!empty($perfil['direccion'])): ?><div class="profile-field"><div class="profile-field-label">Dirección</div><div class="profile-field-value"><?php echo h($perfil['direccion']); ?></div></div><?php endif; ?>
    </div>
    <div class="content-divider"></div>
    <div class="content-divider"></div>

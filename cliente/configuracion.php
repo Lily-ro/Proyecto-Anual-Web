@@ -4,6 +4,149 @@ if(!isset($_SESSION['rol']) || $_SESSION['rol'] !== 'USUARIO'){
     header("Location: ../index.php");
     exit;
 }
+require_once __DIR__ . '/../config/db.php';
+require_once __DIR__ . '/includes/helpers.php';
+
+$low = 20;
+$high = 90;
+$msg = '';
+$msgType = '';
+$deviceStatus = 'Conectado';
+$idTanqueSel = null;
+
+try {
+    $pdo = eva_pdo();
+    $uid = eva_current_user_id();
+    $tanque = eva_first_tanque($pdo, $uid);
+    if ($tanque) {
+        $idTanqueSel = (int)($tanque['id_tanque'] ?? 0);
+        $deviceStatus = eva_device_status($pdo, $idTanqueSel);
+        // obtener configuracion existente
+        // detectar columnas disponibles en configuracion_alertas
+        $cols = [];
+        try {
+            $st = $pdo->query("SHOW COLUMNS FROM configuracion_alertas");
+            foreach ($st->fetchAll() as $c) $cols[] = $c['Field'];
+        } catch (Throwable $e) {}
+        // mapear low/high a columnas existentes
+        $colLow = null; $colHigh = null;
+        foreach (['nivel_bajo','umbral_bajo','valor_min','min','threshold_low','porcentaje_bajo'] as $cand) {
+            if (in_array($cand, $cols, true)) { $colLow = $cand; break; }
+        }
+        foreach (['nivel_alto','umbral_alto','valor_max','max','threshold_high','porcentaje_alto'] as $cand) {
+            if (in_array($cand, $cols, true)) { $colHigh = $cand; break; }
+        }
+        // si no hay columnas especificas, puede que cada tipo sea una fila con tipo=NIVEL_BAJO/NIVEL_ALTO y valor
+        $hasTipoValor = in_array('tipo', $cols, true) && (in_array('valor', $cols, true) || in_array('umbral', $cols, true) || in_array('porcentaje', $cols, true));
+        if ($hasTipoValor) {
+            $valCol = in_array('valor', $cols, true) ? 'valor' : (in_array('umbral', $cols, true) ? 'umbral' : 'porcentaje');
+            $st = $pdo->prepare("SELECT tipo, {$valCol} AS v FROM configuracion_alertas WHERE id_tanque = :id");
+            $st->execute([':id'=>$idTanqueSel]);
+            foreach ($st->fetchAll() as $r) {
+                $t = strtoupper($r['tipo'] ?? '');
+                if ($t === 'NIVEL_BAJO') $low = (int)$r['v'];
+                if ($t === 'NIVEL_ALTO') $high = (int)$r['v'];
+            }
+        } elseif ($colLow || $colHigh) {
+            $selectCols = [];
+            if ($colLow) $selectCols[] = $colLow;
+            if ($colHigh) $selectCols[] = $colHigh;
+            $colsStr = implode(',', $selectCols);
+            $st = $pdo->prepare("SELECT {$colsStr} FROM configuracion_alertas WHERE id_tanque = :id LIMIT 1");
+            $st->execute([':id'=>$idTanqueSel]);
+            $row = $st->fetch();
+            if ($row) {
+                if ($colLow && isset($row[$colLow])) $low = (int)$row[$colLow];
+                if ($colHigh && isset($row[$colHigh])) $high = (int)$row[$colHigh];
+            }
+        } else {
+            // intento genérico con * y buscar cualquier columna que parezca
+            $st = $pdo->prepare("SELECT * FROM configuracion_alertas WHERE id_tanque = :id LIMIT 1");
+            $st->execute([':id'=>$idTanqueSel]);
+            $row = $st->fetch();
+            if ($row) {
+                // buscar claves que contengan bajo/alto
+                foreach ($row as $k=>$v) {
+                    if (stripos($k,'bajo')!==false && is_numeric($v)) $low = (int)$v;
+                    if (stripos($k,'alto')!==false && is_numeric($v)) $high = (int)$v;
+                }
+            }
+        }
+    }
+} catch (Throwable $e) { error_log('config load error: '.$e->getMessage()); }
+
+// Manejar POST guardar
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $token = $_POST['csrf'] ?? '';
+    if (!eva_csrf_validate($token)) {
+        $msg = 'Token de seguridad inválido.';
+        $msgType = 'error';
+    } else {
+        $newLow = (int)($_POST['nivel_bajo'] ?? $low);
+        $newHigh = (int)($_POST['nivel_alto'] ?? $high);
+        // validacion
+        if ($newLow < 10 || $newLow > 50) { $msg='Nivel bajo debe estar entre 10 y 50.'; $msgType='error'; }
+        elseif ($newHigh < 50 || $newHigh > 100) { $msg='Nivel alto debe estar entre 50 y 100.'; $msgType='error'; }
+        elseif ($newLow >= $newHigh) { $msg='Nivel bajo debe ser menor que nivel alto.'; $msgType='error'; }
+        else {
+            try {
+                $pdo = eva_pdo();
+                if ($idTanqueSel === null) {
+                    $tanque = eva_first_tanque($pdo, eva_current_user_id());
+                    $idTanqueSel = $tanque ? (int)($tanque['id_tanque'] ?? 0) : 0;
+                }
+                // detectar columnas nuevamente
+                $cols = [];
+                $st = $pdo->query("SHOW COLUMNS FROM configuracion_alertas");
+                foreach ($st->fetchAll() as $c) $cols[] = $c['Field'];
+                $hasTipoValor = in_array('tipo', $cols, true) && in_array('valor', $cols, true);
+                $hasUmbral = in_array('umbral', $cols, true);
+                $valCol = $hasTipoValor ? 'valor' : ($hasUmbral ? 'umbral' : (in_array('porcentaje',$cols,true)?'porcentaje':null));
+                if ($hasTipoValor || ($hasUmbral && in_array('tipo',$cols,true))) {
+                    // upsert por tipo
+                    foreach (['NIVEL_BAJO'=>$newLow, 'NIVEL_ALTO'=>$newHigh] as $tipo=>$val) {
+                        $chk = $pdo->prepare("SELECT id_configuracion FROM configuracion_alertas WHERE id_tanque=:id AND tipo=:tipo LIMIT 1");
+                        $chk->execute([':id'=>$idTanqueSel, ':tipo'=>$tipo]);
+                        $ex = $chk->fetch();
+                        if ($ex) {
+                            $pdo->prepare("UPDATE configuracion_alertas SET {$valCol}=:v WHERE id_configuracion=:cid")
+                                ->execute([':v'=>$val, ':cid'=>$ex['id_configuracion']]);
+                        } else {
+                            $pdo->prepare("INSERT INTO configuracion_alertas (id_tanque, tipo, {$valCol}) VALUES (:id,:tipo,:v)")
+                                ->execute([':id'=>$idTanqueSel, ':tipo'=>$tipo, ':v'=>$val]);
+                        }
+                    }
+                    $low = $newLow; $high = $newHigh;
+                    $msg='Configuración guardada correctamente.'; $msgType='success';
+                    eva_log_actividad($pdo, (int)eva_current_user_id(), 'ACTUALIZAR_CONFIG_ALERTA', "bajo={$newLow} alto={$newHigh}");
+                } else {
+                    $colLow = null; $colHigh=null;
+                    foreach (['nivel_bajo','umbral_bajo','valor_min'] as $cand) if (in_array($cand,$cols,true)) {$colLow=$cand;break;}
+                    foreach (['nivel_alto','umbral_alto','valor_max'] as $cand) if (in_array($cand,$cols,true)) {$colHigh=$cand;break;}
+                    if ($colLow && $colHigh) {
+                        $chk = $pdo->prepare("SELECT id_configuracion FROM configuracion_alertas WHERE id_tanque=:id LIMIT 1");
+                        $chk->execute([':id'=>$idTanqueSel]);
+                        $ex=$chk->fetch();
+                        if ($ex) {
+                            $pdo->prepare("UPDATE configuracion_alertas SET {$colLow}=:low, {$colHigh}=:high WHERE id_configuracion=:cid")
+                                ->execute([':low'=>$newLow, ':high'=>$newHigh, ':cid'=>$ex['id_configuracion']]);
+                        } else {
+                            $pdo->prepare("INSERT INTO configuracion_alertas (id_tanque, {$colLow}, {$colHigh}) VALUES (:id,:low,:high)")
+                                ->execute([':id'=>$idTanqueSel, ':low'=>$newLow, ':high'=>$newHigh]);
+                        }
+                        $low=$newLow; $high=$newHigh;
+                        $msg='Configuración guardada correctamente.'; $msgType='success';
+                    } else {
+                        $msg='No se pudo guardar: estructura de configuracion_alertas no reconocida.'; $msgType='error';
+                    }
+                }
+            } catch (Throwable $e) {
+                error_log('config save error: '.$e->getMessage());
+                $msg='Error al guardar: '.h($e->getMessage()); $msgType='error';
+            }
+        }
+    }
+}
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -37,7 +180,7 @@ if(!isset($_SESSION['rol']) || $_SESSION['rol'] !== 'USUARIO'){
   <h4>Dispositivo</h4>
   <div class="status-row">
    <svg class="wifi-icon anim-pulse" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12.55a11 11 0 0114.08 0"/><path d="M1.42 9a16 16 0 0121.16 0"/><path d="M8.53 16.11a6 6 0 016.95 0"/><line x1="12" y1="20" x2="12.01" y2="20"/></svg>
-   <span class="status-text">Conectado</span>
+   <span class="status-text"><?php echo h($deviceStatus); ?></span>
   </div>
  </div>
 </aside>
@@ -55,8 +198,8 @@ if(!isset($_SESSION['rol']) || $_SESSION['rol'] !== 'USUARIO'){
    </button>
     <div class="user-dropdown" id="userDropdown">
      <div class="user-info">
-      <div class="user-details"><div class="user-name"><?php echo $_SESSION['nombre'] ?? 'Usuario'; ?></div><div class="user-role">Cliente</div></div>
-      <div class="user-avatar"><?php echo strtoupper(substr($_SESSION['nombre'] ?? 'U', 0, 2)); ?></div>
+      <div class="user-details"><div class="user-name"><?php echo h($_SESSION['nombre'] ?? 'Usuario'); ?></div><div class="user-role">Cliente</div></div>
+      <div class="user-avatar"><?php echo h(strtoupper(substr($_SESSION['nombre'] ?? 'U', 0, 2))); ?></div>
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#7a829a" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
      </div>
       <div class="user-menu hidden" id="userMenu">
@@ -81,21 +224,31 @@ if(!isset($_SESSION['rol']) || $_SESSION['rol'] !== 'USUARIO'){
  <div class="view active" id="viewConfig">
   <div class="config-page-title">Configuración de alertas</div>
   <div class="config-page-subtitle">Personaliza los umbrales y metodos de notificacion</div>
-  <div class="config-card anim-bounce0">
-   <div class="config-card-title">Umbrales de nivel</div>
-   <div class="config-card-subtitle">Configura los niveles que activaran las alertas</div>
-   <div class="config-divider"></div>
-   <div class="config-threshold">
-    <div class="config-threshold-header"><div class="config-threshold-icon orange"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></div><div class="config-threshold-name">Nivel bajo</div></div>
-    <div class="config-threshold-desc">Alerta cuando el nivel de agua sea menor o igual a:</div>
-    <div class="slider-row"><span class="slider-range-label left">10%</span><div class="slider-container"><input type="range" class="slider-input" id="sliderLow" min="10" max="50" value="20"></div><span class="slider-range-label">50%</span><span class="slider-value" id="sliderLowVal">20 %</span></div>
+  <?php if ($msg): ?>
+   <div style="margin-bottom:16px;padding:12px 16px;border-radius:8px;font-size:13px;<?php echo $msgType==='success' ? 'background:rgba(76,175,80,0.12);color:var(--gn);border:1px solid rgba(76,175,80,0.2)' : 'background:rgba(244,67,54,0.12);color:var(--rd);border:1px solid rgba(244,67,54,0.2)'; ?>"><?php echo h($msg); ?></div>
+  <?php endif; ?>
+  <form method="POST" id="configForm">
+   <input type="hidden" name="csrf" value="<?php echo h(eva_csrf_token()); ?>">
+   <div class="config-card anim-bounce0">
+    <div class="config-card-title">Umbrales de nivel</div>
+    <div class="config-card-subtitle">Configura los niveles que activaran las alertas</div>
+    <div class="config-divider"></div>
+    <div class="config-threshold">
+     <div class="config-threshold-header"><div class="config-threshold-icon orange"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></div><div class="config-threshold-name">Nivel bajo</div></div>
+     <div class="config-threshold-desc">Alerta cuando el nivel de agua sea menor o igual a:</div>
+     <div class="slider-row"><span class="slider-range-label left">10%</span><div class="slider-container"><input type="range" class="slider-input" id="sliderLow" name="nivel_bajo" min="10" max="50" value="<?php echo (int)$low; ?>"></div><span class="slider-range-label">50%</span><span class="slider-value" id="sliderLowVal"><?php echo (int)$low; ?> %</span></div>
+    </div>
+    <div class="config-threshold">
+     <div class="config-threshold-header"><div class="config-threshold-icon red"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></div><div class="config-threshold-name">Nivel alto</div></div>
+     <div class="config-threshold-desc">Alerta cuando el nivel de agua sea mayor o igual a:</div>
+     <div class="slider-row"><span class="slider-range-label left">50%</span><div class="slider-container"><input type="range" class="slider-input" id="sliderHigh" name="nivel_alto" min="50" max="100" value="<?php echo (int)$high; ?>"></div><span class="slider-range-label">100%</span><span class="slider-value" id="sliderHighVal"><?php echo (int)$high; ?> %</span></div>
+    </div>
+    <div style="margin-top:20px;display:flex;gap:10px">
+     <button type="submit" class="mt-enviar-btn" style="margin-top:0">Guardar cambios</button>
+     <a href="alertas.php" class="mt-respuestas-btn" style="text-decoration:none;display:inline-flex;align-items:center;margin-bottom:0">Ver alertas</a>
+    </div>
    </div>
-   <div class="config-threshold">
-    <div class="config-threshold-header"><div class="config-threshold-icon red"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></div><div class="config-threshold-name">Nivel alto</div></div>
-    <div class="config-threshold-desc">Alerta cuando el nivel de agua sea mayor o igual a:</div>
-    <div class="slider-row"><span class="slider-range-label left">50%</span><div class="slider-container"><input type="range" class="slider-input" id="sliderHigh" min="50" max="100" value="90"></div><span class="slider-range-label">100%</span><span class="slider-value" id="sliderHighVal">90 %</span></div>
-   </div>
-  </div>
+  </form>
  </div>
 </div>
 <script src="js/script.js"></script>

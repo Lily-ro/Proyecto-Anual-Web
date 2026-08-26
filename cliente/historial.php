@@ -4,6 +4,181 @@ if(!isset($_SESSION['rol']) || $_SESSION['rol'] !== 'USUARIO'){
     header("Location: ../index.php");
     exit;
 }
+require_once __DIR__ . '/../config/db.php';
+require_once __DIR__ . '/includes/helpers.php';
+
+$tanques = [];
+$deviceStatus = 'Conectado';
+$idTanqueSel = null;
+$fechaDesde = $_GET['desde'] ?? date('Y-m-d', strtotime('-14 days'));
+$fechaHasta = $_GET['hasta'] ?? date('Y-m-d');
+$tanqueFilter = $_GET['tanque'] ?? 'todos';
+$period = $_GET['period'] ?? 'semana';
+
+// validar fechas
+if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $fechaDesde)) $fechaDesde = date('Y-m-d', strtotime('-14 days'));
+if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $fechaHasta)) $fechaHasta = date('Y-m-d');
+if ($fechaDesde > $fechaHasta) { $tmp=$fechaDesde; $fechaDesde=$fechaHasta; $fechaHasta=$tmp; }
+
+$historialRows = [];
+$stats = ['promedio'=>0,'promedioSub'=>'','total'=>0,'mayor'=>'-','mayorVal'=>'-','menor'=>'-','menorVal'=>'-'];
+$chartData = ['semana'=>[],'mes'=>[],'trimestre'=>[]];
+try {
+    $pdo = eva_pdo();
+    $uid = eva_current_user_id();
+    $tanques = eva_tanques_for_user($pdo, $uid);
+    if (!empty($tanques)) {
+        $first = $tanques[0];
+        $idFirst = (int)($first['id_tanque'] ?? 0);
+        $deviceStatus = eva_device_status($pdo, $idFirst);
+        if ($tanqueFilter !== 'todos' && is_numeric($tanqueFilter)) $idTanqueSel = (int)$tanqueFilter;
+        elseif ($tanqueFilter !== 'todos') {
+            // buscar por string tanque1 etc legacy: mapear al primero
+            $idTanqueSel = $idFirst;
+        }
+    }
+    // detectar esquema mediciones
+    $hasIdTanque = false;
+    try { $c=$pdo->query("SHOW COLUMNS FROM mediciones LIKE 'id_tanque'"); $hasIdTanque=$c&&$c->rowCount()>0; } catch(Throwable $e){}
+    $hasPorcentaje = false;
+    try { $c=$pdo->query("SHOW COLUMNS FROM mediciones LIKE 'porcentaje'"); $hasPorcentaje=$c&&$c->rowCount()>0; } catch(Throwable $e){}
+    $hasTemperatura = false;
+    try { $c=$pdo->query("SHOW COLUMNS FROM mediciones LIKE 'temperatura'"); $hasTemperatura=$c&&$c->rowCount()>0; } catch(Throwable $e){}
+    $hasHumedad = false;
+    try { $c=$pdo->query("SHOW COLUMNS FROM mediciones LIKE 'humedad'"); $hasHumedad=$c&&$c->rowCount()>0; } catch(Throwable $e){}
+
+    // Construir query base
+    $params = [];
+    $where = ["DATE(m.fecha) BETWEEN :desde AND :hasta"];
+    $params[':desde']=$fechaDesde;
+    $params[':hasta']=$fechaHasta;
+    if ($hasIdTanque && $idTanqueSel) {
+        $where[]="m.id_tanque = :id_tanque";
+        $params[':id_tanque']=$idTanqueSel;
+    } elseif ($hasIdTanque && $tanqueFilter==='todos' && !empty($tanques)) {
+        // si todos, filtrar por tanques del usuario
+        $ids = array_map(fn($t)=>(int)($t['id_tanque']??0), $tanques);
+        $ids = array_filter($ids);
+        if ($ids) {
+            $placeholders = implode(',', $ids);
+            $where[]="m.id_tanque IN ($placeholders)";
+        }
+    } elseif (!$hasIdTanque && $idTanqueSel) {
+        // join via sensores/dispositivos
+        // se hara JOIN luego
+    }
+
+    if ($hasIdTanque) {
+        $sql = "SELECT m.* FROM mediciones m WHERE ".implode(' AND ',$where)." ORDER BY m.fecha DESC, m.hora DESC LIMIT 200";
+        $st=$pdo->prepare($sql);
+        $st->execute($params);
+        $rows=$st->fetchAll();
+    } else {
+        // intentar join sensores->dispositivos->tanques
+        $joinWhere = implode(' AND ', array_map(fn($w)=> str_replace('m.id_tanque','d.id_tanque',$w), $where));
+        // Ajustar params: mantener mismos
+        try {
+            $sql = "SELECT m.* FROM mediciones m INNER JOIN sensores s ON s.id_sensor=m.id_sensor INNER JOIN dispositivos d ON d.id_dispositivo=s.id_dispositivo WHERE ".str_replace('m.fecha','m.fecha',$joinWhere)." ORDER BY m.fecha DESC, m.hora DESC LIMIT 200";
+            $st=$pdo->prepare($sql);
+            // traducir condicion id_tanque si existe en where original
+            $params2=$params;
+            if (isset($params2[':id_tanque'])) { $params2[':id_tanque']=$params2[':id_tanque']; }
+            $st->execute($params2);
+            $rows=$st->fetchAll();
+        } catch(Throwable $e) {
+            // fallback sin filtro de tanque
+            $sql = "SELECT m.* FROM mediciones m WHERE DATE(m.fecha) BETWEEN :desde AND :hasta ORDER BY m.fecha DESC, m.hora DESC LIMIT 200";
+            $st=$pdo->prepare($sql);
+            $st->execute([':desde'=>$fechaDesde, ':hasta'=>$fechaHasta]);
+            $rows=$st->fetchAll();
+        }
+    }
+
+    foreach ($rows as $r) {
+        $fechaRaw = $r['fecha'] ?? '';
+        $horaRaw = $r['hora'] ?? '';
+        $ts = strtotime(trim($fechaRaw.' '.$horaRaw));
+        $fechaFmt = $fechaRaw ? date('d/m/Y', $ts ?: time()) : '-';
+        $horaFmt = $horaRaw ? date('H:i', $ts ?: time()) : ($fechaRaw ? date('H:i', $ts ?: time()) : '-');
+        $nivel = $r['nivel'] ?? $r['distancia'] ?? $r['nivel_cm'] ?? '-';
+        if (is_numeric($nivel)) $nivel = (int)round((float)$nivel);
+        $pct = $r['porcentaje'] ?? $r['nivel_porcentaje'] ?? $r['porcentaje_nivel'] ?? null;
+        if ($pct!==null && is_numeric($pct)) $pct = (int)round((float)$pct); else $pct = '-';
+        $tmp = $r['temperatura'] ?? $r['temp'] ?? '-';
+        if (is_numeric($tmp)) $tmp = (int)round((float)$tmp);
+        $hum = $r['humedad'] ?? '-';
+        if (is_numeric($hum)) $hum = (int)round((float)$hum);
+        // estado segun pct
+        $estado = 'Normal';
+        if (is_numeric($pct)) {
+            if ((int)$pct <= 20) $estado='Bajo';
+            elseif ((int)$pct >= 90) $estado='Alto';
+            else $estado='Normal';
+        }
+        $historialRows[] = ['fecha'=>$fechaFmt,'hora'=>$horaFmt,'nivel'=>$nivel,'pct'=>$pct,'tmp'=>$tmp,'hum'=>$hum,'estado'=>$estado,'ts'=>$ts];
+    }
+
+    // stats
+    $pcts = array_filter(array_map(fn($r)=> is_numeric($r['pct'])? (int)$r['pct']: null, $historialRows));
+    if (count($pcts)>0) {
+        $avg = (int)round(array_sum($pcts)/count($pcts));
+        $max = max($pcts);
+        $min = min($pcts);
+        $maxIdx = array_search($max, $pcts, true);
+        $minIdx = array_search($min, $pcts, true);
+        // buscar filas correspondientes (indice en historialRows filtrado)
+        $keys = array_keys(array_filter($historialRows, fn($r)=> is_numeric($r['pct'])));
+        $maxRow = $historialRows[$keys[$maxIdx] ?? $keys[0]] ?? null;
+        $minRow = $historialRows[$keys[$minIdx] ?? $keys[0]] ?? null;
+        $stats['promedio']=$avg;
+        $stats['promedioSub']= ($avg*2).' cm promedio';
+        $stats['total']=count($historialRows);
+        $stats['mayor']=$max.'%';
+        $stats['mayorVal']= $maxRow ? ($maxRow['fecha'].' '.$maxRow['hora']) : '-';
+        $stats['menor']=$min.'%';
+        $stats['menorVal']= $minRow ? ($minRow['fecha'].' '.$minRow['hora']) : '-';
+    } else {
+        $stats['total']=count($historialRows);
+        $stats['promedio']= $stats['promedio'] ?: 0;
+    }
+
+    // chartData: agrupar por period
+    // semana: ultimos 7 dias valores promedio pct por dia
+    // mes: 30 dias, trimestre: 12 semanas/meses
+    $periods = ['semana'=>7,'mes'=>30,'trimestre'=>90];
+    foreach ($periods as $p=>$days) {
+        $vals=[];
+        for($i=$days-1;$i>=0;$i--) {
+            $d=date('Y-m-d', strtotime("-$i days"));
+            // calcular promedio pct de ese dia
+            $dayVals = array_filter($rows, fn($r)=> substr($r['fecha']??'',0,10)===$d);
+            if ($dayVals) {
+                $sum=0;$c=0;
+                foreach($dayVals as $dv){ $pv=$dv['porcentaje']??$dv['nivel_porcentaje']??null; if(is_numeric($pv)){ $sum+=(float)$pv; $c++;}}
+                $vals[] = $c ? (int)round($sum/$c) : 0;
+            } else $vals[] = 0;
+        }
+        // si mes o semana y todos 0, dejar ejemplo fallback? pero lo dejamos como 0 para que JS muestre linea plana
+        // para trimestre agrupar por semana (12 puntos)
+        if ($p==='trimestre') {
+            // reducir a 12 puntos promediando cada ~7-8 dias
+            $chunked=array_chunk($vals, (int)ceil(count($vals)/12));
+            $vals12=array_map(fn($ch)=> count($ch)? (int)round(array_sum($ch)/count($ch)):0, $chunked);
+            while(count($vals12)<12) $vals12[]=0;
+            $vals = array_slice($vals12,0,12);
+        } elseif($p==='mes') {
+            $vals = array_slice($vals, -30);
+        } elseif($p==='semana') {
+            $vals = array_slice($vals, -7);
+            // si historial vacio pero hay rows antiguas, usar al menos ultimos 7 valores crudos
+            if(array_sum($vals)===0 && count($rows)>=7){
+                $vals = array_map(fn($r)=> (int)round((float)($r['porcentaje']??50)), array_slice(array_reverse($rows),0,7));
+            }
+        }
+        $chartData[$p]=$vals;
+    }
+
+} catch(Throwable $e){ error_log('historial error: '.$e->getMessage()); }
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -37,7 +212,7 @@ if(!isset($_SESSION['rol']) || $_SESSION['rol'] !== 'USUARIO'){
   <h4>Dispositivo</h4>
   <div class="status-row">
    <svg class="wifi-icon anim-pulse" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12.55a11 11 0 0114.08 0"/><path d="M1.42 9a16 16 0 0121.16 0"/><path d="M8.53 16.11a6 6 0 016.95 0"/><line x1="12" y1="20" x2="12.01" y2="20"/></svg>
-   <span class="status-text">Conectado</span>
+   <span class="status-text"><?php echo h($deviceStatus); ?></span>
   </div>
  </div>
 </aside>
@@ -55,8 +230,8 @@ if(!isset($_SESSION['rol']) || $_SESSION['rol'] !== 'USUARIO'){
    </button>
     <div class="user-dropdown" id="userDropdown">
      <div class="user-info">
-      <div class="user-details"><div class="user-name"><?php echo $_SESSION['nombre'] ?? 'Usuario'; ?></div><div class="user-role">Cliente</div></div>
-      <div class="user-avatar"><?php echo strtoupper(substr($_SESSION['nombre'] ?? 'U', 0, 2)); ?></div>
+      <div class="user-details"><div class="user-name"><?php echo h($_SESSION['nombre'] ?? 'Usuario'); ?></div><div class="user-role">Cliente</div></div>
+      <div class="user-avatar"><?php echo h(strtoupper(substr($_SESSION['nombre'] ?? 'U', 0, 2))); ?></div>
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#7a829a" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
      </div>
       <div class="user-menu hidden" id="userMenu">
@@ -86,36 +261,37 @@ if(!isset($_SESSION['rol']) || $_SESSION['rol'] !== 'USUARIO'){
   <!-- FILTROS -->
   <div class="card anim-bounce0" style="margin-bottom:20px">
    <div class="card-title">Filtros de busqueda</div>
-   <div class="alertas-filters" style="margin-bottom:0;flex-wrap:wrap;gap:10px;align-items:flex-end">
+   <form method="GET" class="alertas-filters" style="margin-bottom:0;flex-wrap:wrap;gap:10px;align-items:flex-end">
     <div style="display:flex;flex-direction:column;gap:5px;flex:1;min-width:140px">
      <span style="font-size:12px;color:var(--tx4)">Tanque</span>
-     <select id="histTankSelect" style="background:var(--inp);border:1px solid var(--bd3);border-radius:8px;padding:9px 12px;color:var(--tx);font-size:13px;font-family:inherit;outline:none;width:100%">
-      <option value="todos">Todos los tanques</option>
-      <option value="tanque1">Tanque Principal - Planta Baja</option>
-      <option value="tanque2">Tanque Secundario - Piso 2</option>
-      <option value="tanque3">Tanque Reserva - Terraza</option>
+     <select name="tanque" id="histTankSelect" style="background:var(--inp);border:1px solid var(--bd3);border-radius:8px;padding:9px 12px;color:var(--tx);font-size:13px;font-family:inherit;outline:none;width:100%">
+      <option value="todos" <?php echo $tanqueFilter==='todos'?'selected':''; ?>>Todos los tanques</option>
+      <?php foreach ($tanques as $t): $tid=(int)($t['id_tanque']??0); $tname=h($t['nombre']??'Tanque '.$tid); $sel = ((string)$tanqueFilter===(string)$tid)?'selected':''; ?>
+       <option value="<?php echo $tid; ?>" <?php echo $sel; ?>><?php echo $tname; ?> - <?php echo h($t['ubicacion']??''); ?> (<?php echo (int)($t['capacidad_litros']??0); ?>L)</option>
+      <?php endforeach; ?>
      </select>
     </div>
     <div style="display:flex;flex-direction:column;gap:5px;flex:1;min-width:140px">
      <span style="font-size:12px;color:var(--tx4)">Desde</span>
-     <input type="date" id="histDateFrom" value="2025-05-01" style="background:var(--inp);border:1px solid var(--bd3);border-radius:8px;padding:9px 12px;color:var(--tx);font-size:13px;font-family:inherit;outline:none;width:100%">
+     <input type="date" name="desde" id="histDateFrom" value="<?php echo h($fechaDesde); ?>" style="background:var(--inp);border:1px solid var(--bd3);border-radius:8px;padding:9px 12px;color:var(--tx);font-size:13px;font-family:inherit;outline:none;width:100%">
     </div>
     <div style="display:flex;flex-direction:column;gap:5px;flex:1;min-width:140px">
      <span style="font-size:12px;color:var(--tx4)">Hasta</span>
-     <input type="date" id="histDateTo" value="2025-05-15" style="background:var(--inp);border:1px solid var(--bd3);border-radius:8px;padding:9px 12px;color:var(--tx);font-size:13px;font-family:inherit;outline:none;width:100%">
+     <input type="date" name="hasta" id="histDateTo" value="<?php echo h($fechaHasta); ?>" style="background:var(--inp);border:1px solid var(--bd3);border-radius:8px;padding:9px 12px;color:var(--tx);font-size:13px;font-family:inherit;outline:none;width:100%">
     </div>
-    <button class="alertas-filter active" id="histBtnFilter" style="white-space:nowrap">
+    <button type="submit" class="alertas-filter active" id="histBtnFilter" style="white-space:nowrap">
      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-right:4px"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
      Filtrar
     </button>
-   </div>
+    <input type="hidden" name="period" id="histPeriodInput" value="<?php echo h($period); ?>">
+   </form>
   </div>
 
   <!-- TABLA -->
   <div class="card anim-bounce1" style="margin-bottom:20px">
    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px">
     <div class="card-title" style="margin-bottom:0">Mediciones historicas</div>
-    <span id="histTableCount" style="font-size:12px;color:var(--tx4)">12 registros</span>
+    <span id="histTableCount" style="font-size:12px;color:var(--tx4)"><?php echo count($historialRows); ?> registros</span>
    </div>
    <div style="overflow-x:auto">
     <table style="width:100%;border-collapse:collapse">
@@ -130,7 +306,21 @@ if(!isset($_SESSION['rol']) || $_SESSION['rol'] !== 'USUARIO'){
        <th style="padding:10px 14px;text-align:left;font-size:12px;font-weight:600;color:var(--tx4);border-bottom:2px solid var(--bd2);white-space:nowrap">Estado</th>
       </tr>
      </thead>
-     <tbody id="histTableBody"></tbody>
+     <tbody id="histTableBody">
+     <?php if (empty($historialRows)): ?>
+       <tr><td colspan="7" style="padding:20px;text-align:center;color:var(--tx4);font-size:13px">No hay mediciones en el rango seleccionado.</td></tr>
+     <?php else: foreach ($historialRows as $r): ?>
+       <tr>
+        <td style="padding:10px 14px;font-size:13px;color:var(--tx);border-bottom:1px solid var(--bd);white-space:nowrap"><?php echo h($r['fecha']); ?></td>
+        <td style="padding:10px 14px;font-size:13px;color:var(--tx);border-bottom:1px solid var(--bd);white-space:nowrap"><?php echo h($r['hora']); ?></td>
+        <td style="padding:10px 14px;font-size:13px;color:var(--tx);border-bottom:1px solid var(--bd);white-space:nowrap"><?php echo h((string)$r['nivel']); ?></td>
+        <td style="padding:10px 14px;font-size:13px;color:var(--tx);border-bottom:1px solid var(--bd);white-space:nowrap"><?php echo is_numeric($r['pct'])? h((string)$r['pct']).'%': h((string)$r['pct']); ?></td>
+        <td style="padding:10px 14px;font-size:13px;color:var(--tx);border-bottom:1px solid var(--bd);white-space:nowrap"><?php echo is_numeric($r['tmp'])? h((string)$r['tmp']).'°C': h((string)$r['tmp']); ?></td>
+        <td style="padding:10px 14px;font-size:13px;color:var(--tx);border-bottom:1px solid var(--bd);white-space:nowrap"><?php echo is_numeric($r['hum'])? h((string)$r['hum']).'%': h((string)$r['hum']); ?></td>
+        <td style="padding:10px 14px;font-size:13px;border-bottom:1px solid var(--bd);white-space:nowrap"><span style="padding:3px 10px;border-radius:6px;font-size:11px;font-weight:600;<?php echo $r['estado']==='Normal'?'color:var(--gn);background:rgba(76,175,80,0.12)':($r['estado']==='Bajo'?'color:var(--or);background:rgba(255,152,0,0.12)':'color:var(--rd2);background:rgba(244,67,54,0.12)'); ?>"><?php echo h($r['estado']); ?></span></td>
+       </tr>
+     <?php endforeach; endif; ?>
+     </tbody>
     </table>
    </div>
   </div>
@@ -140,9 +330,9 @@ if(!isset($_SESSION['rol']) || $_SESSION['rol'] !== 'USUARIO'){
    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:10px">
     <div class="card-title" style="margin-bottom:0">Evolucion del nivel del tanque</div>
     <div class="history-tabs">
-     <button class="history-tab active" data-period="semana">Semana</button>
-     <button class="history-tab" data-period="mes">Mes</button>
-     <button class="history-tab" data-period="trimestre">Trimestre</button>
+     <button class="history-tab <?php echo $period==='semana'?'active':''; ?>" data-period="semana">Semana</button>
+     <button class="history-tab <?php echo $period==='mes'?'active':''; ?>" data-period="mes">Mes</button>
+     <button class="history-tab <?php echo $period==='trimestre'?'active':''; ?>" data-period="trimestre">Trimestre</button>
     </div>
    </div>
    <div class="line-chart-area">
@@ -151,29 +341,40 @@ if(!isset($_SESSION['rol']) || $_SESSION['rol'] !== 'USUARIO'){
    <div class="history-stats">
     <div class="history-stat">
      <div class="history-stat-label">Promedio</div>
-     <div class="history-stat-value blue" id="statPromedio">67%</div>
-     <div class="history-stat-sub" id="statPromedioSub">134 cm promedio</div>
+     <div class="history-stat-value blue" id="statPromedio"><?php echo (int)$stats['promedio']; ?>%</div>
+     <div class="history-stat-sub" id="statPromedioSub"><?php echo h($stats['promedioSub'] ?: '-'); ?></div>
     </div>
     <div class="history-stat">
      <div class="history-stat-label">Total lecturas</div>
-     <div class="history-stat-value" id="statTotal">12</div>
+     <div class="history-stat-value" id="statTotal"><?php echo (int)$stats['total']; ?></div>
      <div class="history-stat-sub" id="statTotalSub">mediciones</div>
     </div>
     <div class="history-stat">
      <div class="history-stat-label">Maximo</div>
-     <div class="history-stat-value" id="statMayor">85%</div>
-     <div class="history-stat-sub" id="statMayorVal">13 May 14:00</div>
+     <div class="history-stat-value" id="statMayor"><?php echo h($stats['mayor']); ?></div>
+     <div class="history-stat-sub" id="statMayorVal"><?php echo h($stats['mayorVal']); ?></div>
     </div>
     <div class="history-stat">
      <div class="history-stat-label">Minimo</div>
-     <div class="history-stat-value" id="statMenor">42%</div>
-     <div class="history-stat-sub" id="statMenorVal">12 May 08:00</div>
+     <div class="history-stat-value" id="statMenor"><?php echo h($stats['menor']); ?></div>
+     <div class="history-stat-sub" id="statMenorVal"><?php echo h($stats['menorVal']); ?></div>
     </div>
    </div>
   </div>
 
  </div>
 </div>
+<script>
+window.EVA_HISTORIAL = <?php echo json_encode([
+    'rows'=>$historialRows,
+    'stats'=>$stats,
+    'chartData'=>$chartData,
+    'period'=>$period,
+    'tanqueFilter'=>$tanqueFilter,
+    'fechaDesde'=>$fechaDesde,
+    'fechaHasta'=>$fechaHasta
+], JSON_UNESCAPED_UNICODE); ?>;
+</script>
 <script src="js/script.js"></script>
 </body>
 </html>

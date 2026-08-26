@@ -4,6 +4,97 @@ if(!isset($_SESSION['rol']) || $_SESSION['rol'] !== 'USUARIO'){
     header("Location: ../index.php");
     exit;
 }
+require_once __DIR__ . '/../config/db.php';
+require_once __DIR__ . '/includes/helpers.php';
+
+$alertas = [];
+$deviceStatus = 'Conectado';
+$idTanqueSel = null;
+$filter = $_GET['filter'] ?? 'activas';
+$allowedFilters = ['todas','activas','resueltas'];
+if (!in_array($filter, $allowedFilters, true)) $filter='activas';
+
+try {
+    $pdo = eva_pdo();
+    $uid = eva_current_user_id();
+    $tanque = eva_first_tanque($pdo, $uid);
+    if ($tanque) {
+        $idTanqueSel = (int)($tanque['id_tanque'] ?? 0);
+        $deviceStatus = eva_device_status($pdo, $idTanqueSel);
+    }
+    // intentar obtener alertas del usuario / tanque
+    // Primero probar alertas con id_tanque
+    $hasIdTanque = false;
+    try {
+        $col = $pdo->query("SHOW COLUMNS FROM alertas LIKE 'id_tanque'");
+        $hasIdTanque = $col && $col->rowCount()>0;
+    } catch (Throwable $e) {}
+    $hasEstado = true;
+    // Construir query base
+    $sql = "SELECT a.*, ca.tipo AS cfg_tipo FROM alertas a LEFT JOIN configuracion_alertas ca ON ca.id_configuracion = a.id_configuracion ";
+    $params = [];
+    $where = [];
+    if ($hasIdTanque && $idTanqueSel) {
+        $where[] = "a.id_tanque = :id_tanque";
+        $params[':id_tanque'] = $idTanqueSel;
+    } elseif ($hasIdTanque) {
+        // si no hay tanque seleccionado mostrar ultimas 50
+    }
+    // filtros por estado
+    // no aplicamos where aqui, lo filtrara JS / php
+    $sql .= (count($where) ? "WHERE ".implode(" AND ", $where) : "") . " ORDER BY a.fecha DESC, a.id_alerta DESC LIMIT 100";
+    $st = $pdo->prepare($sql);
+    $st->execute($params);
+    $rows = $st->fetchAll();
+    foreach ($rows as $r) {
+        $tipo = $r['tipo'] ?? $r['cfg_tipo'] ?? 'NIVEL_BAJO';
+        $estadoRaw = strtoupper(trim($r['estado'] ?? 'PENDIENTE'));
+        // map estado to UI
+        $estadoUI = match($estadoRaw) {
+            'PENDIENTE' => 'activo',
+            'ATENDIDA' => 'en-revision',
+            'CERRADA','RESUELTA' => 'resuelta',
+            default => strtolower($estadoRaw)
+        };
+        $statusForFilter = ($estadoUI === 'activo' || $estadoUI === 'en-revision') ? 'activo' : 'resuelta';
+        // tipo map for icon
+        [$badgeColor, $iconType, $titulo] = eva_alert_tipo_map((string)$tipo);
+        // descripcion
+        $desc = $r['mensaje'] ?? $r['descripcion'] ?? $r['detalle'] ?? '';
+        if (!$desc) {
+            $desc = match(strtoupper((string)$tipo)){
+                'NIVEL_BAJO' => 'El nivel del agua esta por debajo del '.h($r['valor'] ?? '20').'%',
+                'NIVEL_ALTO' => 'El nivel del agua esta por encima del '.h($r['valor'] ?? '90').'%',
+                'SIN_CONEXION' => 'El dispositivo no esta respondiendo',
+                'FALLA_SENSOR' => 'Se detecto falla en el sensor',
+                'CONSUMO_ANORMAL' => 'Consumo anormal detectado',
+                default => h((string)$tipo)
+            };
+        }
+        $fechaRaw = $r['fecha'] ?? $r['created_at'] ?? '';
+        $fechaFmt = '';
+        if ($fechaRaw) {
+            $ts = strtotime((string)$fechaRaw);
+            if ($ts) {
+                // Si es hoy mostrar Hoy HH:MM sino fecha corta
+                if (date('Y-m-d',$ts)===date('Y-m-d')) $fechaFmt = 'Hoy '.date('H:i',$ts);
+                else $fechaFmt = date('d \d\e M', $ts);
+            } else $fechaFmt = h((string)$fechaRaw);
+        }
+        $alertas[] = [
+            'id' => (int)($r['id_alerta'] ?? 0),
+            'type' => $badgeColor,
+            'icon' => $iconType,
+            'title' => $titulo ?: h((string)$tipo),
+            'desc' => h((string)$desc),
+            'date' => $fechaFmt,
+            'status' => $statusForFilter,
+            'estadoRaw' => $estadoRaw,
+            'fechaRaw' => $fechaRaw,
+        ];
+    }
+    // si no hay alertas, dejar vacio y JS mostrara mensaje (no hardcodear datos falsos)
+} catch (Throwable $e) { error_log('alertas error: '.$e->getMessage()); }
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -37,7 +128,7 @@ if(!isset($_SESSION['rol']) || $_SESSION['rol'] !== 'USUARIO'){
   <h4>Dispositivo</h4>
   <div class="status-row">
    <svg class="wifi-icon anim-pulse" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12.55a11 11 0 0114.08 0"/><path d="M1.42 9a16 16 0 0121.16 0"/><path d="M8.53 16.11a6 6 0 016.95 0"/><line x1="12" y1="20" x2="12.01" y2="20"/></svg>
-   <span class="status-text">Conectado</span>
+   <span class="status-text"><?php echo h($deviceStatus); ?></span>
   </div>
  </div>
 </aside>
@@ -55,8 +146,8 @@ if(!isset($_SESSION['rol']) || $_SESSION['rol'] !== 'USUARIO'){
    </button>
     <div class="user-dropdown" id="userDropdown">
      <div class="user-info">
-      <div class="user-details"><div class="user-name"><?php echo $_SESSION['nombre'] ?? 'Usuario'; ?></div><div class="user-role">Cliente</div></div>
-      <div class="user-avatar"><?php echo strtoupper(substr($_SESSION['nombre'] ?? 'U', 0, 2)); ?></div>
+      <div class="user-details"><div class="user-name"><?php echo h($_SESSION['nombre'] ?? 'Usuario'); ?></div><div class="user-role">Cliente</div></div>
+      <div class="user-avatar"><?php echo h(strtoupper(substr($_SESSION['nombre'] ?? 'U', 0, 2))); ?></div>
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#7a829a" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
      </div>
       <div class="user-menu hidden" id="userMenu">
@@ -85,10 +176,20 @@ if(!isset($_SESSION['rol']) || $_SESSION['rol'] !== 'USUARIO'){
     <div class="alertas-subtitle">Gestiona las alertas y notificaciones de tu sistema</div>
    </div>
    <div class="alertas-filters"><button class="alertas-filter" data-filter="todas">Todas</button><button class="alertas-filter active" data-filter="activas">Activas</button><button class="alertas-filter" data-filter="resueltas">Resueltas</button></div>
-   <div class="alertas-list" id="alertasList"></div>
+   <div class="alertas-list" id="alertasList">
+   <?php if (empty($alertas)): ?>
+    <div style="padding:24px;text-align:center;color:var(--tx4);font-size:13px">No hay alertas para mostrar.</div>
+   <?php else: foreach ($alertas as $a): ?>
+    <!-- fallback server-render, JS recreara luego -->
+   <?php endforeach; endif; ?>
+   </div>
   </div>
  </div>
 </div>
+<script>
+window.EVA_ALERTAS = <?php echo json_encode($alertas, JSON_UNESCAPED_UNICODE); ?>;
+window.EVA_ALERTAS_FILTER = <?php echo json_encode($filter); ?>;
+</script>
 <script src="js/script.js"></script>
 </body>
 </html>

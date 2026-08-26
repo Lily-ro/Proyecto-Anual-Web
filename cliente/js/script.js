@@ -1,9 +1,25 @@
-// ====== ESTADO GLOBAL ======
-const CAP = 4000;
-let lvl = 78, tmp = 70;
+let CAP = 0;
+let lvl = 0, tmp = 0;
 const page = location.pathname.split('/').pop() || 'indexcli.php';
 
-// ====== ACTUALIZAR NIVEL DEL TANQUE ======
+if (typeof window.EVA_RESUMEN !== 'undefined' && window.EVA_RESUMEN) {
+  const c = parseInt(window.EVA_RESUMEN.capacidad);
+  if (!isNaN(c)) CAP = c;
+  const p = parseInt(window.EVA_RESUMEN.pct);
+  if (!isNaN(p)) lvl = p;
+  const t = parseInt(window.EVA_RESUMEN.temp);
+  if (!isNaN(t)) tmp = t;
+}
+if (typeof window.EVA_TANQUE !== 'undefined' && window.EVA_TANQUE) {
+  const c2 = parseInt(window.EVA_TANQUE.capacidad);
+  if (!isNaN(c2)) CAP = c2;
+  const p2 = parseInt(window.EVA_TANQUE.pct);
+  if (!isNaN(p2)) lvl = p2;
+  const t2 = parseInt(window.EVA_TANQUE.temp);
+  if (!isNaN(t2)) tmp = t2;
+}
+
+// ACTUALIZAR NIVEL DEL TANQUE
 function tank(pct) {
  const e = document.getElementById('waterRect');
  if (!e) return;
@@ -18,7 +34,7 @@ function tank(pct) {
  if (v) v.textContent = `${Math.round(CAP * pct / 100).toLocaleString('es-AR')} L`;
 }
 
-// ====== ACTUALIZAR MEDIDOR DE TEMPERATURA ======
+//  ACTUALIZAR MEDIDOR DE TEMPERATURA 
 function gauge(v) {
  const n = document.getElementById('gaugeNeedle'), a = document.getElementById('gaugeArc'), g = document.getElementById('gaugeValue');
  if (!n) return;
@@ -28,7 +44,7 @@ function gauge(v) {
  if (g) g.textContent = `${Math.round(v)}°`;
 }
 
-// ====== ESTADO DEL TANQUE ======
+//  ESTADO DEL TANQUE 
 function status() {
  const e = document.getElementById('estadoText'), d = document.getElementById('estadoDesc');
  if (!e) return;
@@ -38,20 +54,29 @@ function status() {
  else { e.className = 'estado-text'; e.textContent = 'Normal'; d.textContent = 'Todo funciona correctamente'; }
 }
 
-// ====== RELOJ ======
+//  RELOJ 
 function clock() {
  const e = document.getElementById('lastUpdate');
  if (!e) return;
+ // Si el contenido viene de MySQL, no sobrescribir con hora actual a menos que sea placeholder
+ if (e.textContent && e.textContent.indexOf('--:--') === -1 && e.textContent.indexOf('/') !== -1) return;
  const n = new Date();
  e.textContent = `Hoy: ${String(n.getHours()).padStart(2,'0')}:${String(n.getMinutes()).padStart(2,'0')}`;
 }
 
-// ====== GRAFICO DE BARRAS (vista Tanque) ======
-const bd = [{year:'2012',bottom:100,top:60},{year:'2013',bottom:120,top:50},{year:'2014',bottom:110,top:70},{year:'2015',bottom:130,top:60},{year:'2016',bottom:90,top:50},{year:'2017',bottom:100,top:55},{year:'2018',bottom:115,top:60}];
+//  GRAFICO DE BARRAS
+let bd = [];
+if (typeof window.EVA_TANQUE !== 'undefined' && window.EVA_TANQUE && Array.isArray(window.EVA_TANQUE.barsData) && window.EVA_TANQUE.barsData.length > 0) {
+  bd = window.EVA_TANQUE.barsData;
+}
 function bars() {
  const c = document.getElementById('chartBars');
  if (!c) return;
  c.innerHTML = '';
+ if (!bd || bd.length === 0) {
+   c.innerHTML = '<div style="padding:24px;text-align:center;color:var(--tx4);font-size:13px;width:100%">No hay datos disponibles</div>';
+   return;
+ }
  bd.forEach((d, i) => {
   const g = document.createElement('div'); g.className = 'chart-bar-group';
   const s = document.createElement('div'); s.className = 'bar-stack'; s.style.height = '0px';
@@ -64,17 +89,15 @@ function bars() {
  });
 }
 
-// ====== GRAFICO DE LINEAS (vista Historial) ======
-const hd = {
- semana: { values:[200,950,900,450,350,250,200,500,300,350], labels:['0','1','2','3','4','5','6','7','8','9'], avg:'1.234 L', avgSub:'12% vs la semana anterior', total:'8.750 L', totalSub:'', mayor:'Miércoles', mayorVal:'730 L', menor:'Sábado', menorVal:'3.120 L' },
- dia: { values:[80,120,90,60,40,30,50,200,350,500,450,380,420,500,350,280,300,450,500,400,300,200,150,100], labels:['00','01','02','03','04','05','06','07','08','09','10','11','12','13','14','15','16','17','18','19','20','21','22','23'], avg:'285 L', avgSub:'5% vs el día anterior', total:'6.840 L', totalSub:'Total del día', mayor:'13:00', mayorVal:'500 L', menor:'05:00', menorVal:'30 L' },
- mes: { values:[3200,2800,3500,4100,3800,2900,3100,3600,4000,3400,3000,3300,3700,4200,3900,2700,3000,3500,4000,3600,3200,2800,3100,3400,3800,4100,3500,2900,3200,3600], labels:Array.from({length:30},(_,i)=>`${i+1}`), avg:'3.450 L', avgSub:'8% vs el mes anterior', total:'103.500 L', totalSub:'Total del mes', mayor:'Dia 14', mayorVal:'4.200 L', menor:'Dia 16', menorVal:'2.700 L' },
- anio: { values:[35000,38000,42000,40000,45000,43000,48000,46000,50000,47000,44000,41000], labels:['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'], avg:'42.417 L', avgSub:'Promedio mensual', total:'509.000 L', totalSub:'Total del año', mayor:'Sepiembre', mayorVal:'50.000 L', menor:'Enero', menorVal:'35.000 L' }
-};
+const hd = {};
 function lines(p = 'semana') {
  const svg = document.getElementById('lineChartSvg');
  if (!svg) return;
  const d = hd[p];
+ if (!d || !d.values || d.values.length === 0) {
+   svg.innerHTML = '<text x="350" y="140" text-anchor="middle" fill="var(--tx4)" font-size="13">No hay datos disponibles</text>';
+   return;
+ }
  const L = 40, R = 20, T = 15, B = 35, w = 700 - L - R, h = 280 - T - B, max = Math.max(...d.values) * 1.15, n = d.values.length, sx = w / (n - 1);
  let html = '';
  for (let i = 0; i <= 5; i++) { const y = T + (h / 5) * i; html += `<line x1="${L}" y1="${y}" x2="${L + w}" y2="${y}" class="grid-line"/><text x="${L - 8}" y="${y + 4}" class="axis-label" text-anchor="end">${Math.round(max - (max / 5) * i)}</text>`; }
@@ -90,15 +113,19 @@ function lines(p = 'semana') {
 }
 document.querySelectorAll('.history-tab').forEach(t => t.addEventListener('click', () => { document.querySelectorAll('.history-tab').forEach(x => x.classList.remove('active')); t.classList.add('active'); lines(t.dataset.period); }));
 
-// ====== ALERTAS ======
-const ad = [
- { type:'danger', icon:'warning', title:'Nivel bajo', desc:'El nivel del agua esta por debajo del 20%', date:'Hoy 11:15', status:'activo' },
- { type:'warning', icon:'warning', title:'Nivel alto', desc:'El nivel del agua esta por encima del 90%', date:'Ayer 22:15', status:'activo' },
- { type:'info', icon:'info', title:'Sin conexión', desc:'El dispositivo no esta respondiendo', date:'11 de May', status:'resuelta' },
- { type:'success', icon:'check', title:'Nivel normal', desc:'El nivel del agua volvio a la normalidad', date:'11 de May 14:30', status:'resuelta' },
- { type:'success', icon:'check', title:'Nivel normal', desc:'El nivel del agua volvio a la normalidad', date:'10 de May 21:45', status:'resuelta' }
-];
+//  ALERTAS 
+let ad = [];
+if (typeof window.EVA_ALERTAS !== 'undefined' && Array.isArray(window.EVA_ALERTAS) && window.EVA_ALERTAS.length > 0) {
+  ad = window.EVA_ALERTAS;
+}
 let af = 'activas';
+if (typeof window.EVA_ALERTAS_FILTER !== 'undefined' && window.EVA_ALERTAS_FILTER) {
+  af = window.EVA_ALERTAS_FILTER;
+  // sincronizar botones activos
+  setTimeout(()=> {
+    document.querySelectorAll('.alertas-filter').forEach(x=> x.classList.toggle('active', x.dataset.filter===af));
+  }, 0);
+}
 function alertIcon(t) {
  if (t === 'warning') return `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>`;
  if (t === 'info') return `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>`;
@@ -108,22 +135,58 @@ function alertas() {
  const list = document.getElementById('alertasList');
  if (!list) return;
  list.innerHTML = '';
- ad.filter(a => af === 'todas' ? true : a.status === af.slice(0,-1)).forEach((a, i) => {
+ const filtered = ad.filter(a => af === 'todas' ? true : a.status === af.slice(0,-1) || a.status === af);
+ // Si viene de MySQL, status puede ser 'activo' vs 'resuelta', pero el filtro usa activas/resueltas
+ const toShow = ad.filter(a => {
+   if (af==='todas') return true;
+   if (af==='activas') return a.status==='activo' || a.status==='en-revision';
+   if (af==='resueltas') return a.status==='resuelta';
+   return true;
+ });
+ if (toShow.length===0) {
+   list.innerHTML = '<div style="padding:24px;text-align:center;color:var(--tx4);font-size:13px">No hay alertas para mostrar.</div>';
+   return;
+ }
+ toShow.forEach((a, i) => {
   const d = document.createElement('div'); d.className = 'alert-item'; d.style.animationDelay = `${i * 0.06}s`;
   const ic = a.icon === 'warning' ? (a.type === 'danger' ? 'danger-icon' : 'warning-icon') : a.icon === 'info' ? 'info-icon' : 'success-icon';
-  d.innerHTML = `<div class="alert-icon ${ic}">${alertIcon(a.icon)}</div><div class="alert-content"><div class="alert-name">${a.title}</div><div class="alert-desc">${a.desc}</div></div><div class="alert-meta"><div class="alert-date">${a.date}</div><div class="alert-badge ${a.status}">${a.status === 'activo' ? 'Activo' : 'Resuelta'}</div></div>`;
+  d.innerHTML = `<div class="alert-icon ${ic}">${alertIcon(a.icon)}</div><div class="alert-content"><div class="alert-name">${a.title}</div><div class="alert-desc">${a.desc}</div></div><div class="alert-meta"><div class="alert-date">${a.date}</div><div class="alert-badge ${a.status}">${a.status === 'activo' ? 'Activo' : (a.status==='en-revision'?'En revisión':'Resuelta')}</div></div>`;
   list.appendChild(d);
  });
-}
-document.querySelectorAll('.alertas-filter').forEach(b => b.addEventListener('click', () => { document.querySelectorAll('.alertas-filter').forEach(x => x.classList.remove('active')); b.classList.add('active'); af = b.dataset.filter; alertas(); }));
+} 
+document.querySelectorAll('.alertas-filter').forEach(b => b.addEventListener('click', () => {
+  document.querySelectorAll('.alertas-filter').forEach(x => x.classList.remove('active')); b.classList.add('active'); af = b.dataset.filter;
 
-// ====== SLIDERS DE CONFIGURACION ======
+  if (typeof window.EVA_ALERTAS !== 'undefined' && window.EVA_ALERTAS.length>0) {
+    alertas();
+  } else {
+    fetch(`api/alertas.php?filter=${encodeURIComponent(af)}`).then(r=>r.json()).then(data=>{
+      if(Array.isArray(data)){ ad=data; alertas(); }
+      else alertas();
+    }).catch(()=> alertas());
+  }
+}));
+
 const sL = document.getElementById('sliderLow'), sH = document.getElementById('sliderHigh');
 function sliderFill(s) { if (!s) return; const p = ((s.value - s.min) / (s.max - s.min)) * 100; s.style.background = `linear-gradient(to right, #2c6cef 0%, #2c6cef ${p}%, #2a3042 ${p}%, #2a3042 100%)`; }
 if (sL) { const sLv = document.getElementById('sliderLowVal'); sL.addEventListener('input', () => { sLv.textContent = `${sL.value} %`; sliderFill(sL); }); sliderFill(sL); }
 if (sH) { const sHv = document.getElementById('sliderHighVal'); sH.addEventListener('input', () => { sHv.textContent = `${sH.value} %`; sliderFill(sH); }); sliderFill(sH); }
 
-// ====== VISTA RESUMEN ======
+let cfgTimer=null;
+function cfgSave(){
+  if(!sL||!sH) return;
+  const low=sL.value, high=sH.value;
+  const csrf=document.querySelector('input[name="csrf"]')?.value || '';
+  fetch('api/configuracion.php', {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({low, high, csrf})
+  }).then(r=>r.json()).then(()=>{}).catch(()=>{});
+}
+if(sL) sL.addEventListener('change', ()=>{ clearTimeout(cfgTimer); cfgTimer=setTimeout(cfgSave, 600); });
+if(sH) sH.addEventListener('change', ()=>{ clearTimeout(cfgTimer); cfgTimer=setTimeout(cfgSave, 600); });
+
+//  VISTA RESUMEN 
 function resumen() {
  const arc = document.getElementById('resumenGaugeArc');
  if (!arc) return;
@@ -135,7 +198,9 @@ function resumen() {
  if (v) v.textContent = pct;
  const e = document.getElementById('resumenEstado');
  if (e) {
-  if (pct <= 20) { e.textContent = 'Crítico'; e.className = 'resumen-estado-value danger'; }
+  if (typeof window.EVA_RESUMEN !== 'undefined' && window.EVA_RESUMEN && (window.EVA_RESUMEN.idTanque === null || window.EVA_RESUMEN.capacidad === 0)) {
+    e.textContent = 'Sin datos'; e.className = 'resumen-estado-value';
+  } else if (pct <= 20) { e.textContent = 'Crítico'; e.className = 'resumen-estado-value danger'; }
   else if (pct <= 40) { e.textContent = 'Bajo'; e.className = 'resumen-estado-value warning'; }
   else { e.textContent = 'Normal'; e.className = 'resumen-estado-value'; }
  }
@@ -146,19 +211,33 @@ function resumen() {
  const c = document.getElementById('resumenConsumo');
  if (c) c.textContent = `${Math.round(CAP * (100 - pct) / 100).toLocaleString('es-AR')} L`;
  const p = document.getElementById('resumenPromedio');
- if (p) p.textContent = '1.250 L';
+ if (p && typeof window.EVA_RESUMEN !== 'undefined' && window.EVA_RESUMEN.promedio) p.textContent = `${Number(window.EVA_RESUMEN.promedio).toLocaleString('es-AR')} L`;
+ else if (p) p.textContent = 'No hay datos disponibles';
  rChart();
 }
 function rChart() {
  const svg = document.getElementById('resumenMiniChart');
  if (!svg) return;
- const data = [65,78,52,85,90,45,72], labels = ['L','M','X','J','V','S','D'];
+ let data = [], labels = [];
+ if (typeof window.EVA_RESUMEN !== 'undefined' && window.EVA_RESUMEN && Array.isArray(window.EVA_RESUMEN.chartData) && window.EVA_RESUMEN.chartData.length>0) {
+   data = window.EVA_RESUMEN.chartData;
+   if (data.length===7) labels=['L','M','X','J','V','S','D'];
+   else if (data.length===30) labels=Array.from({length:30},(_,i)=>`${i+1}`);
+   else if (data.length===12) labels=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+ }
+ if (window.EVA_RESUMEN_DYNAMIC && Array.isArray(window.EVA_RESUMEN_DYNAMIC)) {
+   data = window.EVA_RESUMEN_DYNAMIC;
+ }
+ if (!data || data.length === 0) {
+   svg.innerHTML = '<text x="250" y="85" text-anchor="middle" fill="var(--tx4)" font-size="13" font-family="Inter,sans-serif">No hay datos disponibles</text>';
+   return;
+ }
  const W = 500, H = 170, L = 40, R = 20, T = 10, B = 30, gW = W - L - R, gH = H - T - B, max = 100;
  const pts = data.map((v, i) => ({ x: L + (i / (data.length - 1)) * gW, y: T + gH - (v / max) * gH }));
  const lt = document.body.classList.contains('light-theme'), gc = lt?'rgba(0,0,0,0.06)':'rgba(255,255,255,0.04)', tc = lt?'#6b7280':'#4a5068', cf = lt?'#fff':'#1a1f2e';
  let html = '';
  for (let i = 0; i <= 4; i++) { const y = T + (i / 4) * gH; html += `<line x1="${L}" y1="${y}" x2="${W - R}" y2="${y}" stroke="${gc}" stroke-width="1"/><text x="${L - 8}" y="${y + 4}" fill="${tc}" font-size="9" text-anchor="end" font-family="Inter,sans-serif">${Math.round(max - (i / 4) * max)}</text>`; }
- data.forEach((v, i) => { const x = L + (i / (data.length - 1)) * gW; html += `<text x="${x}" y="${H - 8}" fill="${tc}" font-size="9" text-anchor="middle" font-family="Inter,sans-serif">${labels[i]}</text>`; });
+ data.forEach((v, i) => { const x = L + (i / (data.length - 1)) * gW; html += `<text x="${x}" y="${H - 8}" fill="${tc}" font-size="9" text-anchor="middle" font-family="Inter,sans-serif">${labels[i]||i}</text>`; });
  const lp = pts.map((p, i) => `${i?'L':'M'}${p.x},${p.y}`).join(' ');
  html += `<path d="${lp} L${pts[pts.length-1].x},${T + gH} L${pts[0].x},${T + gH} Z" fill="url(#resumenAreaGrad)" opacity="0.3"/>`;
  html += `<path d="${lp}" fill="none" stroke="#42a5f5" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="800" stroke-dashoffset="800"><animate attributeName="stroke-dashoffset" from="800" to="0" dur="1.2s" fill="freeze"/></path>`;
@@ -167,16 +246,49 @@ function rChart() {
  svg.innerHTML = html;
 }
 const chartSelect = document.getElementById('resumenChartSelect');
-if (chartSelect) chartSelect.addEventListener('change', rChart);
+if (chartSelect) chartSelect.addEventListener('change', () => {
+  const period = chartSelect.value;
+  // Intentar fetch real
+  fetch(`api/resumen.php?period=${encodeURIComponent(period)}`).then(r=>r.json()).then(j=>{
+    if(j && Array.isArray(j.serie) && j.serie.length>0){
+      const max=Math.max(...j.serie);
+      const norm = max>0 ? j.serie.map(v=> Math.round((v/max)*90+10)) : j.serie;
+      window.EVA_RESUMEN_DYNAMIC = norm;
+      rChart();
+    } else rChart();
+  }).catch(()=> rChart());
+});
 
-// ====== SIMULACION EN TIEMPO REAL ======
+// ====== SIMULACION EN TIEMPO REAL (solo si no hay datos reales recientes) ======
+let useSimulate = true;
+if (typeof window.EVA_RESUMEN !== 'undefined' || typeof window.EVA_TANQUE !== 'undefined') {
+  // Si hay datos reales, desactivar variacion aleatoria brusca; usar polling suave
+  useSimulate = false;
+}
 function simulate() {
- lvl = Math.max(0, Math.min(100, lvl + (Math.random() - 0.45) * 4));
- lvl = Math.round(lvl * 10) / 10;
- tmp = Math.max(10, Math.min(100, tmp + (Math.random() - 0.5) * 6));
- tmp = Math.round(tmp);
- if (page === 'mitanque.php') { tank(lvl); gauge(tmp); status(); clock(); }
- if (page === 'indexcli.php') resumen();
+ if(useSimulate){
+   lvl = Math.max(0, Math.min(100, lvl + (Math.random() - 0.45) * 4));
+   lvl = Math.round(lvl * 10) / 10;
+   tmp = Math.max(10, Math.min(100, tmp + (Math.random() - 0.5) * 6));
+   tmp = Math.round(tmp);
+   if (page === 'mitanque.php') { tank(lvl); gauge(tmp); status(); clock(); }
+   if (page === 'indexcli.php') resumen();
+ } else {
+   // Polling cada 15s a la API para datos frescos
+ }
+}
+// Polling real cada 15s para medidas vivas
+function pollReal(){
+  if(page==='mitanque.php'){
+    fetch('api/tanque.php').then(r=>r.json()).then(j=>{
+      if(j && typeof j.pct==='number'){ lvl=j.pct; tmp=j.temp; CAP=j.capacidad||CAP; tank(lvl); gauge(tmp); status(); if(j.lastUpdate){ const el=document.getElementById('lastUpdate'); if(el) el.textContent=j.lastUpdate; } }
+    }).catch(()=>{});
+  }
+  if(page==='indexcli.php'){
+    fetch('api/resumen.php').then(r=>r.json()).then(j=>{
+      if(j && typeof j.pct==='number'){ lvl=j.pct; tmp=j.temp; CAP=j.capacidad||CAP; resumen(); }
+    }).catch(()=>{});
+  }
 }
 
 // ====== CAMBIAR TEMA (oscuro/claro) ======
@@ -199,27 +311,14 @@ if (userDropdown && userMenu) {
 }
 
 // ====== INICIALIZACION SEGUN PAGINA ======
-if (page === 'indexcli.php') { resumen(); setInterval(simulate, 3000); }
-if (page === 'mitanque.php') { bars(); gauge(tmp); tank(lvl); clock(); setInterval(simulate, 3000); }
+if (page === 'indexcli.php') { resumen(); if(useSimulate) setInterval(simulate, 3000); else setInterval(pollReal, 15000); }
+if (page === 'mitanque.php') { bars(); gauge(tmp); tank(lvl); clock(); if(useSimulate) setInterval(simulate, 3000); else setInterval(pollReal, 15000); }
 if (page === 'alertas.php') { alertas(); }
 if (page === 'historial.php') { historialInit(); }
 if (page === 'mantenimiento.php') { mantenimientoInit(); }
 
-// ====== VISTA HISTORIAL ======
-const histData = [
- {fecha:'15/05/2025',hora:'14:00',nivel:134,pct:67,tmp:22,hum:55,estado:'Normal'},
- {fecha:'15/05/2025',hora:'08:00',nivel:140,pct:70,tmp:19,hum:60,estado:'Normal'},
- {fecha:'14/05/2025',hora:'20:00',nivel:128,pct:64,tmp:24,hum:50,estado:'Normal'},
- {fecha:'14/05/2025',hora:'14:00',nivel:150,pct:75,tmp:26,hum:45,estado:'Normal'},
- {fecha:'14/05/2025',hora:'08:00',nivel:146,pct:73,tmp:20,hum:58,estado:'Normal'},
- {fecha:'13/05/2025',hora:'20:00',nivel:160,pct:80,tmp:23,hum:52,estado:'Normal'},
- {fecha:'13/05/2025',hora:'14:00',nivel:170,pct:85,tmp:27,hum:42,estado:'Normal'},
- {fecha:'13/05/2025',hora:'08:00',nivel:155,pct:78,tmp:21,hum:56,estado:'Normal'},
- {fecha:'12/05/2025',hora:'20:00',nivel:142,pct:71,tmp:25,hum:48,estado:'Normal'},
- {fecha:'12/05/2025',hora:'14:00',nivel:130,pct:65,tmp:28,hum:40,estado:'Normal'},
- {fecha:'12/05/2025',hora:'08:00',nivel:84,pct:42,tmp:18,hum:65,estado:'Bajo'},
- {fecha:'11/05/2025',hora:'20:00',nivel:100,pct:50,tmp:22,hum:55,estado:'Normal'}
-];
+// ====== VISTA HISTORIAL - solo datos reales de BD, sin demo ======
+const histData = [];
 
 function historialTabla(data) {
  const tbody = document.getElementById('histTableBody');
@@ -235,16 +334,29 @@ function historialTabla(data) {
  if (count) count.textContent = `${data.length} registros`;
 }
 
-const histChartData = {
- semana: {values:[67,70,64,75,73,80,85,78,71,65,42,50],labels:['08:00','14:00','20:00','08:00','14:00','20:00','08:00','14:00','20:00','08:00','14:00','20:00']},
- mes: {values:[50,55,60,58,62,67,70,65,68,72,75,78,80,82,75,70,65,60,58,55,60,65,70,72,75,78,80,85,82,78],labels:Array.from({length:30},(_,i)=>`${i+1}`)},
- trimestre: {values:[40,45,50,55,60,65,70,75,78,80,82,85],labels:['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic']}
+let histChartData = {
+ semana: {values:[],labels:[]},
+ mes: {values:[],labels:[]},
+ trimestre: {values:[],labels:[]}
 };
+if (typeof window.EVA_HISTORIAL !== 'undefined' && window.EVA_HISTORIAL && window.EVA_HISTORIAL.chartData) {
+  const ch = window.EVA_HISTORIAL.chartData;
+  // ch tiene semana/mes/trimestre como arrays de valores 0-100
+  histChartData.semana.values = ch.semana && ch.semana.length ? ch.semana : histChartData.semana.values;
+  histChartData.mes.values = ch.mes && ch.mes.length ? ch.mes : histChartData.mes.values;
+  histChartData.trimestre.values = ch.trimestre && ch.trimestre.length ? ch.trimestre : histChartData.trimestre.values;
+  if(ch.semana) histChartData.semana.labels = ch.semana.map((_,i)=>`D${i+1}`);
+  if(ch.mes) histChartData.mes.labels = ch.mes.map((_,i)=>`${i+1}`);
+}
 
 function historialChart(p) {
  const svg = document.getElementById('histChartSvg');
  if (!svg) return;
  const d = histChartData[p];
+ if (!d || !d.values || d.values.length === 0) {
+   svg.innerHTML = '<text x="350" y="150" text-anchor="middle" fill="var(--tx4)" font-size="13" font-family="Inter,sans-serif">No hay datos disponibles</text>';
+   return;
+ }
  const L = 40, R = 20, T = 15, B = 35, w = 700 - L - R, h = 300 - T - B;
  const max = 100, n = d.values.length, sx = w / Math.max(n - 1, 1);
  let html = '';
@@ -257,10 +369,10 @@ function historialChart(p) {
  html += `<path d="M${pts[0].x},${T + h} ${pts.map(p => `L${p.x},${p.y}`).join(' ')} L${pts[pts.length - 1].x},${T + h} Z" fill="rgba(79,195,247,0.06)"/>`;
  html += `<path d="${pts.map((p, i) => `${i ? 'L' : 'M'}${p.x},${p.y}`).join(' ')}" class="data-line" id="histAnimatedLine"/>`;
  pts.forEach(p => { html += `<circle cx="${p.x}" cy="${p.y}" r="4.5" class="data-dot"/>`; });
- if (n <= 14) {
+ if (n <= 30) {
   pts.forEach((p, i) => {
    if (i % Math.ceil(n / 12) === 0) {
-    html += `<text x="${p.x}" y="${T + h + 20}" class="axis-label" text-anchor="middle">${d.labels[i]}</text>`;
+    html += `<text x="${p.x}" y="${T + h + 20}" class="axis-label" text-anchor="middle">${d.labels[i]||i}</text>`;
    }
   });
  }
@@ -276,12 +388,14 @@ function historialChart(p) {
 }
 
 function historialStats(data) {
- const pcts = data.map(r => r.pct);
- const avg = Math.round(pcts.reduce((a, b) => a + b, 0) / pcts.length);
- const max = Math.max(...pcts);
- const min = Math.min(...pcts);
- const maxIdx = pcts.indexOf(max);
- const minIdx = pcts.indexOf(min);
+ const pcts = data.map(r => r.pct).filter(v=> typeof v==='number' || (!isNaN(parseInt(v)) && v!=='-'));
+ const numericPcts = pcts.map(v=> parseInt(v)).filter(v=> !isNaN(v));
+ if(numericPcts.length===0) return;
+ const avg = Math.round(numericPcts.reduce((a, b) => a + b, 0) / numericPcts.length);
+ const max = Math.max(...numericPcts);
+ const min = Math.min(...numericPcts);
+ const maxIdx = numericPcts.indexOf(max);
+ const minIdx = numericPcts.indexOf(min);
  const sp = document.getElementById('statPromedio');
  const ss = document.getElementById('statPromedioSub');
  const st = document.getElementById('statTotal');
@@ -301,26 +415,31 @@ function historialStats(data) {
 }
 
 function historialInit() {
- historialTabla(histData);
- historialChart('semana');
- historialStats(histData);
+ // Solo datos reales de BD - no sobrescribir tabla PHP con demo, mantener "No hay datos" si corresponde
+ const hasRealTable = typeof window.EVA_HISTORIAL !== 'undefined' && window.EVA_HISTORIAL && Array.isArray(window.EVA_HISTORIAL.rows);
+ if (hasRealTable) {
+   const period = window.EVA_HISTORIAL.period || 'semana';
+   historialChart(period);
+   document.querySelectorAll('.history-tab').forEach(x=> x.classList.toggle('active', x.dataset.period===period));
+ } else {
+   historialTabla(histData);
+   historialChart('semana');
+   historialStats(histData);
+ }
  document.querySelectorAll('.history-tab').forEach(t => t.addEventListener('click', () => {
   document.querySelectorAll('.history-tab').forEach(x => x.classList.remove('active'));
   t.classList.add('active');
+  // actualizar input hidden para persistir period en filtro
+  const inp=document.getElementById('histPeriodInput'); if(inp) inp.value=t.dataset.period;
   historialChart(t.dataset.period);
  }));
  const btnFilter = document.getElementById('histBtnFilter');
- if (btnFilter) btnFilter.addEventListener('click', () => { historialTabla(histData); historialStats(histData); });
+ // El boton ahora es submit de form GET, no necesita listener JS para filtrar demo
+ if (btnFilter && !hasRealTable) btnFilter.addEventListener('click', (e) => { e.preventDefault(); historialTabla(histData); historialStats(histData); });
 }
 
-// ====== MANTENIMIENTO ======
-const mtSolicitudes = [
- {id:'SOL-001',fecha:'15/05/2025',problema:'Fuga de agua en la base del tanque',estado:'Pendiente',actualizacion:'15/05/2025 14:30'},
- {id:'SOL-002',fecha:'12/05/2025',problema:'Sensor de nivel no responde correctamente',estado:'En Revision',actualizacion:'13/05/2025 10:15'},
- {id:'SOL-003',fecha:'08/05/2025',problema:'Tapa del tanque dificil de abrir',estado:'Resuelto',actualizacion:'10/05/2025 16:45'},
- {id:'SOL-004',fecha:'01/05/2025',problema:'Manometro muestra lectura inconsistente',estado:'Resuelto',actualizacion:'03/05/2025 09:20'},
- {id:'SOL-005',fecha:'28/04/2025',problema:'Vibracion excesiva en la bomba de extraccion',estado:'Resuelto',actualizacion:'30/04/2025 11:00'}
-];
+// ====== MANTENIMIENTO - solo datos reales de BD, sin demo ======
+const mtSolicitudes = [];
 
 function mtEstadoClass(estado) {
  if (estado === 'Pendiente') return 'activo';
@@ -331,6 +450,8 @@ function mtEstadoClass(estado) {
 function mtTabla(data) {
  const tbody = document.getElementById('mtTablaBody');
  if (!tbody) return;
+ // Si la tabla ya fue renderizada por PHP con datos reales, no sobrescribir con demo si hay datos reales
+ if (typeof window.EVA_MT_HAS_REAL !== 'undefined' && window.EVA_MT_HAS_REAL) return;
  const counter = {total: data.length};
  tbody.innerHTML = data.map((s, i) => {
   const num = String(counter.total - i).padStart(4, '0');
@@ -351,26 +472,40 @@ function mtTabla(data) {
 }
 
 function mantenimientoInit() {
- mtTabla(mtSolicitudes);
+ // Solo datos reales de BD - no sobrescribir con demo
+ const tbody = document.getElementById('mtTablaBody');
+ const hasRealRows = tbody && tbody.querySelector('tr');
+ if (hasRealRows) {
+   window.EVA_MT_HAS_REAL = true;
+ } else if (mtSolicitudes.length > 0) {
+   mtTabla(mtSolicitudes);
+ }
 
  const desc = document.getElementById('mtDescripcion');
  const charCount = document.getElementById('mtCharCount');
  if (desc && charCount) {
   desc.addEventListener('input', () => { charCount.textContent = desc.value.length; });
+  // inicializar
+  charCount.textContent = desc.value.length;
  }
 
  const upload = document.getElementById('mtUpload');
  const fileInput = document.getElementById('mtFileInput');
+ const fileName = document.getElementById('mtFileName');
  if (upload && fileInput) {
-  upload.addEventListener('click', () => fileInput.click());
+  upload.addEventListener('click', (e) => { if(e.target!==fileInput) fileInput.click(); });
+  fileInput.addEventListener('change', ()=>{ if(fileName) fileName.textContent = fileInput.files[0] ? fileInput.files[0].name : ''; });
   upload.addEventListener('dragover', (e) => { e.preventDefault(); upload.style.borderColor = 'var(--ac)'; upload.style.background = 'rgba(44,108,239,0.06)'; });
   upload.addEventListener('dragleave', () => { upload.style.borderColor = ''; upload.style.background = ''; });
-  upload.addEventListener('drop', (e) => { e.preventDefault(); upload.style.borderColor = ''; upload.style.background = ''; });
+  upload.addEventListener('drop', (e) => { e.preventDefault(); upload.style.borderColor = ''; upload.style.background = ''; if(e.dataTransfer.files[0]){ fileInput.files=e.dataTransfer.files; if(fileName) fileName.textContent=e.dataTransfer.files[0].name; } });
  }
 
+ // El formulario ahora es POST real a PHP, no hacer handler ficticio si hay datos reales
+ const form = document.getElementById('mtForm');
  const btnEnviar = document.getElementById('mtEnviar');
- if (btnEnviar) {
-  btnEnviar.addEventListener('click', () => {
+ if (btnEnviar && form && !hasRealRows) {
+  btnEnviar.addEventListener('click', (e) => {
+   e.preventDefault();
    const tanque = document.getElementById('mtTanque');
    const descripcion = document.getElementById('mtDescripcion');
    if (!tanque.value || !descripcion.value.trim()) {
@@ -391,7 +526,9 @@ function mantenimientoInit() {
    tanque.value = '';
    descripcion.value = '';
    charCount.textContent = '0';
+   if(fileName) fileName.textContent='';
    alert('Solicitud enviada correctamente.');
   });
  }
+ // Si es formulario real, dejar que submit haga POST normal (no preventDefault)
 }

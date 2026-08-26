@@ -4,6 +4,75 @@ if(!isset($_SESSION['rol']) || $_SESSION['rol'] !== 'USUARIO'){
     header("Location: ../index.php");
     exit;
 }
+require_once __DIR__ . '/../config/db.php';
+require_once __DIR__ . '/includes/helpers.php';
+
+// Valores reales - solo datos de BD, sin ficticios. Si no hay datos se mantiene 0/vacío y se muestra "No hay datos disponibles"
+$capacidad = 0;
+$tanqueNombre = null;
+$pct = 0;
+$temp = 0;
+$disponible = 0;
+$consumoHoy = 0;
+$promedio = 0;
+$estadoTexto = 'Sin datos';
+$estadoClass = '';
+$deviceStatus = 'Desconectado';
+$chartData = [];
+$chartLabels = [];
+$idTanqueSel = null;
+$hasRealData = false;
+
+try {
+    $pdo = eva_pdo();
+    $uid = eva_current_user_id();
+    $tanque = eva_first_tanque($pdo, $uid);
+    if ($tanque) {
+        $hasRealData = true;
+        $idTanqueSel = (int)($tanque['id_tanque'] ?? $tanque['id'] ?? 0);
+        $capacidad = (int)($tanque['capacidad_litros'] ?? $tanque['capacidad'] ?? 0);
+        $tanqueNombre = $tanque['nombre'] ?? null;
+        $deviceStatus = eva_device_status($pdo, $idTanqueSel);
+
+        $med = eva_latest_medicion($pdo, $idTanqueSel);
+        if ($med) {
+            if (isset($med['porcentaje']) && is_numeric($med['porcentaje'])) {
+                $pct = (int)round((float)$med['porcentaje']);
+            } elseif (isset($med['nivel_porcentaje']) && is_numeric($med['nivel_porcentaje'])) {
+                $pct = (int)round((float)$med['nivel_porcentaje']);
+            } elseif (isset($med['nivel']) && isset($med['altura_cm']) && is_numeric($med['nivel'])) {
+                $pct = max(0, min(100, (int)round(((float)$med['nivel']/ max(1,(float)$tanque['altura_cm']))*100)));
+            } elseif (isset($med['distancia']) && isset($tanque['altura_cm'])) {
+                $nivel = (float)$tanque['altura_cm'] - (float)$med['distancia'];
+                $pct = max(0, min(100, (int)round(($nivel/max(1,(float)$tanque['altura_cm']))*100)));
+            }
+            if (isset($med['temperatura']) && is_numeric($med['temperatura'])) $temp = (int)round((float)$med['temperatura']);
+            elseif (isset($med['temp']) && is_numeric($med['temp'])) $temp = (int)round((float)$med['temp']);
+        }
+        $pct = max(0, min(100, (int)$pct));
+        $disponible = (int)round($capacidad * $pct / 100);
+        $consumoHoy = (int)round(eva_consumo_hoy($pdo, $idTanqueSel));
+        $promedio = (int)round(eva_consumo_promedio($pdo, $idTanqueSel));
+
+        [$estadoTexto, , $estadoClass] = eva_estado_texto($pct);
+
+        // Serie de consumo real (7 días) - solo datos de BD, sin demo
+        $serie = eva_consumo_serie($pdo, $idTanqueSel, 'semana');
+        $hasData = array_sum($serie) > 0;
+        if ($hasData) {
+            $max = max($serie);
+            if ($max > 0) {
+                $chartData = array_map(fn($v)=> (int)round(($v/$max)*90+10), $serie);
+            } else {
+                $chartData = $serie;
+            }
+        } else {
+            $chartData = [];
+        }
+    }
+} catch (Throwable $e) {
+    error_log('indexcli error: ' . $e->getMessage());
+}
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -37,7 +106,7 @@ if(!isset($_SESSION['rol']) || $_SESSION['rol'] !== 'USUARIO'){
   <h4>Dispositivo</h4>
   <div class="status-row">
    <svg class="wifi-icon anim-pulse" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12.55a11 11 0 0114.08 0"/><path d="M1.42 9a16 16 0 0121.16 0"/><path d="M8.53 16.11a6 6 0 016.95 0"/><line x1="12" y1="20" x2="12.01" y2="20"/></svg>
-   <span class="status-text">Conectado</span>
+   <span class="status-text"><?php echo h($deviceStatus); ?></span>
   </div>
  </div>
 </aside>
@@ -55,8 +124,8 @@ if(!isset($_SESSION['rol']) || $_SESSION['rol'] !== 'USUARIO'){
    </button>
     <div class="user-dropdown" id="userDropdown">
      <div class="user-info">
-      <div class="user-details"><div class="user-name"><?php echo $_SESSION['nombre'] ?? 'Usuario'; ?></div><div class="user-role">Cliente</div></div>
-      <div class="user-avatar"><?php echo strtoupper(substr($_SESSION['nombre'] ?? 'U', 0, 2)); ?></div>
+      <div class="user-details"><div class="user-name"><?php echo h($_SESSION['nombre'] ?? 'Usuario'); ?></div><div class="user-role">Cliente</div></div>
+      <div class="user-avatar"><?php echo h(strtoupper(substr($_SESSION['nombre'] ?? 'U', 0, 2))); ?></div>
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#7a829a" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
      </div>
       <div class="user-menu hidden" id="userMenu">
@@ -98,23 +167,23 @@ if(!isset($_SESSION['rol']) || $_SESSION['rol'] !== 'USUARIO'){
        <circle cx="100" cy="110" r="5" fill="#2a3042" stroke="#4a5068" stroke-width="1.5"/><circle cx="100" cy="110" r="2.5" fill="#e0e4ea"/>
       </g>
      </svg>
-     <div class="resumen-gauge-value" id="resumenGaugeVal">70</div>
+     <div class="resumen-gauge-value" id="resumenGaugeVal"><?php echo (int)$pct; ?></div>
     </div>
    </div>
    <div class="card resumen-status-card anim-bounce1">
-    <div class="resumen-estado-box"><div class="card-title">Estado del tanque</div><div class="resumen-estado-value" id="resumenEstado">Normal</div></div>
+    <div class="resumen-estado-box"><div class="card-title">Estado del tanque</div><div class="resumen-estado-value <?php echo h($estadoClass === 'alert' ? 'danger' : ($estadoClass === 'warning' ? 'warning' : '')); ?>" id="resumenEstado"><?php echo h($estadoTexto); ?></div></div>
     <div class="resumen-temp-box">
      <div class="resumen-temp-icon"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 14.76V3.5a2.5 2.5 0 00-5 0v11.26a4.5 4.5 0 105 0z"/></svg></div>
-     <div class="resumen-temp-data"><div class="resumen-temp-value" id="resumenTemp">20°C</div><div class="resumen-temp-label">Ambiente optimo</div></div>
+     <div class="resumen-temp-data"><div class="resumen-temp-value" id="resumenTemp"><?php echo (int)$temp; ?>°C</div><div class="resumen-temp-label">Ambiente optimo</div></div>
     </div>
    </div>
    <div class="card resumen-rapido-card anim-bounce2">
     <div class="card-title">Resumen rápido</div>
     <div class="resumen-rapido-list">
-     <div class="resumen-rapido-item"><span class="resumen-rapido-label">Capacidad del tanque</span><span class="resumen-rapido-val">4.000 L</span></div>
-     <div class="resumen-rapido-item"><span class="resumen-rapido-label">Agua disponible</span><span class="resumen-rapido-val" id="resumenDisponible">3.120 L</span></div>
-     <div class="resumen-rapido-item"><span class="resumen-rapido-label">Consumo hoy</span><span class="resumen-rapido-val" id="resumenConsumo">880 L</span></div>
-     <div class="resumen-rapido-item"><span class="resumen-rapido-label">Promedio diario</span><span class="resumen-rapido-val" id="resumenPromedio">1.250 L</span></div>
+     <div class="resumen-rapido-item"><span class="resumen-rapido-label">Capacidad del tanque</span><span class="resumen-rapido-val"><?php echo number_format($capacidad, 0, ',', '.'); ?> L</span></div>
+     <div class="resumen-rapido-item"><span class="resumen-rapido-label">Agua disponible</span><span class="resumen-rapido-val" id="resumenDisponible"><?php echo number_format($disponible, 0, ',', '.'); ?> L</span></div>
+     <div class="resumen-rapido-item"><span class="resumen-rapido-label">Consumo hoy</span><span class="resumen-rapido-val" id="resumenConsumo"><?php echo number_format($consumoHoy, 0, ',', '.'); ?> L</span></div>
+     <div class="resumen-rapido-item"><span class="resumen-rapido-label">Promedio diario</span><span class="resumen-rapido-val" id="resumenPromedio"><?php echo number_format($promedio, 0, ',', '.'); ?> L</span></div>
     </div>
    </div>
    <div class="card resumen-chart-card anim-bounce3">
@@ -126,6 +195,21 @@ if(!isset($_SESSION['rol']) || $_SESSION['rol'] !== 'USUARIO'){
   </div>
  </div>
 </div>
+<script>
+// Inyectar datos reales de MySQL para que script.js los use en lugar de valores hardcodeados
+window.EVA_RESUMEN = <?php echo json_encode([
+    'pct' => (int)$pct,
+    'temp' => (int)$temp,
+    'capacidad' => (int)$capacidad,
+    'disponible' => (int)$disponible,
+    'consumoHoy' => (int)$consumoHoy,
+    'promedio' => (int)$promedio,
+    'deviceStatus' => $deviceStatus,
+    'chartData' => $chartData,
+    'tanqueNombre' => $tanqueNombre,
+    'idTanque' => $idTanqueSel
+], JSON_UNESCAPED_UNICODE); ?>;
+</script>
 <script src="js/script.js"></script>
 </body>
 </html>
