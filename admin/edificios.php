@@ -6,11 +6,9 @@ if(!isset($_SESSION['rol']) || $_SESSION['rol'] !== 'ADMIN'){
 }
 require_once(__DIR__ . '/../config/db.php');
 
-// === PROCESAMIENTO DE ACCIONES POST ===
 if($_SERVER['REQUEST_METHOD'] === 'POST'){
  $accion = $_POST['accion'] ?? '';
 
- // --- CREAR EDIFICIO ---
  if($accion === 'crear'){
   $nombre      = trim($_POST['nombre'] ?? '');
   $direccion   = trim($_POST['direccion'] ?? '');
@@ -37,7 +35,6 @@ if($_SERVER['REQUEST_METHOD'] === 'POST'){
   exit;
  }
 
- // --- EDITAR EDIFICIO ---
  if($accion === 'editar'){
   $id         = (int)($_POST['edificio_id'] ?? 0);
   $nombre     = trim($_POST['nombre'] ?? '');
@@ -65,7 +62,6 @@ if($_SERVER['REQUEST_METHOD'] === 'POST'){
   exit;
  }
 
- // --- ELIMINAR EDIFICIO ---
  if($accion === 'eliminar'){
   $id = (int)($_POST['edificio_id'] ?? 0);
   if($id){
@@ -91,16 +87,13 @@ if($_SERVER['REQUEST_METHOD'] === 'POST'){
  }
 }
 
-// === CONSULTAS PARA LA VISTA ===
 $currentPage = 'edificios';
 $pageSubtitle = 'Gestión de edificios';
 
-// Usuarios disponibles para el select (todos los activos)
 $resUsuarios = $conn->query("SELECT id_usuario, CONCAT(nombre,' ',apellido) AS nombre_completo FROM usuarios WHERE activo=1 ORDER BY nombre");
 $listaUsuarios = [];
 if($resUsuarios){ while($u = $resUsuarios->fetch_assoc()) $listaUsuarios[] = $u; }
 
-// Edificios con conteo de tanques y nombre del usuario responsable
 $resEdificios = $conn->query("
  SELECT e.*,
         CONCAT(u.nombre,' ',u.apellido) AS usuario_nombre,
@@ -186,7 +179,6 @@ if($resEdificios){ while($ed = $resEdificios->fetch_assoc()) $listaEdificios[] =
  </div>
 </div>
 
-<!-- Modal Agregar/Editar Edificio -->
 <div class="modal-overlay" id="modalEdificio">
  <div class="modal">
   <div class="modal-header">

@@ -6,11 +6,9 @@ if(!isset($_SESSION['rol']) || $_SESSION['rol'] !== 'ADMIN'){
 }
 require_once(__DIR__ . '/../config/db.php');
 
-// === PROCESAMIENTO DE ACCIONES POST ===
 if($_SERVER['REQUEST_METHOD'] === 'POST'){
  $accion = $_POST['accion'] ?? '';
 
- // --- CREAR EMPRESA ---
  if($accion === 'crear'){
   $nombre    = trim($_POST['nombre'] ?? '');
   $cuit      = trim($_POST['cuit'] ?? '');
@@ -48,7 +46,6 @@ if($_SERVER['REQUEST_METHOD'] === 'POST'){
   exit;
  }
 
- // --- EDITAR EMPRESA ---
  if($accion === 'editar'){
   $id       = (int)($_POST['empresa_id'] ?? 0);
   $nombre   = trim($_POST['nombre'] ?? '');
@@ -87,7 +84,6 @@ if($_SERVER['REQUEST_METHOD'] === 'POST'){
   exit;
  }
 
- // --- TOGGLE ESTADO ---
  if($accion === 'toggle_estado'){
   $id     = (int)($_POST['empresa_id'] ?? 0);
   $activo = (int)($_POST['activo'] ?? 1);
@@ -105,7 +101,6 @@ if($_SERVER['REQUEST_METHOD'] === 'POST'){
   }
  }
 
- // --- ELIMINAR EMPRESA ---
  if($accion === 'eliminar'){
   $id = (int)($_POST['empresa_id'] ?? 0);
   if($id){
@@ -131,7 +126,6 @@ if($_SERVER['REQUEST_METHOD'] === 'POST'){
  }
 }
 
-// === CONSULTAS PARA LA VISTA ===
 $currentPage = 'empresas';
 $pageSubtitle = 'Gestión de empresas';
 
@@ -230,7 +224,6 @@ function empresaBadge($activo){
  </div>
 </div>
 
-<!-- Modal Agregar/Editar Empresa -->
 <div class="modal-overlay" id="modalEmpresa">
  <div class="modal">
   <div class="modal-header">
@@ -299,7 +292,6 @@ function empresaBadge($activo){
 
 <script src="js/admin.js"></script>
 <script>
-// Datos de empresas para edición
 var empresasData = {
  <?php foreach($listaEmpresas as $e): ?>
  <?php echo $e['id_empresa']; ?>:{nombre:"<?php echo addslashes($e['nombre']); ?>",cuit:"<?php echo addslashes($e['cuit']); ?>",email:"<?php echo addslashes($e['email']); ?>",telefono:"<?php echo addslashes($e['telefono']); ?>",direccion:"<?php echo addslashes($e['direccion']); ?>",ciudad:"<?php echo addslashes($e['ciudad']); ?>",provincia:"<?php echo addslashes($e['provincia']); ?>",pais:"<?php echo addslashes($e['pais']); ?>",activo:<?php echo $e['activo']; ?>},

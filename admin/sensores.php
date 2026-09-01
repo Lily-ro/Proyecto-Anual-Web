@@ -6,11 +6,9 @@ if(!isset($_SESSION['rol']) || $_SESSION['rol'] !== 'ADMIN'){
 }
 require_once(__DIR__ . '/../config/db.php');
 
-// === PROCESAMIENTO DE ACCIONES POST ===
 if($_SERVER['REQUEST_METHOD'] === 'POST'){
  $accion = $_POST['accion'] ?? '';
 
- // --- CREAR SENSOR ---
  if($accion === 'crear'){
   $modelo           = trim($_POST['modelo'] ?? '');
   $numero_serie     = trim($_POST['numero_serie'] ?? '');
@@ -50,7 +48,6 @@ if($_SERVER['REQUEST_METHOD'] === 'POST'){
   exit;
  }
 
- // --- EDITAR SENSOR ---
  if($accion === 'editar'){
   $id               = (int)($_POST['sensor_id'] ?? 0);
   $modelo           = trim($_POST['modelo'] ?? '');
@@ -91,7 +88,6 @@ if($_SERVER['REQUEST_METHOD'] === 'POST'){
   exit;
  }
 
- // --- ELIMINAR SENSOR ---
  if($accion === 'eliminar'){
   $id = (int)($_POST['sensor_id'] ?? 0);
   if($id){
@@ -117,16 +113,13 @@ if($_SERVER['REQUEST_METHOD'] === 'POST'){
  }
 }
 
-// === CONSULTAS PARA LA VISTA ===
 $currentPage = 'sensores';
 $pageSubtitle = 'Gestión de sensores';
 
-// Dispositivos disponibles para el select
 $resDisp = $conn->query("SELECT d.id_dispositivo, d.nombre, t.nombre AS tanque_nombre FROM dispositivos d JOIN tanques t ON d.id_tanque=t.id_tanque ORDER BY d.nombre");
 $listaDispositivos = [];
 if($resDisp){ while($d = $resDisp->fetch_assoc()) $listaDispositivos[] = $d; }
 
-// Sensores con datos del dispositivo y tanque
 $resSensores = $conn->query("
  SELECT s.*,
         d.nombre AS dispositivo_nombre,
@@ -231,7 +224,6 @@ function sensorBadge($estado){
  </div>
 </div>
 
-<!-- Modal Agregar/Editar Sensor -->
 <div class="modal-overlay" id="modalSensor">
  <div class="modal">
   <div class="modal-header">
