@@ -8,7 +8,6 @@ require_once(__DIR__ . '/../config/db.php');
 $currentPage = 'inicio';
 $pageSubtitle = 'Resumen general del sistema';
 
-// CONTADORES 
 $cntClientes   = $conn->query("SELECT COUNT(*) FROM usuarios WHERE id_rol=3 AND activo=1")->fetch_row()[0];
 $cntTecnicos   = $conn->query("SELECT COUNT(*) FROM usuarios u JOIN roles r ON u.id_rol=r.id_rol WHERE r.nombre='TECNICO' AND u.activo=1")->fetch_row()[0];
 $cntEdificios  = $conn->query("SELECT COUNT(*) FROM edificios")->fetch_row()[0];
@@ -17,7 +16,6 @@ $cntTanques    = $conn->query("SELECT COUNT(*) FROM tanques")->fetch_row()[0];
 $cntSensores   = $conn->query("SELECT COUNT(*) FROM sensores")->fetch_row()[0];
 $cntInstalaciones = $conn->query("SELECT COUNT(*) FROM instalaciones")->fetch_row()[0];
 
-// GRAFICO ESTADO DE DISPOSITIVOS ===
 $totalDev = max((int)$cntDispositivos, 1);
 $devOnline   = (int)$conn->query("SELECT COUNT(*) FROM dispositivos WHERE estado='ONLINE'")->fetch_row()[0];
 $devAlerta   = (int)$conn->query("SELECT COUNT(*) FROM dispositivos WHERE estado='MANTENIMIENTO'")->fetch_row()[0];
@@ -26,22 +24,16 @@ $pctOnline   = round(($devOnline / $totalDev) * 100);
 $pctAlerta   = round(($devAlerta / $totalDev) * 100);
 $pctInactivo = max(0, 100 - $pctOnline - $pctAlerta);
 
-// MANTENIMIENTOS PENDIENTES
 $resMant = $conn->query("SELECT m.descripcion, t.ubicacion, DATE_FORMAT(m.fecha_programada,'%d/%m/%Y') AS fecha, m.estado FROM mantenimientos m JOIN dispositivos d ON m.id_dispositivo=d.id_dispositivo JOIN tanques t ON d.id_tanque=t.id_tanque WHERE m.estado IN ('PENDIENTE','EN_PROCESO') ORDER BY m.fecha_programada ASC LIMIT 3");
 
-// USUARIOS RECIENTE
 $resUsuarios = $conn->query("SELECT CONCAT(u.nombre,' ',u.apellido) AS nombre, r.nombre AS rol, u.activo, DATE_FORMAT(u.ultimo_acceso,'%d/%m/%Y %H:%i') AS ultimo_acceso FROM usuarios u JOIN roles r ON u.id_rol=r.id_rol ORDER BY u.fecha_registro DESC LIMIT 4");
 
-// TABLA DE DISPOSITIVOS
 $resDispositivos = $conn->query("SELECT d.nombre, t.nombre AS tanque, d.estado, d.bateria, d.intensidad_senal, d.ultima_conexion FROM dispositivos d JOIN tanques t ON d.id_tanque=t.id_tanque ORDER BY d.ultima_conexion DESC LIMIT 5");
 
-// ULTIMAS ALERTAS
 $resAlertas = $conn->query("SELECT DATE_FORMAT(a.fecha_hora,'%d/%m %H:%i') AS fecha, t.nombre AS tanque, a.tipo, a.estado FROM alertas a JOIN tanques t ON a.id_tanque=t.id_tanque ORDER BY a.fecha_hora DESC LIMIT 5");
 
-// =ULTIMOS MANTENIMIENTOS
 $resMantHist = $conn->query("SELECT CONCAT(ut.nombre,' ',ut.apellido) AS tecnico, d.nombre AS dispositivo, m.estado, DATE_FORMAT(m.fecha_programada,'%d/%m/%Y') AS fecha FROM mantenimientos m JOIN dispositivos d ON m.id_dispositivo=d.id_dispositivo JOIN usuarios ut ON m.id_tecnico=ut.id_usuario ORDER BY m.fecha_programada DESC LIMIT 5");
 
-// ESTADOS
 function badgeEstado($estado){
     $map = ['ONLINE'=>'activo','OFFLINE'=>'inactivo','MANTENIMIENTO'=>'advertencia'];
     $cls = $map[$estado] ?? 'inactivo';
@@ -103,7 +95,7 @@ function tiempoDesde($fecha){
     <div class="stat-card-icon blue"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg></div>
     <div class="stat-card-info">
      <div class="stat-card-title">Clientes</div>
-     <div class="stat-card-value"><?php echo $cntUsuarios; ?></div>
+     <div class="stat-card-value"><?php echo $cntClientes; ?></div>
      <div class="stat-card-sub">Activos</div>
     </div>
    </div>

@@ -96,11 +96,17 @@ if (!isset($currentPage)) $currentPage = 'inicio';
     </a>
    </li>
     <li class="<?php echo $currentPage === 'reportes' ? 'active' : ''; ?>">
-     <a href="reportes.php">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
-      <span>Reportes</span>
-     </a>
-    </li>
+      <a href="reportes.php">
+       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+       <span>Reportes</span>
+      </a>
+     </li>
+    <li class="<?php echo $currentPage === 'tecnicos' ? 'active' : ''; ?>">
+      <a href="tecnicos.php">
+       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+       <span>Técnicos</span>
+      </a>
+     </li>
   </ul>
  </nav>
  <div class="sidebar-footer">

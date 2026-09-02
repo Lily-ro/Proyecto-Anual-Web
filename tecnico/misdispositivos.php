@@ -4,6 +4,20 @@ if(!isset($_SESSION['rol']) || $_SESSION['rol'] !== 'TECNICO'){
     header("Location: ../index.php");
     exit;
 }
+require_once(__DIR__ . '/../config/db.php');
+
+$id_tecnico = $_SESSION['id_usuario'];
+$pdo = eva_pdo();
+
+function sensorBadgeDispositivo($estado){
+    $m = ['ACTIVO'=>['cls'=>'completado','txt'=>'Operativo','data'=>'operativo'],'INACTIVO'=>['cls'=>'inactivo','txt'=>'Inactivo','data'=>'fuera-servicio'],'FALLA'=>['cls'=>'danger','txt'=>'Falla','data'=>'mantenimiento']];
+    $d = $m[$estado] ?? ['cls'=>'inactivo','txt'=>'Sin estado','data'=>'fuera-servicio'];
+    return ['cls'=>$d['cls'],'txt'=>$d['txt'],'data'=>$d['data']];
+}
+
+$rDisp = $pdo->prepare("SELECT d.id_dispositivo, d.nombre, d.firmware, d.bateria, d.intensidad_senal, d.ultima_conexion, d.fecha_instalacion, d.estado AS estado_disp, s.id_sensor, s.modelo, s.numero_serie, s.estado AS estado_sensor, t.nombre AS tanque, ed.nombre AS edificio FROM dispositivos d INNER JOIN instalaciones i ON i.id_dispositivo = d.id_dispositivo LEFT JOIN sensores s ON s.id_dispositivo = d.id_dispositivo LEFT JOIN tanques t ON d.id_tanque = t.id_tanque LEFT JOIN edificios ed ON t.id_edificio = ed.id_edificio WHERE i.id_tecnico = ? ORDER BY d.nombre ASC");
+$rDisp->execute([$id_tecnico]);
+$dispositivos = $rDisp->fetchAll(PDO::FETCH_ASSOC);
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -66,209 +80,60 @@ if(!isset($_SESSION['rol']) || $_SESSION['rol'] !== 'TECNICO'){
   </div>
 
   <div class="dispositivos-grid anim-bounce1">
-   <div class="dispositivo-card" data-estado="operativo">
-    <div class="dispositivo-card-header">
-     <div class="dispositivo-card-nombre">Sensor Ultrasónico 01</div>
-     <span class="badge completado">Operativo</span>
-    </div>
-    <div class="dispositivo-card-body">
-     <div class="dispositivo-info-grid">
-      <div class="dispositivo-info-item"><span class="dispositivo-info-label">N° Serie</span><span class="dispositivo-info-val">EVA-US-2024-001</span></div>
-      <div class="dispositivo-info-item"><span class="dispositivo-info-label">Modelo</span><span class="dispositivo-info-val">EVA-US-200</span></div>
-      <div class="dispositivo-info-item"><span class="dispositivo-info-label">Firmware</span><span class="dispositivo-info-val">v2.4.1</span></div>
-      <div class="dispositivo-info-item"><span class="dispositivo-info-label">Batería</span><span class="dispositivo-info-val">87%</span></div>
-      <div class="dispositivo-info-item"><span class="dispositivo-info-label">Señal</span><span class="dispositivo-info-val">-42 dBm</span></div>
-      <div class="dispositivo-info-item"><span class="dispositivo-info-label">Última conexión</span><span class="dispositivo-info-val">14/07/2026 08:30</span></div>
-      <div class="dispositivo-info-item"><span class="dispositivo-info-label">Instalado</span><span class="dispositivo-info-val">01/03/2026</span></div>
-      <div class="dispositivo-info-item"><span class="dispositivo-info-label">Tanque</span><span class="dispositivo-info-val">Tanque Norte</span></div>
-      <div class="dispositivo-info-item"><span class="dispositivo-info-label">Edificio</span><span class="dispositivo-info-val">Edificio Central</span></div>
+   <?php if(count($dispositivos) > 0): ?>
+    <?php foreach($dispositivos as $d):
+     $nombreDisp = $d['nombre'] ?? 'Sin nombre';
+     $estado = $d['estado_sensor'] ?? 'ACTIVO';
+     $badge = sensorBadgeDispositivo($estado);
+     $tanque = $d['tanque'] ?? 'Sin tanque';
+     $edificio = $d['edificio'] ?? 'Sin edificio';
+     $modelo = $d['modelo'] ?? '-';
+     $serie = $d['numero_serie'] ?? '-';
+     $firmware = $d['firmware'] ?? '-';
+     $bateria = $d['bateria'] ?? 0;
+     $senal = $d['intensidad_senal'] ?? 0;
+     $ultimaConn = $d['ultima_conexion'] ? date('d/m/Y H:i', strtotime($d['ultima_conexion'])) : '-';
+     $instalado = $d['fecha_instalacion'] ? date('d/m/Y', strtotime($d['fecha_instalacion'])) : '-';
+    ?>
+    <div class="dispositivo-card" data-estado="<?php echo $badge['data']; ?>">
+     <div class="dispositivo-card-header">
+      <div class="dispositivo-card-nombre"><?php echo htmlspecialchars($nombreDisp); ?></div>
+      <span class="badge <?php echo $badge['cls']; ?>"><?php echo $badge['txt']; ?></span>
+     </div>
+     <div class="dispositivo-card-body">
+      <div class="dispositivo-info-grid">
+       <div class="dispositivo-info-item"><span class="dispositivo-info-label">N° Serie</span><span class="dispositivo-info-val"><?php echo htmlspecialchars($serie); ?></span></div>
+       <div class="dispositivo-info-item"><span class="dispositivo-info-label">Modelo</span><span class="dispositivo-info-val"><?php echo htmlspecialchars($modelo); ?></span></div>
+       <div class="dispositivo-info-item"><span class="dispositivo-info-label">Firmware</span><span class="dispositivo-info-val"><?php echo htmlspecialchars($firmware); ?></span></div>
+       <div class="dispositivo-info-item"><span class="dispositivo-info-label">Batería</span><span class="dispositivo-info-val"><?php echo $bateria; ?>%</span></div>
+       <div class="dispositivo-info-item"><span class="dispositivo-info-label">Señal</span><span class="dispositivo-info-val"><?php echo $senal; ?> dBm</span></div>
+       <div class="dispositivo-info-item"><span class="dispositivo-info-label">Última conexión</span><span class="dispositivo-info-val"><?php echo $ultimaConn; ?></span></div>
+       <div class="dispositivo-info-item"><span class="dispositivo-info-label">Instalado</span><span class="dispositivo-info-val"><?php echo $instalado; ?></span></div>
+       <div class="dispositivo-info-item"><span class="dispositivo-info-label">Tanque</span><span class="dispositivo-info-val"><?php echo htmlspecialchars($tanque); ?></span></div>
+       <div class="dispositivo-info-item"><span class="dispositivo-info-label">Edificio</span><span class="dispositivo-info-val"><?php echo htmlspecialchars($edificio); ?></span></div>
+      </div>
+     </div>
+     <div class="dispositivo-card-footer">
+      <button class="btn btn-sm btn-outline" onclick="abrirHistorial('<?php echo htmlspecialchars($nombreDisp); ?>')">Historial</button>
+      <button class="btn btn-sm btn-outline" onclick="abrirMediciones('<?php echo htmlspecialchars($nombreDisp); ?>')">Mediciones</button>
+      <select class="form-select dispositivo-estado-select" onchange="cambiarEstado(this, '<?php echo htmlspecialchars($nombreDisp); ?>')">
+       <option value="">Cambiar estado</option>
+       <option value="mantenimiento">En mantenimiento</option>
+       <option value="reparado">Reparado</option>
+       <option value="fuera-servicio">Fuera de servicio</option>
+      </select>
+     </div>
+     <div class="dispositivo-observaciones">
+      <textarea class="form-input" placeholder="Agregar observaciones técnicas..." rows="2"></textarea>
+      <button class="btn btn-sm btn-primary" onclick="guardarObservaciones(this)">Guardar</button>
      </div>
     </div>
-    <div class="dispositivo-card-footer">
-     <button class="btn btn-sm btn-outline" onclick="abrirHistorial('Sensor Ultrasónico 01')">Historial</button>
-     <button class="btn btn-sm btn-outline" onclick="abrirMediciones('Sensor Ultrasónico 01')">Mediciones</button>
-     <select class="form-select dispositivo-estado-select" onchange="cambiarEstado(this, 'Sensor Ultrasónico 01')">
-      <option value="">Cambiar estado</option>
-      <option value="mantenimiento">En mantenimiento</option>
-      <option value="reparado">Reparado</option>
-      <option value="fuera-servicio">Fuera de servicio</option>
-     </select>
+    <?php endforeach; ?>
+   <?php else: ?>
+    <div class="card" style="grid-column:1/-1;text-align:center;padding:40px;color:var(--tx4)">
+     No hay dispositivos asignados a tu cuenta.
     </div>
-    <div class="dispositivo-observaciones">
-     <textarea class="form-input" placeholder="Agregar observaciones técnicas..." rows="2"></textarea>
-     <button class="btn btn-sm btn-primary" onclick="guardarObservaciones(this)">Guardar</button>
-    </div>
-   </div>
-
-   <div class="dispositivo-card" data-estado="mantenimiento">
-    <div class="dispositivo-card-header">
-     <div class="dispositivo-card-nombre">Sensor de Presión 02</div>
-     <span class="badge pendiente">En mantenimiento</span>
-    </div>
-    <div class="dispositivo-card-body">
-     <div class="dispositivo-info-grid">
-      <div class="dispositivo-info-item"><span class="dispositivo-info-label">N° Serie</span><span class="dispositivo-info-val">EVA-PR-2024-002</span></div>
-      <div class="dispositivo-info-item"><span class="dispositivo-info-label">Modelo</span><span class="dispositivo-info-val">EVA-PR-150</span></div>
-      <div class="dispositivo-info-item"><span class="dispositivo-info-label">Firmware</span><span class="dispositivo-info-val">v2.3.0</span></div>
-      <div class="dispositivo-info-item"><span class="dispositivo-info-label">Batería</span><span class="dispositivo-info-val">62%</span></div>
-      <div class="dispositivo-info-item"><span class="dispositivo-info-label">Señal</span><span class="dispositivo-info-val">-58 dBm</span></div>
-      <div class="dispositivo-info-item"><span class="dispositivo-info-label">Última conexión</span><span class="dispositivo-info-val">13/07/2026 16:45</span></div>
-      <div class="dispositivo-info-item"><span class="dispositivo-info-label">Instalado</span><span class="dispositivo-info-val">15/01/2026</span></div>
-      <div class="dispositivo-info-item"><span class="dispositivo-info-label">Tanque</span><span class="dispositivo-info-val">Tanque Centro</span></div>
-      <div class="dispositivo-info-item"><span class="dispositivo-info-label">Edificio</span><span class="dispositivo-info-val">Edificio Central</span></div>
-     </div>
-    </div>
-    <div class="dispositivo-card-footer">
-     <button class="btn btn-sm btn-outline" onclick="abrirHistorial('Sensor de Presión 02')">Historial</button>
-     <button class="btn btn-sm btn-outline" onclick="abrirMediciones('Sensor de Presión 02')">Mediciones</button>
-     <select class="form-select dispositivo-estado-select" onchange="cambiarEstado(this, 'Sensor de Presión 02')">
-      <option value="">Cambiar estado</option>
-      <option value="mantenimiento" selected>En mantenimiento</option>
-      <option value="reparado">Reparado</option>
-      <option value="fuera-servicio">Fuera de servicio</option>
-     </select>
-    </div>
-    <div class="dispositivo-observaciones">
-     <textarea class="form-input" placeholder="Agregar observaciones técnicas..." rows="2"></textarea>
-     <button class="btn btn-sm btn-primary" onclick="guardarObservaciones(this)">Guardar</button>
-    </div>
-   </div>
-
-   <div class="dispositivo-card" data-estado="operativo">
-    <div class="dispositivo-card-header">
-     <div class="dispositivo-card-nombre">Sensor de Nivel 03</div>
-     <span class="badge completado">Operativo</span>
-    </div>
-    <div class="dispositivo-card-body">
-     <div class="dispositivo-info-grid">
-      <div class="dispositivo-info-item"><span class="dispositivo-info-label">N° Serie</span><span class="dispositivo-info-val">EVA-NV-2024-003</span></div>
-      <div class="dispositivo-info-item"><span class="dispositivo-info-label">Modelo</span><span class="dispositivo-info-val">EVA-NV-300</span></div>
-      <div class="dispositivo-info-item"><span class="dispositivo-info-label">Firmware</span><span class="dispositivo-info-val">v2.4.1</span></div>
-      <div class="dispositivo-info-item"><span class="dispositivo-info-label">Batería</span><span class="dispositivo-info-val">94%</span></div>
-      <div class="dispositivo-info-item"><span class="dispositivo-info-label">Señal</span><span class="dispositivo-info-val">-35 dBm</span></div>
-      <div class="dispositivo-info-item"><span class="dispositivo-info-label">Última conexión</span><span class="dispositivo-info-val">14/07/2026 09:00</span></div>
-      <div class="dispositivo-info-item"><span class="dispositivo-info-label">Instalado</span><span class="dispositivo-info-val">20/02/2026</span></div>
-      <div class="dispositivo-info-item"><span class="dispositivo-info-label">Tanque</span><span class="dispositivo-info-val">Tanque Sur</span></div>
-      <div class="dispositivo-info-item"><span class="dispositivo-info-label">Edificio</span><span class="dispositivo-info-val">Edificio Norte</span></div>
-     </div>
-    </div>
-    <div class="dispositivo-card-footer">
-     <button class="btn btn-sm btn-outline" onclick="abrirHistorial('Sensor de Nivel 03')">Historial</button>
-     <button class="btn btn-sm btn-outline" onclick="abrirMediciones('Sensor de Nivel 03')">Mediciones</button>
-     <select class="form-select dispositivo-estado-select" onchange="cambiarEstado(this, 'Sensor de Nivel 03')">
-      <option value="">Cambiar estado</option>
-      <option value="mantenimiento">En mantenimiento</option>
-      <option value="reparado">Reparado</option>
-      <option value="fuera-servicio">Fuera de servicio</option>
-     </select>
-    </div>
-    <div class="dispositivo-observaciones">
-     <textarea class="form-input" placeholder="Agregar observaciones técnicas..." rows="2"></textarea>
-     <button class="btn btn-sm btn-primary" onclick="guardarObservaciones(this)">Guardar</button>
-    </div>
-   </div>
-
-   <div class="dispositivo-card" data-estado="fuera-servicio">
-    <div class="dispositivo-card-header">
-     <div class="dispositivo-card-nombre">Sensor de Temperatura 04</div>
-     <span class="badge danger">Fuera de servicio</span>
-    </div>
-    <div class="dispositivo-card-body">
-     <div class="dispositivo-info-grid">
-      <div class="dispositivo-info-item"><span class="dispositivo-info-label">N° Serie</span><span class="dispositivo-info-val">EVA-TP-2024-004</span></div>
-      <div class="dispositivo-info-item"><span class="dispositivo-info-label">Modelo</span><span class="dispositivo-info-val">EVA-TP-100</span></div>
-      <div class="dispositivo-info-item"><span class="dispositivo-info-label">Firmware</span><span class="dispositivo-info-val">v2.2.0</span></div>
-      <div class="dispositivo-info-item"><span class="dispositivo-info-label">Batería</span><span class="dispositivo-info-val">12%</span></div>
-      <div class="dispositivo-info-item"><span class="dispositivo-info-label">Señal</span><span class="dispositivo-info-val">-78 dBm</span></div>
-      <div class="dispositivo-info-item"><span class="dispositivo-info-label">Última conexión</span><span class="dispositivo-info-val">10/07/2026 14:20</span></div>
-      <div class="dispositivo-info-item"><span class="dispositivo-info-label">Instalado</span><span class="dispositivo-info-val">05/12/2025</span></div>
-      <div class="dispositivo-info-item"><span class="dispositivo-info-label">Tanque</span><span class="dispositivo-info-val">Tanque Este</span></div>
-      <div class="dispositivo-info-item"><span class="dispositivo-info-label">Edificio</span><span class="dispositivo-info-val">Edificio Sur</span></div>
-     </div>
-    </div>
-    <div class="dispositivo-card-footer">
-     <button class="btn btn-sm btn-outline" onclick="abrirHistorial('Sensor de Temperatura 04')">Historial</button>
-     <button class="btn btn-sm btn-outline" onclick="abrirMediciones('Sensor de Temperatura 04')">Mediciones</button>
-     <select class="form-select dispositivo-estado-select" onchange="cambiarEstado(this, 'Sensor de Temperatura 04')">
-      <option value="">Cambiar estado</option>
-      <option value="mantenimiento">En mantenimiento</option>
-      <option value="reparado">Reparado</option>
-      <option value="fuera-servicio" selected>Fuera de servicio</option>
-     </select>
-    </div>
-    <div class="dispositivo-observaciones">
-     <textarea class="form-input" placeholder="Agregar observaciones técnicas..." rows="2"></textarea>
-     <button class="btn btn-sm btn-primary" onclick="guardarObservaciones(this)">Guardar</button>
-    </div>
-   </div>
-
-   <div class="dispositivo-card" data-estado="reparado">
-    <div class="dispositivo-card-header">
-     <div class="dispositivo-card-nombre">Sensor Ultrasónico 05</div>
-     <span class="badge programado">Reparado</span>
-    </div>
-    <div class="dispositivo-card-body">
-     <div class="dispositivo-info-grid">
-      <div class="dispositivo-info-item"><span class="dispositivo-info-label">N° Serie</span><span class="dispositivo-info-val">EVA-US-2024-005</span></div>
-      <div class="dispositivo-info-item"><span class="dispositivo-info-label">Modelo</span><span class="dispositivo-info-val">EVA-US-200</span></div>
-      <div class="dispositivo-info-item"><span class="dispositivo-info-label">Firmware</span><span class="dispositivo-info-val">v2.4.1</span></div>
-      <div class="dispositivo-info-item"><span class="dispositivo-info-label">Batería</span><span class="dispositivo-info-val">78%</span></div>
-      <div class="dispositivo-info-item"><span class="dispositivo-info-label">Señal</span><span class="dispositivo-info-val">-45 dBm</span></div>
-      <div class="dispositivo-info-item"><span class="dispositivo-info-label">Última conexión</span><span class="dispositivo-info-val">14/07/2026 07:15</span></div>
-      <div class="dispositivo-info-item"><span class="dispositivo-info-label">Instalado</span><span class="dispositivo-info-val">10/03/2026</span></div>
-      <div class="dispositivo-info-item"><span class="dispositivo-info-label">Tanque</span><span class="dispositivo-info-val">Tanque Oeste</span></div>
-      <div class="dispositivo-info-item"><span class="dispositivo-info-label">Edificio</span><span class="dispositivo-info-val">Edificio Oeste</span></div>
-     </div>
-    </div>
-    <div class="dispositivo-card-footer">
-     <button class="btn btn-sm btn-outline" onclick="abrirHistorial('Sensor Ultrasónico 05')">Historial</button>
-     <button class="btn btn-sm btn-outline" onclick="abrirMediciones('Sensor Ultrasónico 05')">Mediciones</button>
-     <select class="form-select dispositivo-estado-select" onchange="cambiarEstado(this, 'Sensor Ultrasónico 05')">
-      <option value="">Cambiar estado</option>
-      <option value="mantenimiento">En mantenimiento</option>
-      <option value="reparado" selected>Reparado</option>
-      <option value="fuera-servicio">Fuera de servicio</option>
-     </select>
-    </div>
-    <div class="dispositivo-observaciones">
-     <textarea class="form-input" placeholder="Agregar observaciones técnicas..." rows="2"></textarea>
-     <button class="btn btn-sm btn-primary" onclick="guardarObservaciones(this)">Guardar</button>
-    </div>
-   </div>
-
-   <div class="dispositivo-card" data-estado="operativo">
-    <div class="dispositivo-card-header">
-     <div class="dispositivo-card-nombre">Sensor de Flujo 06</div>
-     <span class="badge completado">Operativo</span>
-    </div>
-    <div class="dispositivo-card-body">
-     <div class="dispositivo-info-grid">
-      <div class="dispositivo-info-item"><span class="dispositivo-info-label">N° Serie</span><span class="dispositivo-info-val">EVA-FL-2024-006</span></div>
-      <div class="dispositivo-info-item"><span class="dispositivo-info-label">Modelo</span><span class="dispositivo-info-val">EVA-FL-250</span></div>
-      <div class="dispositivo-info-item"><span class="dispositivo-info-label">Firmware</span><span class="dispositivo-info-val">v2.4.1</span></div>
-      <div class="dispositivo-info-item"><span class="dispositivo-info-label">Batería</span><span class="dispositivo-info-val">91%</span></div>
-      <div class="dispositivo-info-item"><span class="dispositivo-info-label">Señal</span><span class="dispositivo-info-val">-38 dBm</span></div>
-      <div class="dispositivo-info-item"><span class="dispositivo-info-label">Última conexión</span><span class="dispositivo-info-val">14/07/2026 09:10</span></div>
-      <div class="dispositivo-info-item"><span class="dispositivo-info-label">Instalado</span><span class="dispositivo-info-val">28/01/2026</span></div>
-      <div class="dispositivo-info-item"><span class="dispositivo-info-label">Tanque</span><span class="dispositivo-info-val">Tanque Norte</span></div>
-      <div class="dispositivo-info-item"><span class="dispositivo-info-label">Edificio</span><span class="dispositivo-info-val">Edificio Central</span></div>
-     </div>
-    </div>
-    <div class="dispositivo-card-footer">
-     <button class="btn btn-sm btn-outline" onclick="abrirHistorial('Sensor de Flujo 06')">Historial</button>
-     <button class="btn btn-sm btn-outline" onclick="abrirMediciones('Sensor de Flujo 06')">Mediciones</button>
-     <select class="form-select dispositivo-estado-select" onchange="cambiarEstado(this, 'Sensor de Flujo 06')">
-      <option value="">Cambiar estado</option>
-      <option value="mantenimiento">En mantenimiento</option>
-      <option value="reparado">Reparado</option>
-      <option value="fuera-servicio">Fuera de servicio</option>
-     </select>
-    </div>
-    <div class="dispositivo-observaciones">
-     <textarea class="form-input" placeholder="Agregar observaciones técnicas..." rows="2"></textarea>
-     <button class="btn btn-sm btn-primary" onclick="guardarObservaciones(this)">Guardar</button>
-    </div>
-   </div>
+   <?php endif; ?>
   </div>
  </div>
 </div>
@@ -283,10 +148,7 @@ if(!isset($_SESSION['rol']) || $_SESSION['rol'] !== 'TECNICO'){
    <table class="table">
     <thead><tr><th>Fecha</th><th>Actividad</th><th>Detalle</th></tr></thead>
     <tbody>
-     <tr><td>12/07/2026</td><td>Mantenimiento preventivo</td><td>Limpieza y calibración</td></tr>
-     <tr><td>28/06/2026</td><td>Cambio de batería</td><td>Batería al 15%</td></tr>
-     <tr><td>15/06/2026</td><td>Reparación</td><td>Reemplazo de sonda</td></tr>
-     <tr><td>01/06/2026</td><td>Instalación</td><td>Instalación inicial</td></tr>
+     <tr><td colspan="3" style="text-align:center;color:var(--tx4)">Seleccioná un dispositivo para ver su historial</td></tr>
     </tbody>
    </table>
   </div>

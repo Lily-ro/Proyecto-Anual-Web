@@ -6,11 +6,9 @@ if(!isset($_SESSION['rol']) || $_SESSION['rol'] !== 'ADMIN'){
 }
 require_once(__DIR__ . '/../config/db.php');
 
-// === PROCESAMIENTO DE ACCIONES POST (ANTES de cualquier output HTML) ===
 if($_SERVER['REQUEST_METHOD'] === 'POST'){
  $accion = $_POST['accion'] ?? '';
 
- // --- CREAR USUARIO ---
  if($accion === 'crear'){
   $nombre    = trim($_POST['nombre'] ?? '');
   $apellido  = trim($_POST['apellido'] ?? '');
@@ -48,7 +46,6 @@ if($_SERVER['REQUEST_METHOD'] === 'POST'){
   exit;
  }
 
- // --- EDITAR USUARIO ---
  if($accion === 'editar'){
   $id       = (int)($_POST['usuario_id'] ?? 0);
   $nombre   = trim($_POST['nombre'] ?? '');
@@ -81,7 +78,6 @@ if($_SERVER['REQUEST_METHOD'] === 'POST'){
   exit;
  }
 
- // --- CAMBIAR CONTRASEÑA ---
  if($accion === 'cambiar_password'){
   $id        = (int)($_POST['usuario_id'] ?? 0);
   $nueva     = $_POST['nueva_password'] ?? '';
@@ -111,7 +107,6 @@ if($_SERVER['REQUEST_METHOD'] === 'POST'){
   exit;
  }
 
- // --- TOGGLE ESTADO ---
  if($accion === 'toggle_estado'){
   $id     = (int)($_POST['usuario_id'] ?? 0);
   $activo = (int)($_POST['activo'] ?? 1);
@@ -129,7 +124,6 @@ if($_SERVER['REQUEST_METHOD'] === 'POST'){
   }
  }
 
- // --- ELIMINAR USUARIO ---
  if($accion === 'eliminar'){
   $id = (int)($_POST['usuario_id'] ?? 0);
   if($id){
@@ -150,7 +144,6 @@ if($_SERVER['REQUEST_METHOD'] === 'POST'){
  }
 }
 
-// === CONSULTAS PARA LA VISTA ===
 $currentPage = 'usuarios';
 $pageSubtitle = 'Administra los usuarios registrados en el sistema EVA.';
 
@@ -310,7 +303,6 @@ function tiempoDesde($fecha){
  </div>
 </div>
 
-<!-- Modal Agregar/Editar Usuario -->
 <div class="modal-overlay" id="modalUsuario">
  <div class="modal">
   <div class="modal-header">
@@ -364,7 +356,6 @@ function tiempoDesde($fecha){
  </div>
 </div>
 
-<!-- Modal Cambiar Contraseña -->
 <div class="modal-overlay" id="modalContrasena">
  <div class="modal">
   <div class="modal-header">
