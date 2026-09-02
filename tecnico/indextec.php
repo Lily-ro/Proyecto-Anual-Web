@@ -4,6 +4,64 @@ if(!isset($_SESSION['rol']) || $_SESSION['rol'] !== 'TECNICO'){
     header("Location: ../index.php");
     exit;
 }
+require_once(__DIR__ . '/../config/db.php');
+
+$id_tecnico = $_SESSION['id_usuario'];
+
+$pdo = eva_pdo();
+
+function sensorBadgeEstado($estado){
+    $m = ['ACTIVO'=>['cls'=>'activo','txt'=>'Activo'],'INACTIVO'=>['cls'=>'inactivo','txt'=>'Inactivo'],'FALLA'=>['cls'=>'advertencia','txt'=>'Falla']];
+    $d = $m[$estado] ?? ['cls'=>'inactivo','txt'=>htmlspecialchars($estado)];
+    return '<span class="badge '.$d['cls'].'">'.$d['txt'].'</span>';
+}
+
+function mantBadgeEstado($estado){
+    $m = ['PENDIENTE'=>['cls'=>'pendiente','txt'=>'Pendiente'],'EN_PROCESO'=>['cls'=>'activo','txt'=>'En proceso'],'FINALIZADO'=>['cls'=>'completado','txt'=>'Finalizado'],'CANCELADO'=>['cls'=>'inactivo','txt'=>'Cancelado']];
+    $d = $m[$estado] ?? ['cls'=>'inactivo','txt'=>htmlspecialchars($estado)];
+    return '<span class="badge '.$d['cls'].'">'.$d['txt'].'</span>';
+}
+
+// --- STATS ---
+$rSensores = $pdo->query("SELECT COUNT(*) AS total FROM sensores s INNER JOIN dispositivos d ON s.id_dispositivo = d.id_dispositivo INNER JOIN instalaciones i ON i.id_dispositivo = d.id_dispositivo WHERE i.id_tecnico = {$id_tecnico}");
+$sensoresTotal = $rSensores->fetchColumn();
+
+$rInstalaciones = $pdo->query("SELECT COUNT(*) AS total FROM instalaciones WHERE id_tecnico = {$id_tecnico}");
+$instalacionesTotal = $rInstalaciones->fetchColumn();
+
+$rInstPend = $pdo->query("SELECT COUNT(*) AS total FROM instalaciones WHERE id_tecnico = {$id_tecnico}");
+$instPendientes = $rInstPend->fetchColumn();
+
+$rMant = $pdo->query("SELECT COUNT(*) AS total FROM mantenimientos WHERE id_tecnico = {$id_tecnico}");
+$mantTotal = $rMant->fetchColumn();
+
+$rMantPend = $pdo->query("SELECT COUNT(*) AS total FROM mantenimientos WHERE id_tecnico = {$id_tecnico} AND estado IN ('PENDIENTE','EN_PROCESO')");
+$mantPendientes = $rMantPend->fetchColumn();
+
+$rDispositivos = $pdo->query("SELECT COUNT(DISTINCT d.id_dispositivo) AS total FROM dispositivos d INNER JOIN instalaciones i ON i.id_dispositivo = d.id_dispositivo WHERE i.id_tecnico = {$id_tecnico}");
+$dispositivosTotal = $rDispositivos->fetchColumn();
+
+// --- DONUT: sensores por estado ---
+$rDonut = $pdo->query("SELECT s.estado, COUNT(*) AS cnt FROM sensores s INNER JOIN dispositivos d ON s.id_dispositivo = d.id_dispositivo INNER JOIN instalaciones i ON i.id_dispositivo = d.id_dispositivo WHERE i.id_tecnico = {$id_tecnico} GROUP BY s.estado");
+$donutData = $rDonut->fetchAll(PDO::FETCH_KEY_PAIR);
+$donutActivo = $donutData['ACTIVO'] ?? 0;
+$donutInactivo = $donutData['INACTIVO'] ?? 0;
+$donutFalla = $donutData['FALLA'] ?? 0;
+
+// --- MANTENIMIENTOS PRÓXIMOS ---
+$rMantProx = $pdo->prepare("SELECT m.descripcion, m.fecha_programada, m.estado, m.tipo, t.nombre AS tanque, ed.nombre AS edificio FROM mantenimientos m INNER JOIN dispositivos d ON m.id_dispositivo = d.id_dispositivo LEFT JOIN tanques t ON d.id_tanque = t.id_tanque LEFT JOIN edificios ed ON t.id_edificio = ed.id_edificio WHERE m.id_tecnico = ? AND m.estado IN ('PENDIENTE','EN_PROCESO') ORDER BY m.fecha_programada ASC LIMIT 5");
+$rMantProx->execute([$id_tecnico]);
+$mantProximos = $rMantProx->fetchAll(PDO::FETCH_ASSOC);
+
+// --- ACTIVIDAD RECIENTE ---
+$rLog = $pdo->prepare("SELECT l.accion, l.detalle, l.fecha_hora FROM log_actividad l WHERE l.id_usuario = ? ORDER BY l.fecha_hora DESC LIMIT 5");
+$rLog->execute([$id_tecnico]);
+$logActividad = $rLog->fetchAll(PDO::FETCH_ASSOC);
+
+$totalDonut = $donutActivo + $donutInactivo + $donutFalla;
+$pctActivo = $totalDonut > 0 ? round(($donutActivo / $totalDonut) * 100) : 0;
+$pctInactivo = $totalDonut > 0 ? round(($donutInactivo / $totalDonut) * 100) : 0;
+$pctFalla = $totalDonut > 0 ? 100 - $pctActivo - $pctInactivo : 0;
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -47,7 +105,7 @@ if(!isset($_SESSION['rol']) || $_SESSION['rol'] !== 'TECNICO'){
 <div class="main">
  <header class="header">
   <div class="header-left">
-   <div class="header-greeting">¡Hola, <?php echo $_SESSION['nombre'] ?? 'Técnico'; ?>!</div>
+   <div class="header-greeting">¡Hola, <?php echo htmlspecialchars($_SESSION['nombre'] ?? 'Técnico'); ?>!</div>
    <div class="header-subtitle">Resumen general del sistema</div>
   </div>
   <div class="header-right">
@@ -85,31 +143,30 @@ if(!isset($_SESSION['rol']) || $_SESSION['rol'] !== 'TECNICO'){
     <div class="stat-card-icon blue"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></div>
     <div class="stat-card-info">
      <div class="stat-card-title">Sensores activos</div>
-     <div class="stat-card-value">24</div>
-     <div class="stat-card-sub"><span class="up">+12%</span> este mes</div>
+     <div class="stat-card-value"><?php echo $sensoresTotal; ?></div>
     </div>
    </div>
    <div class="stat-card anim-bounce1">
     <div class="stat-card-icon green"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v16"/></svg></div>
     <div class="stat-card-info">
      <div class="stat-card-title">Instalaciones</div>
-     <div class="stat-card-value">8</div>
-     <div class="stat-card-sub">Programadas: 3</div>
+     <div class="stat-card-value"><?php echo $instalacionesTotal; ?></div>
+     <div class="stat-card-sub">Programadas: <?php echo $instPendientes; ?></div>
     </div>
    </div>
    <div class="stat-card anim-bounce2">
     <div class="stat-card-icon orange"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/></svg></div>
     <div class="stat-card-info">
      <div class="stat-card-title">Mantenimientos</div>
-     <div class="stat-card-value">15</div>
-     <div class="stat-card-sub">Pendientes: 4</div>
+     <div class="stat-card-value"><?php echo $mantTotal; ?></div>
+     <div class="stat-card-sub">Pendientes: <?php echo $mantPendientes; ?></div>
     </div>
    </div>
    <div class="stat-card anim-bounce3">
     <div class="stat-card-icon cyan"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><line x1="9" y1="1" x2="9" y2="4"/><line x1="15" y1="1" x2="15" y2="4"/><line x1="9" y1="20" x2="9" y2="23"/><line x1="15" y1="20" x2="15" y2="23"/><line x1="20" y1="9" x2="23" y2="9"/><line x1="20" y1="14" x2="23" y2="14"/><line x1="1" y1="9" x2="4" y2="9"/><line x1="1" y1="14" x2="4" y2="14"/></svg></div>
     <div class="stat-card-info">
      <div class="stat-card-title">Sistemas EVA</div>
-     <div class="stat-card-value">10</div>
+     <div class="stat-card-value"><?php echo $dispositivosTotal; ?></div>
      <div class="stat-card-sub">Operativos</div>
     </div>
    </div>
@@ -122,25 +179,34 @@ if(!isset($_SESSION['rol']) || $_SESSION['rol'] !== 'TECNICO'){
      <div class="donut-container">
       <svg class="donut-svg" id="donutSvg" viewBox="0 0 160 160"></svg>
       <div class="donut-center">
-       <div class="donut-val">24</div>
+       <div class="donut-val"><?php echo $totalDonut; ?></div>
        <div class="donut-label">Total</div>
       </div>
      </div>
      <div class="donut-legend">
-      <div class="donut-legend-item"><div class="donut-legend-dot" style="background:#4caf50"></div><div class="donut-legend-text">Activos</div><div class="donut-legend-val">18</div><div class="donut-legend-pct">(75%)</div></div>
-      <div class="donut-legend-item"><div class="donut-legend-dot" style="background:#ff9800"></div><div class="donut-legend-text">Advertencias</div><div class="donut-legend-val">4</div><div class="donut-legend-pct">(17%)</div></div>
-      <div class="donut-legend-item"><div class="donut-legend-dot" style="background:#f44336"></div><div class="donut-legend-text">Inactivos</div><div class="donut-legend-val">2</div><div class="donut-legend-pct">(8%)</div></div>
+      <div class="donut-legend-item"><div class="donut-legend-dot" style="background:#4caf50"></div><div class="donut-legend-text">Activos</div><div class="donut-legend-val"><?php echo $donutActivo; ?></div><div class="donut-legend-pct">(<?php echo $pctActivo; ?>%)</div></div>
+      <div class="donut-legend-item"><div class="donut-legend-dot" style="background:#ff9800"></div><div class="donut-legend-text">Advertencias</div><div class="donut-legend-val"><?php echo $donutFalla; ?></div><div class="donut-legend-pct">(<?php echo $pctFalla; ?>%)</div></div>
+      <div class="donut-legend-item"><div class="donut-legend-dot" style="background:#f44336"></div><div class="donut-legend-text">Inactivos</div><div class="donut-legend-val"><?php echo $donutInactivo; ?></div><div class="donut-legend-pct">(<?php echo $pctInactivo; ?>%)</div></div>
      </div>
     </div>
    </div>
    <div class="card anim-bounce1">
-    <div class="card-header"><div class="card-title">Mantenimientos próximos</div><a class="card-link">Ver todos</a></div>
+    <div class="card-header"><div class="card-title">Mantenimientos próximos</div><a class="card-link" href="mantenimientos.php">Ver todos</a></div>
     <table class="table">
      <thead><tr><th>Tarea</th><th>Ubicación</th><th>Fecha</th><th>Estado</th></tr></thead>
      <tbody>
-      <tr><td>Limpieza de sensor</td><td>Tanque Norte</td><td>15/05/2025</td><td><span class="badge pendiente">Pendiente</span></td></tr>
-      <tr><td>Revisión de conexión</td><td>Tanque Centro</td><td>16/05/2025</td><td><span class="badge pendiente">Pendiente</span></td></tr>
-      <tr><td>Calibración de sensor</td><td>Tanque Sur</td><td>17/05/2025</td><td><span class="badge pendiente">Pendiente</span></td></tr>
+      <?php if(count($mantProximos) > 0): ?>
+       <?php foreach($mantProximos as $mp): ?>
+        <tr>
+         <td><?php echo htmlspecialchars($mp['descripcion']); ?></td>
+         <td><?php echo htmlspecialchars(($mp['edificio'] ?? 'Sin edificio') . ' - ' . ($mp['tanque'] ?? 'Sin tanque')); ?></td>
+         <td><?php echo date('d/m/Y', strtotime($mp['fecha_programada'])); ?></td>
+         <td><?php echo mantBadgeEstado($mp['estado']); ?></td>
+        </tr>
+       <?php endforeach; ?>
+      <?php else: ?>
+       <tr><td colspan="4" style="text-align:center;color:var(--tx4)">No hay mantenimientos programados</td></tr>
+      <?php endif; ?>
      </tbody>
     </table>
    </div>
@@ -150,12 +216,19 @@ if(!isset($_SESSION['rol']) || $_SESSION['rol'] !== 'TECNICO'){
    <div class="card anim-bounce0">
     <div class="card-header"><div class="card-title">Actividad reciente</div></div>
     <table class="table">
-     <thead><tr><th>Actividad</th><th>Dispositivo</th><th>Fecha</th><th>Estado</th></tr></thead>
+     <thead><tr><th>Actividad</th><th>Detalle</th><th>Fecha</th></tr></thead>
      <tbody>
-      <tr><td>Sensor agregado</td><td>Sensor Ultrasónico 04</td><td>12/05/2025 10:30</td><td><span class="badge completado">Completado</span></td></tr>
-      <tr><td>Mantenimiento realizado</td><td>Sensor Presión 02</td><td>12/05/2025 09:15</td><td><span class="badge completado">Completado</span></td></tr>
-      <tr><td>Instalación programada</td><td>Tanque Este</td><td>11/05/2025 16:45</td><td><span class="badge programado">Programado</span></td></tr>
-      <tr><td>Sensor eliminado</td><td>Sensor Nivel 01</td><td>11/05/2025 11:20</td><td><span class="badge completado">Completado</span></td></tr>
+      <?php if(count($logActividad) > 0): ?>
+       <?php foreach($logActividad as $l): ?>
+        <tr>
+         <td><?php echo htmlspecialchars($l['accion']); ?></td>
+         <td><?php echo htmlspecialchars($l['detalle']); ?></td>
+         <td><?php echo date('d/m/Y H:i', strtotime($l['fecha_hora'])); ?></td>
+        </tr>
+       <?php endforeach; ?>
+      <?php else: ?>
+       <tr><td colspan="3" style="text-align:center;color:var(--tx4)">No hay actividad reciente</td></tr>
+      <?php endif; ?>
      </tbody>
     </table>
    </div>

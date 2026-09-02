@@ -4,6 +4,51 @@ if(!isset($_SESSION['rol']) || $_SESSION['rol'] !== 'TECNICO'){
     header("Location: ../index.php");
     exit;
 }
+require_once(__DIR__ . '/../config/db.php');
+
+$id_tecnico = $_SESSION['id_usuario'];
+$pdo = eva_pdo();
+
+$mapTipo = [
+    'NIVEL_BAJO'       => ['txt'=>'Nivel bajo','prio'=>'media','prioTxt'=>'Media'],
+    'NIVEL_ALTO'       => ['txt'=>'Nivel alto','prio'=>'alta','prioTxt'=>'Alta'],
+    'SIN_CONEXION'     => ['txt'=>'Sin conexión','prio'=>'critica','prioTxt'=>'Crítica'],
+    'FALLA_SENSOR'     => ['txt'=>'Falla de sensor','prio'=>'critica','prioTxt'=>'Crítica'],
+    'CONSUMO_ANORMAL'  => ['txt'=>'Consumo anormal','prio'=>'alta','prioTxt'=>'Alta'],
+];
+
+$mapEstado = [
+    'PENDIENTE' => ['cls'=>'pendiente','txt'=>'Pendiente','data'=>'pendiente'],
+    'ATENDIDA'  => ['cls'=>'completado','txt'=>'Atendida','data'=>'atendida'],
+    'CERRADA'   => ['cls'=>'inactivo','txt'=>'Cerrada','data'=>'atendida'],
+];
+
+$mapPrioBadge = [
+    'critica' => 'danger',
+    'alta'    => 'pendiente',
+    'media'   => 'programado',
+    'baja'    => 'info',
+];
+
+$rTotal = $pdo->prepare("SELECT COUNT(*) FROM alertas a INNER JOIN tanques t ON a.id_tanque = t.id_tanque INNER JOIN dispositivos d ON d.id_tanque = t.id_tanque INNER JOIN instalaciones i ON i.id_dispositivo = d.id_dispositivo WHERE i.id_tecnico = ?");
+$rTotal->execute([$id_tecnico]);
+$totalAlertas = $rTotal->fetchColumn();
+
+$rPend = $pdo->prepare("SELECT COUNT(*) FROM alertas a INNER JOIN tanques t ON a.id_tanque = t.id_tanque INNER JOIN dispositivos d ON d.id_tanque = t.id_tanque INNER JOIN instalaciones i ON i.id_dispositivo = d.id_dispositivo WHERE i.id_tecnico = ? AND a.estado = 'PENDIENTE'");
+$rPend->execute([$id_tecnico]);
+$totalPendientes = $rPend->fetchColumn();
+
+$rAtend = $pdo->prepare("SELECT COUNT(*) FROM alertas a INNER JOIN tanques t ON a.id_tanque = t.id_tanque INNER JOIN dispositivos d ON d.id_tanque = t.id_tanque INNER JOIN instalaciones i ON i.id_dispositivo = d.id_dispositivo WHERE i.id_tecnico = ? AND a.estado = 'ATENDIDA'");
+$rAtend->execute([$id_tecnico]);
+$totalAtendidas = $rAtend->fetchColumn();
+
+$rCriticas = $pdo->prepare("SELECT COUNT(*) FROM alertas a INNER JOIN tanques t ON a.id_tanque = t.id_tanque INNER JOIN dispositivos d ON d.id_tanque = t.id_tanque INNER JOIN instalaciones i ON i.id_dispositivo = d.id_dispositivo WHERE i.id_tecnico = ? AND a.tipo IN ('SIN_CONEXION','FALLA_SENSOR')");
+$rCriticas->execute([$id_tecnico]);
+$totalCriticas = $rCriticas->fetchColumn();
+
+$rAlertas = $pdo->prepare("SELECT a.id_alerta, a.tipo, a.descripcion, a.fecha_hora, a.estado, t.nombre AS tanque FROM alertas a INNER JOIN tanques t ON a.id_tanque = t.id_tanque INNER JOIN dispositivos d ON d.id_tanque = t.id_tanque INNER JOIN instalaciones i ON i.id_dispositivo = d.id_dispositivo WHERE i.id_tecnico = ? ORDER BY a.fecha_hora DESC");
+$rAlertas->execute([$id_tecnico]);
+$alertas = $rAlertas->fetchAll(PDO::FETCH_ASSOC);
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -59,28 +104,28 @@ if(!isset($_SESSION['rol']) || $_SESSION['rol'] !== 'TECNICO'){
     <div class="stat-card-icon red"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></div>
     <div class="stat-card-info">
      <div class="stat-card-title">Total alertas</div>
-     <div class="stat-card-value">8</div>
+     <div class="stat-card-value"><?php echo $totalAlertas; ?></div>
     </div>
    </div>
    <div class="stat-card anim-bounce1">
     <div class="stat-card-icon orange"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></div>
     <div class="stat-card-info">
      <div class="stat-card-title">Pendientes</div>
-     <div class="stat-card-value">3</div>
+     <div class="stat-card-value"><?php echo $totalPendientes; ?></div>
     </div>
    </div>
    <div class="stat-card anim-bounce2">
     <div class="stat-card-icon green"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></div>
     <div class="stat-card-info">
      <div class="stat-card-title">Atendidas</div>
-     <div class="stat-card-value">5</div>
+     <div class="stat-card-value"><?php echo $totalAtendidas; ?></div>
     </div>
    </div>
    <div class="stat-card anim-bounce3">
     <div class="stat-card-icon red"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="7.86 2 16.14 2 22 7.86 22 16.14 16.14 22 7.86 22 2 16.14 2 7.86 7.86 2"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></div>
     <div class="stat-card-info">
      <div class="stat-card-title">Críticas</div>
-     <div class="stat-card-value">2</div>
+     <div class="stat-card-value"><?php echo $totalCriticas; ?></div>
     </div>
    </div>
   </div>
@@ -106,70 +151,24 @@ if(!isset($_SESSION['rol']) || $_SESSION['rol'] !== 'TECNICO'){
    <table class="table" id="tablaAlertas">
     <thead><tr><th>Tipo</th><th>Fecha</th><th>Tanque</th><th>Prioridad</th><th>Estado</th><th>Acciones</th></tr></thead>
     <tbody>
-     <tr data-prioridad="critica" data-estado="pendiente">
-      <td><span class="alerta-tipo">Nivel crítico</span></td>
-      <td>14/07/2026 08:15</td>
-      <td>Tanque Norte</td>
-      <td><span class="badge danger">Crítica</span></td>
-      <td><span class="badge pendiente">Pendiente</span></td>
-      <td><button class="btn btn-sm btn-primary" onclick="abrirDetalleAlerta(this)">Ver detalle</button></td>
-     </tr>
-     <tr data-prioridad="alta" data-estado="pendiente">
-      <td><span class="alerta-tipo">Batería baja</span></td>
-      <td>14/07/2026 07:30</td>
-      <td>Tanque Sur</td>
-      <td><span class="badge pendiente">Alta</span></td>
-      <td><span class="badge pendiente">Pendiente</span></td>
-      <td><button class="btn btn-sm btn-primary" onclick="abrirDetalleAlerta(this)">Ver detalle</button></td>
-     </tr>
-     <tr data-prioridad="media" data-estado="pendiente">
-      <td><span class="alerta-tipo">Señal débil</span></td>
-      <td>13/07/2026 16:45</td>
-      <td>Tanque Centro</td>
-      <td><span class="badge programado">Media</span></td>
-      <td><span class="badge pendiente">Pendiente</span></td>
-      <td><button class="btn btn-sm btn-primary" onclick="abrirDetalleAlerta(this)">Ver detalle</button></td>
-     </tr>
-     <tr data-prioridad="critica" data-estado="atendida">
-      <td><span class="alerta-tipo">Sensor desconectado</span></td>
-      <td>13/07/2026 10:20</td>
-      <td>Tanque Este</td>
-      <td><span class="badge danger">Crítica</span></td>
-      <td><span class="badge completado">Atendida</span></td>
-      <td><button class="btn btn-sm btn-outline" onclick="abrirDetalleAlerta(this)">Ver detalle</button></td>
-     </tr>
-     <tr data-prioridad="alta" data-estado="atendida">
-      <td><span class="alerta-tipo">Temperatura fuera de rango</span></td>
-      <td>12/07/2026 14:00</td>
-      <td>Tanque Norte</td>
-      <td><span class="badge pendiente">Alta</span></td>
-      <td><span class="badge completado">Atendida</span></td>
-      <td><button class="btn btn-sm btn-outline" onclick="abrirDetalleAlerta(this)">Ver detalle</button></td>
-     </tr>
-     <tr data-prioridad="baja" data-estado="atendida">
-      <td><span class="alerta-tipo">Mantenimiento programado</span></td>
-      <td>11/07/2026 09:00</td>
-      <td>Tanque Oeste</td>
-      <td><span class="badge info">Baja</span></td>
-      <td><span class="badge completado">Atendida</span></td>
-      <td><button class="btn btn-sm btn-outline" onclick="abrirDetalleAlerta(this)">Ver detalle</button></td>
-     </tr>
-     <tr data-prioridad="media" data-estado="atendida">
-      <td><span class="alerta-tipo">Nivel bajo</span></td>
-      <td>10/07/2026 11:30</td>
-      <td>Tanque Sur</td>
-      <td><span class="badge programado">Media</span></td>
-      <td><span class="badge completado">Atendida</span></td>
-      <td><button class="btn btn-sm btn-outline" onclick="abrirDetalleAlerta(this)">Ver detalle</button></td>
-     </tr>
-     <tr data-prioridad="baja" data-estado="atendida">
-      <td><span class="alerta-tipo">Actualización de firmware</span></td>
-      <td>09/07/2026 08:00</td>
-      <td>Tanque Centro</td>
-      <td><span class="badge info">Baja</span></td>
-      <td><span class="badge completado">Atendida</span></td>
-      <td><button class="btn btn-sm btn-outline" onclick="abrirDetalleAlerta(this)">Ver detalle</button></td>
-     </tr>
+     <?php if(count($alertas) > 0): ?>
+      <?php foreach($alertas as $a):
+       $tipo = $mapTipo[$a['tipo']] ?? ['txt'=>$a['tipo'],'prio'=>'media','prioTxt'=>'Media'];
+       $estado = $mapEstado[$a['estado']] ?? ['cls'=>'inactivo','txt'=>$a['estado'],'data'=>'atendida'];
+       $prioBadge = $mapPrioBadge[$tipo['prio']] ?? 'programado';
+      ?>
+       <tr data-prioridad="<?php echo $tipo['prio']; ?>" data-estado="<?php echo $estado['data']; ?>">
+        <td><span class="alerta-tipo"><?php echo htmlspecialchars($tipo['txt']); ?></span></td>
+        <td><?php echo date('d/m/Y H:i', strtotime($a['fecha_hora'])); ?></td>
+        <td><?php echo htmlspecialchars($a['tanque']); ?></td>
+        <td><span class="badge <?php echo $prioBadge; ?>"><?php echo $tipo['prioTxt']; ?></span></td>
+        <td><span class="badge <?php echo $estado['cls']; ?>"><?php echo $estado['txt']; ?></span></td>
+        <td><button class="btn btn-sm <?php echo $estado['data'] === 'pendiente' ? 'btn-primary' : 'btn-outline'; ?>" onclick="abrirDetalleAlerta(this)">Ver detalle</button></td>
+       </tr>
+      <?php endforeach; ?>
+     <?php else: ?>
+      <tr><td colspan="6" style="text-align:center;color:var(--tx4)">No hay alertas para tus dispositivos</td></tr>
+     <?php endif; ?>
     </tbody>
    </table>
   </div>
@@ -184,11 +183,10 @@ if(!isset($_SESSION['rol']) || $_SESSION['rol'] !== 'TECNICO'){
   </div>
   <div class="modal-body">
    <div class="detalle-alerta-info">
-    <div class="profile-field"><div class="profile-field-label">Tipo</div><div class="profile-field-value" id="detalleAlertaTipo">Nivel crítico</div></div>
-    <div class="profile-field"><div class="profile-field-label">Dispositivo</div><div class="profile-field-value" id="detalleAlertaDispositivo">Sensor Ultrasónico 01</div></div>
-    <div class="profile-field"><div class="profile-field-label">Tanque</div><div class="profile-field-value" id="detalleAlertaTanque">Tanque Norte</div></div>
-    <div class="profile-field"><div class="profile-field-label">Fecha</div><div class="profile-field-value" id="detalleAlertaFecha">14/07/2026 08:15</div></div>
-    <div class="profile-field"><div class="profile-field-label">Prioridad</div><div class="profile-field-value" id="detalleAlertaPrioridad"><span class="badge danger">Crítica</span></div></div>
+    <div class="profile-field"><div class="profile-field-label">Tipo</div><div class="profile-field-value" id="detalleAlertaTipo">-</div></div>
+    <div class="profile-field"><div class="profile-field-label">Tanque</div><div class="profile-field-value" id="detalleAlertaTanque">-</div></div>
+    <div class="profile-field"><div class="profile-field-label">Fecha</div><div class="profile-field-value" id="detalleAlertaFecha">-</div></div>
+    <div class="profile-field"><div class="profile-field-label">Prioridad</div><div class="profile-field-value" id="detalleAlertaPrioridad">-</div></div>
    </div>
    <div class="content-divider"></div>
    <div class="form-group">
