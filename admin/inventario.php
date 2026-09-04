@@ -5,24 +5,40 @@ if(!isset($_SESSION['rol']) || $_SESSION['rol'] !== 'ADMIN'){
     exit;
 }
 require_once(__DIR__ . '/../config/db.php');
+$pdo = eva_pdo();
 $currentPage = 'inventario';
 $pageSubtitle = 'Gestión de inventario';
-
+if($_SERVER['REQUEST_METHOD']==='POST'){
+    $accion=$_POST['accion']??'';
+    if($accion==='movimiento'){
+        $id=(int)($_POST['id_item']??0); $tipo=$_POST['tipo']??''; $cant=(int)($_POST['cantidad']??0); $motivo=trim($_POST['motivo']??'');
+        if($id && $cant>0 && in_array($tipo,['ENTRADA','SALIDA'],true)){
+            try{
+                $st=$pdo->prepare("SELECT stock FROM inventario WHERE id_item=:id LIMIT 1");
+                $st->execute([':id'=>$id]);
+                $row=$st->fetch();
+                if($row){
+                    $stock=(int)$row['stock'];
+                    if($tipo==='SALIDA' && $stock < $cant){ echo '<script>alert("Stock insuficiente");history.back();</script>'; exit; }
+                    $nuevo = $tipo==='ENTRADA' ? $stock+$cant : $stock-$cant;
+                    $pdo->prepare("UPDATE inventario SET stock=:s, fecha_actualizacion=NOW() WHERE id_item=:id")->execute([':s'=>$nuevo,':id'=>$id]);
+                    $pdo->prepare("INSERT INTO movimientos_inventario (id_item,tipo,cantidad,motivo) VALUES (:id,:t,:c,:m)")->execute([':id'=>$id,':t'=>$tipo,':c'=>$cant,':m'=>$motivo?:'Movimiento manual']);
+                    $pdo->prepare("INSERT INTO log_actividad (id_usuario,accion,detalle,ip,fecha_hora) VALUES (:uid,'UPDATE',:det,:ip,NOW())")->execute([':uid'=>$_SESSION['id_usuario']??null,':det'=>"Inventario {$id} {$tipo} {$cant}",':ip'=>$_SERVER['REMOTE_ADDR']??'']);
+                }
+            }catch(Throwable $e){ error_log($e->getMessage()); }
+            header("Location: inventario.php"); exit;
+        }
+    }
+}
 $filtroBusqueda  = trim($_GET['busqueda'] ?? '');
 $filtroCategoria = $_GET['categoria'] ?? '';
 $filtroEstado    = $_GET['estado'] ?? '';
-
 $categoriasValidas = ['SENSOR','DISPOSITIVO','BATERIA','ANTENA','CABLE','REPUESTO','OTRO'];
 $estadosValidos    = ['disponible','stock_bajo','agotado'];
-
-function countInvSimple($conn, $where = ''){
-    $sql = "SELECT COUNT(*) FROM inventario" . ($where ? " WHERE {$where}" : '');
-    return (int)$conn->query($sql)->fetch_row()[0];
-}
-$cntTotal     = countInvSimple($conn);
-$cntDisponibles = countInvSimple($conn, 'stock > stock_minimo');
-$cntStockBajo   = countInvSimple($conn, 'stock > 0 AND stock <= stock_minimo');
-$cntAgotados    = countInvSimple($conn, 'stock = 0');
+$cntTotal     = (int)$pdo->query("SELECT COUNT(*) FROM inventario")->fetchColumn();
+$cntDisponibles = (int)$pdo->query("SELECT COUNT(*) FROM inventario WHERE stock > stock_minimo")->fetchColumn();
+$cntStockBajo   = (int)$pdo->query("SELECT COUNT(*) FROM inventario WHERE stock > 0 AND stock <= stock_minimo")->fetchColumn();
+$cntAgotados    = (int)$pdo->query("SELECT COUNT(*) FROM inventario WHERE stock = 0")->fetchColumn();
 
 $where  = [];
 $types  = '';
@@ -50,19 +66,23 @@ if($filtroEstado !== '' && in_array($filtroEstado, $estadosValidos)){
 }
 
 $whereSQL = $where ? 'WHERE ' . implode(' AND ', $where) : '';
-
-$sql = "SELECT i.id_item, i.nombre, i.categoria, i.modelo, i.stock, i.stock_minimo,
-               i.ubicacion, DATE_FORMAT(i.fecha_actualizacion,'%d/%m/%Y %H:%i') AS fecha_act
-        FROM inventario i
-        {$whereSQL}
-        ORDER BY i.nombre ASC";
-
-$stmt = $conn->prepare($sql);
-if($params){
-    $stmt->bind_param($types, ...$params);
+$sql = "SELECT i.id_item, i.nombre, i.categoria, i.modelo, i.stock, i.stock_minimo, i.ubicacion, DATE_FORMAT(i.fecha_actualizacion,'%d/%m/%Y %H:%i') AS fecha_act FROM inventario i {$whereSQL} ORDER BY i.nombre ASC";
+$where=[]; $params=[];
+if($filtroBusqueda !== ''){
+    $where[]="(i.nombre LIKE :b1 OR i.modelo LIKE :b2 OR i.ubicacion LIKE :b3)";
+    $params[':b1']="%{$filtroBusqueda}%"; $params[':b2']="%{$filtroBusqueda}%"; $params[':b3']="%{$filtroBusqueda}%";
 }
-$stmt->execute();
-$resInventario = $stmt->get_result();
+if($filtroCategoria !== '' && in_array($filtroCategoria,$categoriasValidas,true)){ $where[]="i.categoria=:cat"; $params[':cat']=$filtroCategoria; }
+if($filtroEstado !== '' && in_array($filtroEstado,$estadosValidos,true)){
+    if($filtroEstado==='disponible') $where[]="i.stock > i.stock_minimo";
+    elseif($filtroEstado==='stock_bajo') $where[]="i.stock > 0 AND i.stock <= i.stock_minimo";
+    elseif($filtroEstado==='agotado') $where[]="i.stock = 0";
+}
+$whereSQL = $where ? 'WHERE '.implode(' AND ',$where) : '';
+$sql = "SELECT i.id_item, i.nombre, i.categoria, i.modelo, i.stock, i.stock_minimo, i.ubicacion, DATE_FORMAT(i.fecha_actualizacion,'%d/%m/%Y %H:%i') AS fecha_act FROM inventario i {$whereSQL} ORDER BY i.nombre ASC";
+$st=$pdo->prepare($sql);
+$st->execute($params);
+$listaInv=$st->fetchAll(PDO::FETCH_ASSOC);
 
 function badgeCategoria($cat){
     $map = [
@@ -183,9 +203,9 @@ function badgeStock($stock, $stockMinimo){
        <th>Acciones</th>
       </tr>
      </thead>
-     <tbody>
-      <?php if($resInventario && $resInventario->num_rows > 0): ?>
-       <?php while($item = $resInventario->fetch_assoc()): ?>
+      <tbody>
+       <?php if(count($listaInv)>0): ?>
+        <?php foreach($listaInv as $item): ?>
         <tr>
          <td>INV-<?php echo str_pad($item['id_item'], 3, '0', STR_PAD_LEFT); ?></td>
          <td><?php echo htmlspecialchars($item['nombre'] ?? '-'); ?></td>
@@ -195,14 +215,13 @@ function badgeStock($stock, $stockMinimo){
          <td><?php echo (int)$item['stock_minimo']; ?></td>
          <td><?php echo htmlspecialchars($item['ubicacion'] ?? '-'); ?></td>
          <td><?php echo badgeEstadoInv($item['stock'], $item['stock_minimo']); ?></td>
-         <td class="actions-cell">
-          <button class="btn-icon" title="Ver"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>
-          <button class="btn-icon" title="Editar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
-          <button class="btn-icon btn-icon-danger" title="Eliminar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg></button>
-         </td>
+          <td class="actions-cell">
+           <button class="btn-icon" title="Entrada" onclick="movInv(<?php echo (int)$item['id_item']; ?>,'ENTRADA')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
+           <button class="btn-icon" title="Salida" onclick="movInv(<?php echo (int)$item['id_item']; ?>,'SALIDA')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
+          </td>
         </tr>
-       <?php endwhile; ?>
-      <?php else: ?>
+        <?php endforeach; ?>
+       <?php else: ?>
        <tr><td colspan="9" style="text-align:center;color:var(--tx4)">No hay items en el inventario</td></tr>
       <?php endif; ?>
      </tbody>
@@ -212,5 +231,18 @@ function badgeStock($stock, $stockMinimo){
  </div>
 </div>
 <script src="js/admin.js"></script>
+<script>
+function movInv(id,tipo){
+ var c=prompt('Cantidad para '+tipo+':');
+ if(!c) return;
+ c=parseInt(c,10);
+ if(!(c>0)){ alert('Cantidad inválida'); return; }
+ var m=prompt('Motivo:')||'';
+ var f=document.createElement('form');
+ f.method='POST'; f.action='inventario.php';
+ f.innerHTML='<input type="hidden" name="accion" value="movimiento"><input type="hidden" name="id_item" value="'+id+'"><input type="hidden" name="tipo" value="'+tipo+'"><input type="hidden" name="cantidad" value="'+c+'"><input type="hidden" name="motivo" value="'+m.replace(/"/g,'&quot;')+'">';
+ document.body.appendChild(f); f.submit();
+}
+</script>
 </body>
 </html>

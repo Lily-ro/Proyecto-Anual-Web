@@ -5,6 +5,7 @@ if(!isset($_SESSION['rol']) || $_SESSION['rol'] !== 'ADMIN'){
     exit;
 }
 require_once(__DIR__ . '/../config/db.php');
+require_once(__DIR__ . '/../config/mail.php');
 
 if($_SERVER['REQUEST_METHOD'] === 'POST'){
  $accion = $_POST['accion'] ?? '';
@@ -22,24 +23,22 @@ if($_SERVER['REQUEST_METHOD'] === 'POST'){
     echo '<script>alert("La contraseña debe tener al menos 6 caracteres");history.back();</script>';
     exit;
    }
-   $check = $conn->prepare("SELECT id_usuario FROM usuarios WHERE email=? LIMIT 1");
-   $check->bind_param("s", $email);
-   $check->execute();
-   if($check->get_result()->num_rows > 0){
+   $pdo = eva_pdo();
+   $check = $pdo->prepare("SELECT id_usuario FROM usuarios WHERE email=:email LIMIT 1");
+   $check->execute([':email'=>$email]);
+   if($check->fetch()){
     echo '<script>alert("Ya existe un usuario con ese email");history.back();</script>';
-    $check->close();
     exit;
    }
-   $check->close();
    $hash = password_hash($password, PASSWORD_DEFAULT);
-   $stmt = $conn->prepare("INSERT INTO usuarios (nombre, apellido, email, password_hash, activo, id_rol) VALUES (?,?,?,?,?,(SELECT id_rol FROM roles WHERE nombre=? LIMIT 1))");
-   $stmt->bind_param("ssssis", $nombre, $apellido, $email, $hash, $activo, $rol);
-   if($stmt->execute()){
+   $stmt = $pdo->prepare("INSERT INTO usuarios (nombre, apellido, email, password_hash, activo, id_rol) VALUES (:nombre,:apellido,:email,:hash,:activo,(SELECT id_rol FROM roles WHERE nombre=:rol LIMIT 1))");
+   $ok = $stmt->execute([':nombre'=>$nombre,':apellido'=>$apellido,':email'=>$email,':hash'=>$hash,':activo'=>$activo,':rol'=>$rol]);
+   if($ok){
+    try{ $pdo->prepare("INSERT INTO log_actividad (id_usuario, accion, detalle, ip, fecha_hora) VALUES (:uid,'CREATE',:det,:ip,NOW())")->execute([':uid'=>$_SESSION['id_usuario']??null,':det'=>"Creó usuario {$email}",':ip'=>$_SERVER['REMOTE_ADDR']??'']); }catch(Throwable $e){}
     echo '<script>alert("Usuario creado exitosamente");window.location="usuarios.php";</script>';
    } else {
     echo '<script>alert("Error al crear usuario");history.back();</script>';
    }
-   $stmt->close();
    exit;
   }
   echo '<script>alert("Todos los campos son obligatorios");history.back();</script>';
@@ -55,23 +54,21 @@ if($_SERVER['REQUEST_METHOD'] === 'POST'){
   $activo   = (int)($_POST['activo'] ?? 1);
 
   if($id && $nombre && $apellido && $email && $rol){
-   $check = $conn->prepare("SELECT id_usuario FROM usuarios WHERE email=? AND id_usuario!=? LIMIT 1");
-   $check->bind_param("si", $email, $id);
-   $check->execute();
-   if($check->get_result()->num_rows > 0){
+   $pdo = eva_pdo();
+   $check = $pdo->prepare("SELECT id_usuario FROM usuarios WHERE email=:email AND id_usuario!=:id LIMIT 1");
+   $check->execute([':email'=>$email,':id'=>$id]);
+   if($check->fetch()){
     echo '<script>alert("Ya existe otro usuario con ese email");history.back();</script>';
-    $check->close();
     exit;
    }
-   $check->close();
-   $stmt = $conn->prepare("UPDATE usuarios SET nombre=?, apellido=?, email=?, activo=?, id_rol=(SELECT id_rol FROM roles WHERE nombre=? LIMIT 1) WHERE id_usuario=?");
-   $stmt->bind_param("sssisi", $nombre, $apellido, $email, $activo, $rol, $id);
-   if($stmt->execute()){
+   $stmt = $pdo->prepare("UPDATE usuarios SET nombre=:nombre, apellido=:apellido, email=:email, activo=:activo, id_rol=(SELECT id_rol FROM roles WHERE nombre=:rol LIMIT 1) WHERE id_usuario=:id");
+   $ok = $stmt->execute([':nombre'=>$nombre,':apellido'=>$apellido,':email'=>$email,':activo'=>$activo,':rol'=>$rol,':id'=>$id]);
+   if($ok){
+    try{ $pdo->prepare("INSERT INTO log_actividad (id_usuario, accion, detalle, ip, fecha_hora) VALUES (:uid,'UPDATE',:det,:ip,NOW())")->execute([':uid'=>$_SESSION['id_usuario']??null,':det'=>"Actualizó usuario {$email}",':ip'=>$_SERVER['REMOTE_ADDR']??'']); }catch(Throwable $e){}
     echo '<script>alert("Usuario actualizado exitosamente");window.location="usuarios.php";</script>';
    } else {
     echo '<script>alert("Error al actualizar usuario");history.back();</script>';
    }
-   $stmt->close();
    exit;
   }
   echo '<script>alert("Todos los campos son obligatorios");history.back();</script>';
@@ -93,14 +90,14 @@ if($_SERVER['REQUEST_METHOD'] === 'POST'){
     exit;
    }
    $hash = password_hash($nueva, PASSWORD_DEFAULT);
-   $stmt = $conn->prepare("UPDATE usuarios SET password_hash=? WHERE id_usuario=?");
-   $stmt->bind_param("si", $hash, $id);
-   if($stmt->execute()){
+   $pdo = eva_pdo();
+   $stmt = $pdo->prepare("UPDATE usuarios SET password_hash=:hash WHERE id_usuario=:id");
+   $ok = $stmt->execute([':hash'=>$hash,':id'=>$id]);
+   if($ok){
     echo '<script>alert("Contraseña actualizada exitosamente");window.location="usuarios.php";</script>';
    } else {
     echo '<script>alert("Error al actualizar contraseña");history.back();</script>';
    }
-   $stmt->close();
    exit;
   }
   echo '<script>alert("Datos incompletos");history.back();</script>';
@@ -111,37 +108,92 @@ if($_SERVER['REQUEST_METHOD'] === 'POST'){
   $id     = (int)($_POST['usuario_id'] ?? 0);
   $activo = (int)($_POST['activo'] ?? 1);
   if($id){
-   $stmt = $conn->prepare("UPDATE usuarios SET activo=? WHERE id_usuario=?");
-   $stmt->bind_param("ii", $activo, $id);
-   if($stmt->execute()){
+   $pdo = eva_pdo();
+   $stmt = $pdo->prepare("UPDATE usuarios SET activo=:activo WHERE id_usuario=:id");
+   $ok = $stmt->execute([':activo'=>$activo,':id'=>$id]);
+   if($ok){
     $txt = $activo ? 'activado' : 'desactivado';
     echo '<script>alert("Usuario '.$txt.' exitosamente");window.location="usuarios.php";</script>';
    } else {
     echo '<script>alert("Error al cambiar estado");history.back();</script>';
    }
-   $stmt->close();
    exit;
   }
  }
 
- if($accion === 'eliminar'){
-  $id = (int)($_POST['usuario_id'] ?? 0);
-  if($id){
-   if($id == $_SESSION['id_usuario']){
-    echo '<script>alert("No puedes eliminarte a ti mismo");history.back();</script>';
+ if($accion === 'generar_enviar'){
+   $id = (int)($_POST['usuario_id'] ?? 0);
+   if($id){
+    $pdo = eva_pdo();
+    $st = $pdo->prepare("SELECT id_usuario, nombre, apellido, email FROM usuarios WHERE id_usuario=:id LIMIT 1");
+    $st->execute([':id'=>$id]);
+    $u = $st->fetch(PDO::FETCH_ASSOC);
+    if(!$u || empty($u['email'])){
+     echo '<script>alert("Usuario no encontrado o sin email");history.back();</script>';
+     exit;
+    }
+    if(!filter_var($u['email'], FILTER_VALIDATE_EMAIL)){
+     echo '<script>alert("El email del usuario no es válido");history.back();</script>';
+     exit;
+    }
+     $passPlano = eva_generar_password(10);
+     $hash = password_hash($passPlano, PASSWORD_DEFAULT);
+     try{
+      $pdo->beginTransaction();
+      $pdo->prepare("UPDATE usuarios SET password_hash=:h WHERE id_usuario=:id")->execute([':h'=>$hash,':id'=>$id]);
+      $pdo->prepare("UPDATE credenciales_clientes SET password_hash=:h, fecha_generacion=NOW() WHERE id_usuario=:id")->execute([':h'=>$hash,':id'=>$id]);
+      try{
+        if(function_exists('eva_enviar_nueva_contrasena')){
+          eva_enviar_nueva_contrasena($u['email'], trim($u['nombre'].' '.$u['apellido']), $u['email'], $passPlano);
+        } else {
+          eva_enviar_credenciales($u['email'], trim($u['nombre'].' '.$u['apellido']), $u['email'], $passPlano);
+        }
+        $pdo->commit();
+        $pdo->prepare("INSERT INTO log_actividad (id_usuario, accion, detalle, ip, fecha_hora) VALUES (:uid,'UPDATE',:det,:ip,NOW())")->execute([':uid'=>$_SESSION['id_usuario']??null,':det'=>"Generó y envió nueva contraseña a {$u['email']}",':ip'=>$_SERVER['REMOTE_ADDR']??'']);
+        $pdo->prepare("INSERT INTO notificaciones (id_usuario, mensaje, leida) VALUES (:uid,:msg,0)")->execute([':uid'=>$id,':msg'=>'Tu contraseña fue actualizada por un administrador. Usa la nueva contraseña enviada a tu correo.']);
+        echo '<script>alert("Nueva contraseña generada y enviada correctamente al correo del usuario.");window.location="usuarios.php";</script>';
+      }catch(Throwable $me){
+        $pdo->commit();
+        $pdo->prepare("INSERT INTO log_actividad (id_usuario, accion, detalle, ip, fecha_hora) VALUES (:uid,'UPDATE',:det,:ip,NOW())")->execute([':uid'=>$_SESSION['id_usuario']??null,':det'=>"Generó nueva contraseña para {$u['email']} pero mail falló: ".$me->getMessage(),':ip'=>$_SERVER['REMOTE_ADDR']??'']);
+        error_log('generar_enviar mail fallo pero password commit: '.$me->getMessage());
+        $pp=htmlspecialchars($passPlano,ENT_QUOTES);
+        $em=htmlspecialchars($me->getMessage(),ENT_QUOTES);
+        echo '<script>alert("Contraseña generada correctamente pero el correo no pudo enviarse. Detalle: '.$em.'\n\nNueva contraseña para '.$u['email'].': '.$pp.'\n\nCompártela manualmente al usuario.");window.location="usuarios.php";</script>';
+      }
+     }catch(Throwable $e){
+      if($pdo->inTransaction()) $pdo->rollBack();
+      error_log('generar_enviar: '.$e->getMessage());
+      $msg=htmlspecialchars($e->getMessage(),ENT_QUOTES);
+      echo '<script>alert("No se pudo generar la nueva contraseña. Detalle: '.$msg.'");window.location="usuarios.php";</script>';
+     }
     exit;
    }
-   $stmt = $conn->prepare("DELETE FROM usuarios WHERE id_usuario=?");
-   $stmt->bind_param("i", $id);
-   if($stmt->execute()){
-    echo '<script>alert("Usuario eliminado exitosamente");window.location="usuarios.php";</script>';
-   } else {
-    echo '<script>alert("Error al eliminar usuario. Puede tener registros asociados.");history.back();</script>';
-   }
-   $stmt->close();
+   echo '<script>alert("ID inválido");history.back();</script>';
    exit;
   }
- }
+
+ if($accion === 'eliminar'){
+   $id = (int)($_POST['usuario_id'] ?? 0);
+   if($id){
+    if($id == $_SESSION['id_usuario']){
+     echo '<script>alert("No puedes eliminarte a ti mismo");history.back();</script>';
+     exit;
+    }
+    $pdo = eva_pdo();
+    $stmt = $pdo->prepare("DELETE FROM usuarios WHERE id_usuario=:id");
+    try{
+     $ok = $stmt->execute([':id'=>$id]);
+     if($ok){
+      echo '<script>alert("Usuario eliminado exitosamente");window.location="usuarios.php";</script>';
+     } else {
+      echo '<script>alert("Error al eliminar usuario.");history.back();</script>';
+     }
+    }catch(PDOException $e){
+     echo '<script>alert("Error al eliminar usuario. Puede tener registros asociados.");history.back();</script>';
+    }
+    exit;
+   }
+  }
 }
 
 $currentPage = 'usuarios';
@@ -259,10 +311,13 @@ function tiempoDesde($fecha){
      <tbody>
       <?php if(count($listaUsuarios) > 0): ?>
        <?php foreach($listaUsuarios as $u): ?>
-        <tr data-rol="<?php echo $u['rol']; ?>"
-            data-estado="<?php echo $u['activo']; ?>"
-            data-nombre="<?php echo htmlspecialchars(strtolower($u['nombre'].' '.$u['apellido'])); ?>"
-            data-email="<?php echo htmlspecialchars(strtolower($u['email'])); ?>">
+         <tr data-id="<?php echo (int)$u['id_usuario']; ?>" data-rol="<?php echo $u['rol']; ?>"
+             data-estado="<?php echo $u['activo']; ?>"
+             data-nombre="<?php echo htmlspecialchars(strtolower($u['nombre'].' '.$u['apellido'])); ?>"
+             data-email="<?php echo htmlspecialchars(strtolower($u['email'])); ?>"
+             data-nombre-real="<?php echo htmlspecialchars($u['nombre']); ?>"
+             data-apellido-real="<?php echo htmlspecialchars($u['apellido']); ?>"
+             data-email-real="<?php echo htmlspecialchars($u['email']); ?>">
          <td>
           <div class="user-avatar-sm" style="<?php echo avatarColor($u['id_usuario']); ?>">
            <?php echo iniciales($u['nombre'], $u['apellido']); ?>
@@ -273,16 +328,17 @@ function tiempoDesde($fecha){
          <td><?php echo rolBadge($u['rol']); ?></td>
          <td><?php echo estadoBadge($u['activo']); ?></td>
          <td><?php echo tiempoDesde($u['ultimo_acceso']); ?></td>
-         <td class="actions-cell">
-          <button class="btn-icon" title="Editar usuario" onclick="editarUsuario(<?php echo $u['id_usuario']; ?>)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
-          <button class="btn-icon" title="Cambiar contraseña" onclick="cambiarContrasena(<?php echo $u['id_usuario']; ?>)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg></button>
-          <?php if($u['activo']): ?>
-           <button class="btn-icon" title="Desactivar usuario" onclick="toggleEstado(<?php echo $u['id_usuario']; ?>,1)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/></svg></button>
-          <?php else: ?>
-           <button class="btn-icon" title="Activar usuario" onclick="toggleEstado(<?php echo $u['id_usuario']; ?>,0)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></button>
-          <?php endif; ?>
-          <button class="btn-icon btn-icon-danger" title="Eliminar usuario" onclick="eliminarUsuario(<?php echo $u['id_usuario']; ?>)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg></button>
-         </td>
+          <td class="actions-cell">
+           <button class="btn-icon" title="Editar usuario" onclick="editarUsuario(<?php echo $u['id_usuario']; ?>)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+           <button class="btn-icon" title="Cambiar contraseña" onclick="cambiarContrasena(<?php echo $u['id_usuario']; ?>)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg></button>
+           <button class="btn-icon" title="Generar y enviar contraseña" onclick="generarEnviar(<?php echo $u['id_usuario']; ?>)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg></button>
+           <?php if($u['activo']): ?>
+            <button class="btn-icon" title="Desactivar usuario" onclick="toggleEstado(<?php echo $u['id_usuario']; ?>,1)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/></svg></button>
+           <?php else: ?>
+            <button class="btn-icon" title="Activar usuario" onclick="toggleEstado(<?php echo $u['id_usuario']; ?>,0)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></button>
+           <?php endif; ?>
+           <button class="btn-icon btn-icon-danger" title="Eliminar usuario" onclick="eliminarUsuario(<?php echo $u['id_usuario']; ?>)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg></button>
+          </td>
         </tr>
        <?php endforeach; ?>
       <?php else: ?>
@@ -398,6 +454,14 @@ function editarUsuario(id){
  document.getElementById('usuarioAccion').value = 'editar';
  document.getElementById('usuarioId').value = id;
  document.getElementById('grupoContrasena').style.display = 'none';
+ var row=document.querySelector('tr[data-id="'+id+'"]');
+ if(row){
+  document.getElementById('usuarioNombre').value=row.getAttribute('data-nombre-real')||'';
+  document.getElementById('usuarioApellido').value=row.getAttribute('data-apellido-real')||'';
+  document.getElementById('usuarioEmail').value=row.getAttribute('data-email-real')||'';
+  document.getElementById('usuarioRol').value=row.getAttribute('data-rol')||'';
+  document.getElementById('usuarioEstado').value=row.getAttribute('data-estado')||'1';
+ }
  document.getElementById('modalUsuario').classList.add('active');
 }
 function cerrarModalUsuario(){
@@ -427,6 +491,14 @@ function toggleEstado(id, actual){
   var f = document.createElement('form');
   f.method='POST'; f.action='usuarios.php';
   f.innerHTML='<input type="hidden" name="accion" value="toggle_estado"><input type="hidden" name="usuario_id" value="'+id+'"><input type="hidden" name="activo" value="'+(actual?0:1)+'">';
+  document.body.appendChild(f); f.submit();
+ }
+}
+function generarEnviar(id){
+ if(confirm('¿Generar una nueva contraseña aleatoria y enviarla por correo a este usuario?')){
+  var f=document.createElement('form');
+  f.method='POST'; f.action='usuarios.php';
+  f.innerHTML='<input type="hidden" name="accion" value="generar_enviar"><input type="hidden" name="usuario_id" value="'+id+'">';
   document.body.appendChild(f); f.submit();
  }
 }

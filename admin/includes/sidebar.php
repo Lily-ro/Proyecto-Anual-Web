@@ -18,15 +18,16 @@ if (!isset($currentPage)) $currentPage = 'inicio';
      <span>Inicio</span>
     </a>
    </li>
-   <li data-toggle="usuarios" class="<?php echo in_array($currentPage, ['usuarios','roles']) ? 'open' : ''; ?>">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
-    <span>Usuarios</span>
-    <span class="arrow">&#9654;</span>
-   </li>
-    <ul class="sub-menu <?php echo in_array($currentPage, ['usuarios','roles']) ? 'open' : ''; ?>">
-     <li><a href="usuarios.php">Gestionar usuarios</a></li>
-     <li><a href="roles.php">Roles y permisos</a></li>
-    </ul>
+    <li data-toggle="usuarios" class="<?php echo in_array($currentPage, ['usuarios','roles','clientes']) ? 'open' : ''; ?>">
+     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
+     <span>Usuarios</span>
+     <span class="arrow">&#9654;</span>
+    </li>
+     <ul class="sub-menu <?php echo in_array($currentPage, ['usuarios','roles','clientes']) ? 'open' : ''; ?>">
+      <li><a href="usuarios.php">Gestionar usuarios</a></li>
+      <li><a href="clientes.php">Clientes</a></li>
+      <li><a href="roles.php">Roles y permisos</a></li>
+     </ul>
    <li class="<?php echo $currentPage === 'empresas' ? 'active' : ''; ?>">
      <a href="empresas.php">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21h18M3 7v14M9 7v14M15 7v14M21 7v14M6 11h.01M6 15h.01M12 11h.01M12 15h.01M18 11h.01M18 15h.01"/></svg>

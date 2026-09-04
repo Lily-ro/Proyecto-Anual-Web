@@ -1,23 +1,48 @@
 <?php
-
+// EVA - Conexion central unica. NO crear db2.php ni conexiones por rol.
+// Mantiene credenciales originales del proyecto y añade fallback para hosting Hostinger (u767...) y local (root).
+// Produccion: /home/u767580032/domains/dashboard.elvigilantedeagua.com/public_html/config/db.php linea 11
 error_reporting(E_ALL);
-ini_set('display_errors', 1);
+ini_set('display_errors', 0);
+ini_set('log_errors', 1);
 
 $host = "localhost";
-$user = "u156482620_EVAelvigilante";
-$pass = "#VALzona122233";
-$db   = "u156482620_EVAelvigilante";
 
-$conn = new mysqli($host, $user, $pass, $db);
+// Candidatos en orden: produccion Hostinger (u767...), original proyecto (u156...), local XAMPP (root)
+$candidatos = [
+    ['user' => 'u767580032_elvigilante',     'pass' => '#VALzona122233', 'db' => 'u767580032_elvigilante'],
+    ['user' => 'u156482620_EVAelvigilante', 'pass' => '#VALzona122233', 'db' => 'u156482620_EVAelvigilante'],
+    ['user' => 'root',                      'pass' => '',               'db' => 'u156482620_EVAelvigilante'],
+    ['user' => 'root',                      'pass' => '',               'db' => 'u767580032_elvigilante'],
+    ['user' => 'root',                      'pass' => 'root',           'db' => 'u156482620_EVAelvigilante'],
+];
 
-if ($conn->connect_error) {
-    die("ERROR MYSQL: " . $conn->connect_error);
-}
-$conn->set_charset("utf8mb4");
-
-// PDO centralizado reutilizando las mismas credenciales ($host,$user,$pass,$db)
-// Expone $pdo y funcion eva_pdo() para que CLIENTES, ADMIN y TECNICO reutilicen la misma conexion
+$conn = null;
 $pdo = null;
+$ultimoError = '';
+foreach ($candidatos as $c) {
+    $u = $c['user']; $p = $c['pass']; $d = $c['db'];
+    // Intentar mysqli
+    try {
+        mysqli_report(MYSQLI_REPORT_OFF);
+        $tmp = @new mysqli($host, $u, $p, $d);
+        if ($tmp && !$tmp->connect_error) {
+            $tmp->set_charset("utf8mb4");
+            $conn = $tmp;
+            $user = $u; $pass = $p; $db = $d;
+            break;
+        }
+        $ultimoError = $tmp ? $tmp->connect_error : 'mysqli init failed';
+    } catch (Throwable $e) { $ultimoError = $e->getMessage(); }
+}
+if (!$conn) {
+    error_log("EVA db.php: todos los candidatos fallaron. Ultimo error: {$ultimoError}");
+    // Mensaje generico para usuario final, detalle en log
+    http_response_code(500);
+    die("Error de conexion a la base de datos. Contacte al administrador.");
+}
+
+// PDO centralizado reutilizando credenciales que funcionaron ($host,$user,$pass,$db)
 try {
     $dsn = "mysql:host={$host};dbname={$db};charset=utf8mb4";
     $pdo = new PDO($dsn, $user, $pass, [
@@ -27,11 +52,9 @@ try {
     ]);
 } catch (PDOException $e) {
     error_log('EVA PDO Error: ' . $e->getMessage());
-    // No detener ejecución: $conn (mysqli) sigue disponible; eva_pdo() lanzará excepción si se requiere PDO
     $pdo = null;
 }
 
-// Funcion centralizada para obtener PDO - unica fuente para CLIENTES/ADMIN/TECNICO
 if (!function_exists('eva_pdo')) {
     function eva_pdo(): PDO
     {

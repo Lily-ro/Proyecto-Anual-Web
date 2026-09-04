@@ -22,26 +22,26 @@ if($_SERVER['REQUEST_METHOD'] === 'POST'){
     $email = trim($_POST['email']);
     $password = $_POST['password'];
 
-    $sql = "SELECT u.id_usuario, u.nombre, u.apellido, u.email, u.password_hash, u.activo, r.nombre AS rol FROM usuarios u INNER JOIN roles r ON u.id_rol = r.id_rol WHERE u.email = ? LIMIT 1";
-    $stmt = $conn->prepare($sql);
-    if(!$stmt){ die("Error SQL: " . $conn->error); }
-    $stmt->bind_param("s", $email);
-    $stmt->execute();
-    $resultado = $stmt->get_result();
+    try {
+        $pdo = eva_pdo();
+        $stmt = $pdo->prepare("SELECT u.id_usuario, u.nombre, u.apellido, u.email, u.password_hash, u.activo, r.nombre AS rol FROM usuarios u INNER JOIN roles r ON u.id_rol = r.id_rol WHERE u.email = :email LIMIT 1");
+        $stmt->execute([':email' => $email]);
+        $usuario = $stmt->fetch(PDO::FETCH_ASSOC);
 
-    if($resultado->num_rows === 1){
-        $usuario = $resultado->fetch_assoc();
-        if($usuario['activo'] != 1){
-            $error = "Usuario deshabilitado.";
-        }elseif(password_verify($password, $usuario['password_hash'])){
-            $_SESSION['id_usuario'] = $usuario['id_usuario'];
-            $_SESSION['nombre'] = $usuario['nombre'];
-            $_SESSION['apellido'] = $usuario['apellido'];
-            $_SESSION['email'] = $usuario['email'];
-            $_SESSION['rol'] = $usuario['rol'];
+        if($usuario){
+            if((int)$usuario['activo'] !== 1){
+                $error = "Usuario deshabilitado.";
+            }elseif(password_verify($password, $usuario['password_hash'])){
+                $_SESSION['id_usuario'] = $usuario['id_usuario'];
+                $_SESSION['nombre'] = $usuario['nombre'];
+                $_SESSION['apellido'] = $usuario['apellido'];
+                $_SESSION['email'] = $usuario['email'];
+                $_SESSION['rol'] = $usuario['rol'];
 
-            $update = $conn->prepare("UPDATE usuarios SET ultimo_acceso = NOW() WHERE id_usuario = ?");
-            if($update){ $update->bind_param("i", $usuario['id_usuario']); $update->execute(); }
+                try {
+                    $up = $pdo->prepare("UPDATE usuarios SET ultimo_acceso = NOW() WHERE id_usuario = :id");
+                    $up->execute([':id' => $usuario['id_usuario']]);
+                } catch(Throwable $e){ error_log('login update: '.$e->getMessage()); }
 
             switch($usuario['rol']){
                 case 'ADMIN':
@@ -61,6 +61,10 @@ if($_SERVER['REQUEST_METHOD'] === 'POST'){
         }
     }else{
         $error = "Usuario no encontrado.";
+    }
+    } catch(Throwable $e){
+        error_log('login error: '.$e->getMessage());
+        $error = "Error interno. Intente nuevamente.";
     }
 }
 ?>
