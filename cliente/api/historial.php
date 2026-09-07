@@ -14,31 +14,36 @@ try{
     $tanques=eva_tanques_for_user($pdo,$uid);
     $idTanque=null;
     if($tanque!=='todos' && is_numeric($tanque)) $idTanque=(int)$tanque;
-    $hasIdTanque=false;
-    try{$c=$pdo->query("SHOW COLUMNS FROM mediciones LIKE 'id_tanque'"); $hasIdTanque=$c&&$c->rowCount()>0;}catch(Throwable $e){}
+    elseif(!empty($tanques)) $idTanque=(int)($tanques[0]['id_tanque']??0);
     $params=[':desde'=>$desde, ':hasta'=>$hasta];
-    $where=["DATE(m.fecha) BETWEEN :desde AND :hasta"];
-    if($hasIdTanque && $idTanque){ $where[]="m.id_tanque=:id_tanque"; $params[':id_tanque']=$idTanque; }
-    if($hasIdTanque){
-        $sql="SELECT m.* FROM mediciones m WHERE ".implode(' AND ',$where)." ORDER BY m.fecha DESC LIMIT 200";
-        $st=$pdo->prepare($sql); $st->execute($params); $rows=$st->fetchAll();
+    $where="DATE(m.fecha_hora) BETWEEN :desde AND :hasta";
+    if($idTanque){
+        $where.=" AND (d.id_tanque=:tid OR d.id_tanque IS NULL)";
+        $params[':tid']=$idTanque;
+        $sql="SELECT m.* FROM mediciones m LEFT JOIN sensores s ON s.id_sensor=m.id_sensor LEFT JOIN dispositivos d ON d.id_dispositivo=s.id_dispositivo WHERE $where ORDER BY m.fecha_hora DESC LIMIT 200";
     } else {
-        $sql="SELECT m.* FROM mediciones m WHERE DATE(m.fecha) BETWEEN :desde AND :hasta ORDER BY m.fecha DESC LIMIT 200";
-        $st=$pdo->prepare($sql); $st->execute([':desde'=>$desde, ':hasta'=>$hasta]); $rows=$st->fetchAll();
+        $ids=array_map(fn($t)=>(int)($t['id_tanque']??0),$tanques);
+        $ids=array_filter($ids);
+        if($ids){ $in=implode(',',$ids); $sql="SELECT m.* FROM mediciones m LEFT JOIN sensores s ON s.id_sensor=m.id_sensor LEFT JOIN dispositivos d ON d.id_dispositivo=s.id_dispositivo WHERE (d.id_tanque IN ($in) OR d.id_tanque IS NULL) AND $where ORDER BY m.fecha_hora DESC LIMIT 200"; }
+        else { $sql="SELECT m.* FROM mediciones m LEFT JOIN sensores s ON s.id_sensor=m.id_sensor LEFT JOIN dispositivos d ON d.id_dispositivo=s.id_dispositivo WHERE $where ORDER BY m.fecha_hora DESC LIMIT 200"; }
+    }
+    $st=$pdo->prepare($sql); $st->execute($params); $rows=$st->fetchAll();
+    if(!$rows){
+        $st2=$pdo->prepare("SELECT * FROM mediciones WHERE DATE(fecha_hora) BETWEEN :desde AND :hasta ORDER BY fecha_hora DESC LIMIT 200");
+        $st2->execute([':desde'=>$desde,':hasta'=>$hasta]); $rows=$st2->fetchAll();
     }
     $out=[];
     foreach($rows as $r){
-        $fechaRaw=$r['fecha']??'';
-        $horaRaw=$r['hora']??'';
-        $ts=strtotime(trim($fechaRaw.' '.$horaRaw));
+        $fechaHora=$r['fecha_hora']??'';
+        $ts=$fechaHora?strtotime($fechaHora):null;
         $out[]=[
-            'fecha'=>$fechaRaw?date('d/m/Y',$ts):'-',
-            'hora'=>$horaRaw?date('H:i',$ts):'-',
-            'nivel'=>$r['nivel']??$r['distancia']??'-',
-            'pct'=>$r['porcentaje']??$r['nivel_porcentaje']??'-',
-            'tmp'=>$r['temperatura']??'-',
-            'hum'=>$r['humedad']??'-',
-            'estado'=> (isset($r['porcentaje']) && (int)$r['porcentaje']<=20?'Bajo':'Normal')
+            'fecha'=>$ts?date('d/m/Y',$ts):'-',
+            'hora'=>$ts?date('H:i',$ts):'-',
+            'nivel'=>isset($r['nivel_cm'])?(int)round((float)$r['nivel_cm']):'-',
+            'pct'=>isset($r['porcentaje'])?(int)round((float)$r['porcentaje']):'-',
+            'tmp'=>isset($r['temperatura'])?(int)round((float)$r['temperatura']):'-',
+            'hum'=>isset($r['humedad'])?(int)round((float)$r['humedad']):'-',
+            'estado'=> (isset($r['porcentaje']) && (int)$r['porcentaje']<=20?'Bajo':((int)$r['porcentaje']>=90?'Alto':'Normal'))
         ];
     }
     echo json_encode(['rows'=>$out], JSON_UNESCAPED_UNICODE);

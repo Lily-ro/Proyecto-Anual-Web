@@ -6,6 +6,7 @@ if(!isset($_SESSION['rol']) || $_SESSION['rol'] !== 'USUARIO'){
 }
 require_once __DIR__ . '/../config/db.php';
 require_once __DIR__ . '/includes/helpers.php';
+require_once __DIR__ . '/includes/procesador_mediciones.php';
 
 $alertas = [];
 $deviceStatus = 'Conectado';
@@ -20,36 +21,24 @@ try {
     $tanque = eva_first_tanque($pdo, $uid);
     if ($tanque) {
         $idTanqueSel = (int)($tanque['id_tanque'] ?? 0);
+        try{ eva_procesar_tanque($pdo, $idTanqueSel); }catch(Throwable $e){}
         $deviceStatus = eva_device_status($pdo, $idTanqueSel);
     }
-    // intentar obtener alertas del usuario / tanque
-    // Primero probar alertas con id_tanque
-    $hasIdTanque = false;
-    try {
-        $col = $pdo->query("SHOW COLUMNS FROM alertas LIKE 'id_tanque'");
-        $hasIdTanque = $col && $col->rowCount()>0;
-    } catch (Throwable $e) {}
-    $hasEstado = true;
-    // Construir query base
-    $sql = "SELECT a.*, ca.tipo AS cfg_tipo FROM alertas a LEFT JOIN configuracion_alertas ca ON ca.id_configuracion = a.id_configuracion ";
-    $params = [];
-    $where = [];
-    if ($hasIdTanque && $idTanqueSel) {
-        $where[] = "a.id_tanque = :id_tanque";
-        $params[':id_tanque'] = $idTanqueSel;
-    } elseif ($hasIdTanque) {
-        // si no hay tanque seleccionado mostrar ultimas 50
-    }
-    // filtros por estado
-    // no aplicamos where aqui, lo filtrara JS / php
-    $sql .= (count($where) ? "WHERE ".implode(" AND ", $where) : "") . " ORDER BY a.fecha DESC, a.id_alerta DESC LIMIT 100";
-    $st = $pdo->prepare($sql);
-    $st->execute($params);
-    $rows = $st->fetchAll();
+    $rows=[];
+    try{
+        if($idTanqueSel){
+            $st=$pdo->prepare("SELECT a.* FROM alertas a WHERE a.id_tanque=:tid ORDER BY a.fecha_hora DESC, a.id_alerta DESC LIMIT 100");
+            $st->execute([':tid'=>$idTanqueSel]);
+            $rows=$st->fetchAll();
+        } else {
+            $st=$pdo->prepare("SELECT a.* FROM alertas a ORDER BY a.fecha_hora DESC, a.id_alerta DESC LIMIT 100");
+            $st->execute();
+            $rows=$st->fetchAll();
+        }
+    }catch(Throwable $e){ $rows=[]; }
     foreach ($rows as $r) {
-        $tipo = $r['tipo'] ?? $r['cfg_tipo'] ?? 'NIVEL_BAJO';
+        $tipo = $r['tipo'] ?? 'NIVEL_BAJO';
         $estadoRaw = strtoupper(trim($r['estado'] ?? 'PENDIENTE'));
-        // map estado to UI
         $estadoUI = match($estadoRaw) {
             'PENDIENTE' => 'activo',
             'ATENDIDA' => 'en-revision',
@@ -57,26 +46,23 @@ try {
             default => strtolower($estadoRaw)
         };
         $statusForFilter = ($estadoUI === 'activo' || $estadoUI === 'en-revision') ? 'activo' : 'resuelta';
-        // tipo map for icon
         [$badgeColor, $iconType, $titulo] = eva_alert_tipo_map((string)$tipo);
-        // descripcion
-        $desc = $r['mensaje'] ?? $r['descripcion'] ?? $r['detalle'] ?? '';
+        $desc = $r['descripcion'] ?? $r['mensaje'] ?? '';
         if (!$desc) {
             $desc = match(strtoupper((string)$tipo)){
-                'NIVEL_BAJO' => 'El nivel del agua esta por debajo del '.h($r['valor'] ?? '20').'%',
-                'NIVEL_ALTO' => 'El nivel del agua esta por encima del '.h($r['valor'] ?? '90').'%',
-                'SIN_CONEXION' => 'El dispositivo no esta respondiendo',
-                'FALLA_SENSOR' => 'Se detecto falla en el sensor',
+                'NIVEL_BAJO' => 'El nivel del agua está por debajo del mínimo configurado',
+                'NIVEL_ALTO' => 'El nivel del agua está por encima del máximo configurado',
+                'SIN_CONEXION' => 'El dispositivo no está respondiendo',
+                'FALLA_SENSOR' => 'Se detectó falla en el sensor',
                 'CONSUMO_ANORMAL' => 'Consumo anormal detectado',
                 default => h((string)$tipo)
             };
         }
-        $fechaRaw = $r['fecha'] ?? $r['created_at'] ?? '';
+        $fechaRaw = $r['fecha_hora'] ?? '';
         $fechaFmt = '';
         if ($fechaRaw) {
             $ts = strtotime((string)$fechaRaw);
             if ($ts) {
-                // Si es hoy mostrar Hoy HH:MM sino fecha corta
                 if (date('Y-m-d',$ts)===date('Y-m-d')) $fechaFmt = 'Hoy '.date('H:i',$ts);
                 else $fechaFmt = date('d \d\e M', $ts);
             } else $fechaFmt = h((string)$fechaRaw);
@@ -190,6 +176,6 @@ try {
 window.EVA_ALERTAS = <?php echo json_encode($alertas, JSON_UNESCAPED_UNICODE); ?>;
 window.EVA_ALERTAS_FILTER = <?php echo json_encode($filter); ?>;
 </script>
-<script src="js/script.js"></script>
+<script src="js/script.js?v=2"></script><script src="js/tiempo-real.js?v=2"></script>
 </body>
 </html>

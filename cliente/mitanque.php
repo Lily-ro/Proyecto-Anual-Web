@@ -6,6 +6,7 @@ if(!isset($_SESSION['rol']) || $_SESSION['rol'] !== 'USUARIO'){
 }
 require_once __DIR__ . '/../config/db.php';
 require_once __DIR__ . '/includes/helpers.php';
+require_once __DIR__ . '/includes/procesador_mediciones.php';
 
 $capacidad = 0;
 $tanqueNombre = null;
@@ -30,40 +31,33 @@ try {
         $idTanqueSel = (int)($tanque['id_tanque'] ?? 0);
         $capacidad = (int)($tanque['capacidad_litros'] ?? 0);
         $tanqueNombre = $tanque['nombre'] ?? null;
+        try{ eva_procesar_tanque($pdo, $idTanqueSel); }catch(Throwable $e){}
         $deviceStatus = eva_device_status($pdo, $idTanqueSel);
         $med = eva_latest_medicion($pdo, $idTanqueSel);
         if ($med) {
             if (isset($med['porcentaje']) && is_numeric($med['porcentaje'])) $pct = (int)round((float)$med['porcentaje']);
-            elseif (isset($med['nivel_porcentaje']) && is_numeric($med['nivel_porcentaje'])) $pct = (int)round((float)$med['nivel_porcentaje']);
-            elseif (isset($med['distancia']) && isset($tanque['altura_cm']) && $tanque['altura_cm']>0) {
-                $nivel = (float)$tanque['altura_cm'] - (float)$med['distancia'];
-                $pct = max(0,min(100,(int)round($nivel / (float)$tanque['altura_cm'] *100)));
+            elseif (isset($med['distancia_cm']) && isset($tanque['altura_cm']) && $tanque['altura_cm']>0) {
+                $nivel = (float)$med['nivel_cm'];
+                if(empty($nivel) && isset($med['distancia_cm'])) $nivel = (float)$tanque['altura_cm'] - (float)$med['distancia_cm'];
+                if($nivel) $pct = max(0,min(100,(int)round($nivel / (float)$tanque['altura_cm'] *100)));
             }
             if (isset($med['temperatura']) && is_numeric($med['temperatura'])) $temp = (int)round((float)$med['temperatura']);
-            $fechaStr = $med['fecha'] ?? $med['created_at'] ?? null;
-            $horaStr = $med['hora'] ?? null;
-            if ($fechaStr) {
-                $ts = strtotime(trim($fechaStr . ' ' . ($horaStr ?? '')));
-                if ($ts) $lastUpdate = date('d/m/Y H:i', $ts);
-                else $lastUpdate = h($fechaStr . ' ' . ($horaStr ?? ''));
-            } elseif (!empty($med['hora'])) {
-                $lastUpdate = h($med['hora']);
+            if (!empty($med['fecha_hora'])) {
+                $ts=strtotime($med['fecha_hora']);
+                if($ts) $lastUpdate=date('d/m/Y H:i',$ts);
             }
+            if(isset($med['litros']) && is_numeric($med['litros']) && (float)$med['litros']>0) $litros=(int)round((float)$med['litros']);
         }
         $pct = max(0,min(100,(int)$pct));
-        $litros = (int)round($capacidad * $pct / 100);
+        if($litros===0) $litros = (int)round($capacidad * $pct / 100);
         [$estadoTexto, $estadoDesc, $estadoClass] = eva_estado_texto($pct);
-        // barras: datos reales de mediciones - sin demo
         try {
-            $col = $pdo->query("SHOW COLUMNS FROM mediciones LIKE 'id_tanque'");
-            if ($col && $col->rowCount()>0) {
-                $st = $pdo->prepare("SELECT porcentaje, fecha FROM mediciones WHERE id_tanque=:id ORDER BY fecha DESC, hora DESC LIMIT 7");
-                $st->execute([':id'=>$idTanqueSel]);
-                $rows = array_reverse($st->fetchAll());
-                if (count($rows)>=3) {
-                    foreach ($rows as $r) {
-                        $barsData[] = ['year'=> date('d/m', strtotime($r['fecha'] ?? 'now')), 'bottom'=> (int)round((float)($r['porcentaje']??0)*0.6), 'top'=> (int)round((float)($r['porcentaje']??0)*0.4)];
-                    }
+            $st=$pdo->prepare("SELECT porcentaje, fecha_hora FROM mediciones m INNER JOIN sensores s ON s.id_sensor=m.id_sensor INNER JOIN dispositivos d ON d.id_dispositivo=s.id_dispositivo WHERE d.id_tanque=:id ORDER BY m.fecha_hora DESC LIMIT 7");
+            $st->execute([':id'=>$idTanqueSel]);
+            $rows=array_reverse($st->fetchAll());
+            if(count($rows)>=1){
+                foreach($rows as $r){
+                    $barsData[]=['year'=>date('d/m',strtotime($r['fecha_hora'])),'bottom'=>(int)round((float)($r['porcentaje']??0)*0.6),'top'=>(int)round((float)($r['porcentaje']??0)*0.4)];
                 }
             }
         } catch (Throwable $e) {}
@@ -215,6 +209,6 @@ window.EVA_TANQUE = <?php echo json_encode([
     'idTanque' => $idTanqueSel
 ], JSON_UNESCAPED_UNICODE); ?>;
 </script>
-<script src="js/script.js"></script>
+<script src="js/script.js?v=2"></script><script src="js/tiempo-real.js?v=2"></script>
 </body>
 </html>

@@ -6,8 +6,8 @@ if(!isset($_SESSION['rol']) || $_SESSION['rol'] !== 'USUARIO'){
 }
 require_once __DIR__ . '/../config/db.php';
 require_once __DIR__ . '/includes/helpers.php';
+require_once __DIR__ . '/includes/procesador_mediciones.php';
 
-// Valores reales - solo datos de BD, sin ficticios. Si no hay datos se mantiene 0/vacío y se muestra "No hay datos disponibles"
 $capacidad = 0;
 $tanqueNombre = null;
 $pct = 0;
@@ -32,25 +32,19 @@ try {
         $idTanqueSel = (int)($tanque['id_tanque'] ?? $tanque['id'] ?? 0);
         $capacidad = (int)($tanque['capacidad_litros'] ?? $tanque['capacidad'] ?? 0);
         $tanqueNombre = $tanque['nombre'] ?? null;
+        try{ eva_procesar_tanque($pdo, $idTanqueSel); }catch(Throwable $e){ try{ eva_sincronizar_consumos($pdo, $idTanqueSel); }catch(Throwable $ex){} try{ eva_sincronizar_alertas($pdo, $idTanqueSel); }catch(Throwable $ex){} }
         $deviceStatus = eva_device_status($pdo, $idTanqueSel);
 
         $med = eva_latest_medicion($pdo, $idTanqueSel);
         if ($med) {
-            if (isset($med['porcentaje']) && is_numeric($med['porcentaje'])) {
-                $pct = (int)round((float)$med['porcentaje']);
-            } elseif (isset($med['nivel_porcentaje']) && is_numeric($med['nivel_porcentaje'])) {
-                $pct = (int)round((float)$med['nivel_porcentaje']);
-            } elseif (isset($med['nivel']) && isset($med['altura_cm']) && is_numeric($med['nivel'])) {
-                $pct = max(0, min(100, (int)round(((float)$med['nivel']/ max(1,(float)$tanque['altura_cm']))*100)));
-            } elseif (isset($med['distancia']) && isset($tanque['altura_cm'])) {
-                $nivel = (float)$tanque['altura_cm'] - (float)$med['distancia'];
-                $pct = max(0, min(100, (int)round(($nivel/max(1,(float)$tanque['altura_cm']))*100)));
-            }
+            if (isset($med['porcentaje']) && is_numeric($med['porcentaje'])) $pct = (int)round((float)$med['porcentaje']);
+            elseif (isset($med['nivel_cm']) && is_numeric($med['nivel_cm']) && isset($tanque['altura_cm']) && $tanque['altura_cm']>0) $pct = max(0, min(100, (int)round((float)$med['nivel_cm']/ (float)$tanque['altura_cm']*100)));
+            elseif (isset($med['distancia_cm']) && isset($tanque['altura_cm']) && $tanque['altura_cm']>0) { $nivel=(float)$tanque['altura_cm']-(float)$med['distancia_cm']; $pct=max(0,min(100,(int)round($nivel/(float)$tanque['altura_cm']*100))); }
             if (isset($med['temperatura']) && is_numeric($med['temperatura'])) $temp = (int)round((float)$med['temperatura']);
-            elseif (isset($med['temp']) && is_numeric($med['temp'])) $temp = (int)round((float)$med['temp']);
+            if(isset($med['litros']) && is_numeric($med['litros'])) $disponible=(int)round((float)$med['litros']);
         }
         $pct = max(0, min(100, (int)$pct));
-        $disponible = (int)round($capacidad * $pct / 100);
+        if($disponible===0) $disponible = (int)round($capacidad * $pct / 100);
         $consumoHoy = (int)round(eva_consumo_hoy($pdo, $idTanqueSel));
         $promedio = (int)round(eva_consumo_promedio($pdo, $idTanqueSel));
 
@@ -210,6 +204,6 @@ window.EVA_RESUMEN = <?php echo json_encode([
     'idTanque' => $idTanqueSel
 ], JSON_UNESCAPED_UNICODE); ?>;
 </script>
-<script src="js/script.js"></script>
+<script src="js/script.js?v=2"></script><script src="js/tiempo-real.js?v=2"></script>
 </body>
 </html>

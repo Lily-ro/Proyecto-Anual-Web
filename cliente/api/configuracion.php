@@ -13,10 +13,14 @@ if($_SERVER['REQUEST_METHOD']==='GET'){
         $tanque=eva_first_tanque($pdo,$uid);
         $idTanque=$tanque?(int)($tanque['id_tanque']??0):0;
         $low=20;$high=90;
-        // reuse same logic as configuracion.php GET
         $cols=[]; try{$st=$pdo->query("SHOW COLUMNS FROM configuracion_alertas"); foreach($st->fetchAll() as $c) $cols[]=$c['Field'];}catch(Throwable $e){}
         $hasTipoValor=in_array('tipo',$cols,true) && in_array('valor',$cols,true);
-        if($hasTipoValor){
+        $hasNivel=in_array('nivel_minimo',$cols,true) && in_array('nivel_maximo',$cols,true);
+        if($hasNivel){
+            $st=$pdo->prepare("SELECT nivel_minimo, nivel_maximo FROM configuracion_alertas WHERE id_tanque=:id LIMIT 1");
+            $st->execute([':id'=>$idTanque]); $cfg=$st->fetch();
+            if($cfg){ if(isset($cfg['nivel_minimo'])&&is_numeric($cfg['nivel_minimo'])) $low=(int)$cfg['nivel_minimo']; if(isset($cfg['nivel_maximo'])&&is_numeric($cfg['nivel_maximo'])) $high=(int)$cfg['nivel_maximo']; }
+        } elseif($hasTipoValor){
             $st=$pdo->prepare("SELECT tipo, valor AS v FROM configuracion_alertas WHERE id_tanque=:id");
             $st->execute([':id'=>$idTanque]);
             foreach($st->fetchAll() as $r){ $t=strtoupper($r['tipo']??''); if($t==='NIVEL_BAJO') $low=(int)$r['v']; if($t==='NIVEL_ALTO') $high=(int)$r['v']; }
@@ -38,7 +42,14 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
         $idTanque=$tanque?(int)($tanque['id_tanque']??0):0;
         $cols=[]; $st=$pdo->query("SHOW COLUMNS FROM configuracion_alertas"); foreach($st->fetchAll() as $c) $cols[]=$c['Field'];
         $hasTipoValor=in_array('tipo',$cols,true) && in_array('valor',$cols,true);
-        if($hasTipoValor){
+        $hasNivel=in_array('nivel_minimo',$cols,true) && in_array('nivel_maximo',$cols,true);
+        if($hasNivel){
+            $chk=$pdo->prepare("SELECT id_config FROM configuracion_alertas WHERE id_tanque=:id LIMIT 1");
+            $chk->execute([':id'=>$idTanque]); $ex=$chk->fetch();
+            if($ex) $pdo->prepare("UPDATE configuracion_alertas SET nivel_minimo=:low, nivel_maximo=:high WHERE id_config=:cid")->execute([':low'=>$low,':high'=>$high,':cid'=>$ex['id_config']]);
+            else $pdo->prepare("INSERT INTO configuracion_alertas (id_tanque, nivel_minimo, nivel_maximo, notificar_email, notificar_sistema) VALUES (:id,:low,:high,1,1)")->execute([':id'=>$idTanque,':low'=>$low,':high'=>$high]);
+            eva_log_actividad($pdo,(int)eva_current_user_id(),'ACTUALIZAR_CONFIG_ALERTA',"bajo={$low} alto={$high}");
+        } elseif($hasTipoValor){
             foreach(['NIVEL_BAJO'=>$low,'NIVEL_ALTO'=>$high] as $tipo=>$val){
                 $chk=$pdo->prepare("SELECT id_configuracion FROM configuracion_alertas WHERE id_tanque=:id AND tipo=:tipo LIMIT 1");
                 $chk->execute([':id'=>$idTanque,':tipo'=>$tipo]); $ex=$chk->fetch();

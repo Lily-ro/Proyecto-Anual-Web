@@ -21,56 +21,12 @@ try {
     if ($tanque) {
         $idTanqueSel = (int)($tanque['id_tanque'] ?? 0);
         $deviceStatus = eva_device_status($pdo, $idTanqueSel);
-        // obtener configuracion existente
-        // detectar columnas disponibles en configuracion_alertas
-        $cols = [];
-        try {
-            $st = $pdo->query("SHOW COLUMNS FROM configuracion_alertas");
-            foreach ($st->fetchAll() as $c) $cols[] = $c['Field'];
-        } catch (Throwable $e) {}
-        // mapear low/high a columnas existentes
-        $colLow = null; $colHigh = null;
-        foreach (['nivel_bajo','umbral_bajo','valor_min','min','threshold_low','porcentaje_bajo'] as $cand) {
-            if (in_array($cand, $cols, true)) { $colLow = $cand; break; }
-        }
-        foreach (['nivel_alto','umbral_alto','valor_max','max','threshold_high','porcentaje_alto'] as $cand) {
-            if (in_array($cand, $cols, true)) { $colHigh = $cand; break; }
-        }
-        // si no hay columnas especificas, puede que cada tipo sea una fila con tipo=NIVEL_BAJO/NIVEL_ALTO y valor
-        $hasTipoValor = in_array('tipo', $cols, true) && (in_array('valor', $cols, true) || in_array('umbral', $cols, true) || in_array('porcentaje', $cols, true));
-        if ($hasTipoValor) {
-            $valCol = in_array('valor', $cols, true) ? 'valor' : (in_array('umbral', $cols, true) ? 'umbral' : 'porcentaje');
-            $st = $pdo->prepare("SELECT tipo, {$valCol} AS v FROM configuracion_alertas WHERE id_tanque = :id");
-            $st->execute([':id'=>$idTanqueSel]);
-            foreach ($st->fetchAll() as $r) {
-                $t = strtoupper($r['tipo'] ?? '');
-                if ($t === 'NIVEL_BAJO') $low = (int)$r['v'];
-                if ($t === 'NIVEL_ALTO') $high = (int)$r['v'];
-            }
-        } elseif ($colLow || $colHigh) {
-            $selectCols = [];
-            if ($colLow) $selectCols[] = $colLow;
-            if ($colHigh) $selectCols[] = $colHigh;
-            $colsStr = implode(',', $selectCols);
-            $st = $pdo->prepare("SELECT {$colsStr} FROM configuracion_alertas WHERE id_tanque = :id LIMIT 1");
-            $st->execute([':id'=>$idTanqueSel]);
-            $row = $st->fetch();
-            if ($row) {
-                if ($colLow && isset($row[$colLow])) $low = (int)$row[$colLow];
-                if ($colHigh && isset($row[$colHigh])) $high = (int)$row[$colHigh];
-            }
-        } else {
-            // intento genérico con * y buscar cualquier columna que parezca
-            $st = $pdo->prepare("SELECT * FROM configuracion_alertas WHERE id_tanque = :id LIMIT 1");
-            $st->execute([':id'=>$idTanqueSel]);
-            $row = $st->fetch();
-            if ($row) {
-                // buscar claves que contengan bajo/alto
-                foreach ($row as $k=>$v) {
-                    if (stripos($k,'bajo')!==false && is_numeric($v)) $low = (int)$v;
-                    if (stripos($k,'alto')!==false && is_numeric($v)) $high = (int)$v;
-                }
-            }
+        $st = $pdo->prepare("SELECT nivel_minimo, nivel_maximo FROM configuracion_alertas WHERE id_tanque=:id LIMIT 1");
+        $st->execute([':id'=>$idTanqueSel]);
+        $cfg = $st->fetch();
+        if($cfg){
+            if(isset($cfg['nivel_minimo']) && is_numeric($cfg['nivel_minimo'])) $low = (int)$cfg['nivel_minimo'];
+            if(isset($cfg['nivel_maximo']) && is_numeric($cfg['nivel_maximo'])) $high = (int)$cfg['nivel_maximo'];
         }
     }
 } catch (Throwable $e) { error_log('config load error: '.$e->getMessage()); }
@@ -84,7 +40,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } else {
         $newLow = (int)($_POST['nivel_bajo'] ?? $low);
         $newHigh = (int)($_POST['nivel_alto'] ?? $high);
-        // validacion
         if ($newLow < 10 || $newLow > 50) { $msg='Nivel bajo debe estar entre 10 y 50.'; $msgType='error'; }
         elseif ($newHigh < 50 || $newHigh > 100) { $msg='Nivel alto debe estar entre 50 y 100.'; $msgType='error'; }
         elseif ($newLow >= $newHigh) { $msg='Nivel bajo debe ser menor que nivel alto.'; $msgType='error'; }
@@ -95,51 +50,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $tanque = eva_first_tanque($pdo, eva_current_user_id());
                     $idTanqueSel = $tanque ? (int)($tanque['id_tanque'] ?? 0) : 0;
                 }
-                // detectar columnas nuevamente
-                $cols = [];
-                $st = $pdo->query("SHOW COLUMNS FROM configuracion_alertas");
-                foreach ($st->fetchAll() as $c) $cols[] = $c['Field'];
-                $hasTipoValor = in_array('tipo', $cols, true) && in_array('valor', $cols, true);
-                $hasUmbral = in_array('umbral', $cols, true);
-                $valCol = $hasTipoValor ? 'valor' : ($hasUmbral ? 'umbral' : (in_array('porcentaje',$cols,true)?'porcentaje':null));
-                if ($hasTipoValor || ($hasUmbral && in_array('tipo',$cols,true))) {
-                    // upsert por tipo
-                    foreach (['NIVEL_BAJO'=>$newLow, 'NIVEL_ALTO'=>$newHigh] as $tipo=>$val) {
-                        $chk = $pdo->prepare("SELECT id_configuracion FROM configuracion_alertas WHERE id_tanque=:id AND tipo=:tipo LIMIT 1");
-                        $chk->execute([':id'=>$idTanqueSel, ':tipo'=>$tipo]);
-                        $ex = $chk->fetch();
-                        if ($ex) {
-                            $pdo->prepare("UPDATE configuracion_alertas SET {$valCol}=:v WHERE id_configuracion=:cid")
-                                ->execute([':v'=>$val, ':cid'=>$ex['id_configuracion']]);
-                        } else {
-                            $pdo->prepare("INSERT INTO configuracion_alertas (id_tanque, tipo, {$valCol}) VALUES (:id,:tipo,:v)")
-                                ->execute([':id'=>$idTanqueSel, ':tipo'=>$tipo, ':v'=>$val]);
-                        }
-                    }
-                    $low = $newLow; $high = $newHigh;
-                    $msg='Configuración guardada correctamente.'; $msgType='success';
-                    eva_log_actividad($pdo, (int)eva_current_user_id(), 'ACTUALIZAR_CONFIG_ALERTA', "bajo={$newLow} alto={$newHigh}");
+                $chk = $pdo->prepare("SELECT id_config FROM configuracion_alertas WHERE id_tanque=:id LIMIT 1");
+                $chk->execute([':id'=>$idTanqueSel]);
+                $ex = $chk->fetch();
+                if($ex){
+                    $pdo->prepare("UPDATE configuracion_alertas SET nivel_minimo=:low, nivel_maximo=:high WHERE id_config=:cid")->execute([':low'=>$newLow,':high'=>$newHigh,':cid'=>$ex['id_config']]);
                 } else {
-                    $colLow = null; $colHigh=null;
-                    foreach (['nivel_bajo','umbral_bajo','valor_min'] as $cand) if (in_array($cand,$cols,true)) {$colLow=$cand;break;}
-                    foreach (['nivel_alto','umbral_alto','valor_max'] as $cand) if (in_array($cand,$cols,true)) {$colHigh=$cand;break;}
-                    if ($colLow && $colHigh) {
-                        $chk = $pdo->prepare("SELECT id_configuracion FROM configuracion_alertas WHERE id_tanque=:id LIMIT 1");
-                        $chk->execute([':id'=>$idTanqueSel]);
-                        $ex=$chk->fetch();
-                        if ($ex) {
-                            $pdo->prepare("UPDATE configuracion_alertas SET {$colLow}=:low, {$colHigh}=:high WHERE id_configuracion=:cid")
-                                ->execute([':low'=>$newLow, ':high'=>$newHigh, ':cid'=>$ex['id_configuracion']]);
-                        } else {
-                            $pdo->prepare("INSERT INTO configuracion_alertas (id_tanque, {$colLow}, {$colHigh}) VALUES (:id,:low,:high)")
-                                ->execute([':id'=>$idTanqueSel, ':low'=>$newLow, ':high'=>$newHigh]);
-                        }
-                        $low=$newLow; $high=$newHigh;
-                        $msg='Configuración guardada correctamente.'; $msgType='success';
-                    } else {
-                        $msg='No se pudo guardar: estructura de configuracion_alertas no reconocida.'; $msgType='error';
-                    }
+                    $pdo->prepare("INSERT INTO configuracion_alertas (id_tanque, nivel_minimo, nivel_maximo, notificar_email, notificar_sistema) VALUES (:id,:low,:high,1,1)")->execute([':id'=>$idTanqueSel,':low'=>$newLow,':high'=>$newHigh]);
                 }
+                $low=$newLow; $high=$newHigh;
+                $msg='Configuración guardada correctamente.'; $msgType='success';
+                eva_log_actividad($pdo, (int)eva_current_user_id(), 'ACTUALIZAR_CONFIG_ALERTA', "bajo={$newLow} alto={$newHigh}");
             } catch (Throwable $e) {
                 error_log('config save error: '.$e->getMessage());
                 $msg='Error al guardar: '.h($e->getMessage()); $msgType='error';

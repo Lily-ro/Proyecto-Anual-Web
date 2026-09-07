@@ -13,14 +13,18 @@ try{
     $idTanque=(int)($tanque['id_tanque']??0);
     $capacidad=(int)($tanque['capacidad_litros']??0);
     $med=eva_latest_medicion($pdo,$idTanque);
-    $pct=0;$temp=0;
-    $lastUpdate=null;
-    if($med){
-        if(isset($med['porcentaje'])&&is_numeric($med['porcentaje'])) $pct=(int)round((float)$med['porcentaje']);
-        if(isset($med['temperatura'])&&is_numeric($med['temperatura'])) $temp=(int)round((float)$med['temperatura']);
-        $lastUpdate=$med['fecha']??null;
-        if(isset($med['hora'])) $lastUpdate=trim(($lastUpdate??'').' '. $med['hora']);
-    }
+     $pct=0;$temp=0;
+     $lastUpdate=null;
+     if($med){
+         if(isset($med['porcentaje'])&&is_numeric($med['porcentaje'])) $pct=(int)round((float)$med['porcentaje']);
+         elseif(isset($med['nivel_cm']) && is_numeric($med['nivel_cm']) && isset($tanque['altura_cm']) && (float)$tanque['altura_cm']>0) $pct=max(0,min(100,(int)round((float)$med['nivel_cm']/(float)$tanque['altura_cm']*100)));
+         elseif(isset($med['distancia_cm']) && isset($tanque['altura_cm']) && (float)$tanque['altura_cm']>0){ $nivel=(float)$tanque['altura_cm']-(float)$med['distancia_cm']; $pct=max(0,min(100,(int)round($nivel/(float)$tanque['altura_cm']*100))); }
+         if(isset($med['temperatura'])&&is_numeric($med['temperatura'])) $temp=(int)round((float)$med['temperatura']);
+         $lastUpdate=$med['fecha_hora']??null;
+         if($lastUpdate) $lastUpdate=date('d/m/Y H:i',strtotime($lastUpdate));
+     }
+     try{ eva_sincronizar_consumos($pdo,$idTanque); }catch(Throwable $e){}
+     try{ eva_sincronizar_alertas($pdo,$idTanque); }catch(Throwable $e){}
     echo json_encode([
         'pct'=>max(0,min(100,$pct)),
         'temp'=>$temp,

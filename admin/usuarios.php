@@ -122,55 +122,59 @@ if($_SERVER['REQUEST_METHOD'] === 'POST'){
  }
 
  if($accion === 'generar_enviar'){
-   $id = (int)($_POST['usuario_id'] ?? 0);
-   if($id){
-    $pdo = eva_pdo();
-    $st = $pdo->prepare("SELECT id_usuario, nombre, apellido, email FROM usuarios WHERE id_usuario=:id LIMIT 1");
-    $st->execute([':id'=>$id]);
-    $u = $st->fetch(PDO::FETCH_ASSOC);
-    if(!$u || empty($u['email'])){
-     echo '<script>alert("Usuario no encontrado o sin email");history.back();</script>';
-     exit;
-    }
-    if(!filter_var($u['email'], FILTER_VALIDATE_EMAIL)){
-     echo '<script>alert("El email del usuario no es válido");history.back();</script>';
-     exit;
-    }
-     $passPlano = eva_generar_password(10);
-     $hash = password_hash($passPlano, PASSWORD_DEFAULT);
-     try{
-      $pdo->beginTransaction();
-      $pdo->prepare("UPDATE usuarios SET password_hash=:h WHERE id_usuario=:id")->execute([':h'=>$hash,':id'=>$id]);
-      $pdo->prepare("UPDATE credenciales_clientes SET password_hash=:h, fecha_generacion=NOW() WHERE id_usuario=:id")->execute([':h'=>$hash,':id'=>$id]);
-      try{
-        if(function_exists('eva_enviar_nueva_contrasena')){
-          eva_enviar_nueva_contrasena($u['email'], trim($u['nombre'].' '.$u['apellido']), $u['email'], $passPlano);
-        } else {
-          eva_enviar_credenciales($u['email'], trim($u['nombre'].' '.$u['apellido']), $u['email'], $passPlano);
-        }
-        $pdo->commit();
-        $pdo->prepare("INSERT INTO log_actividad (id_usuario, accion, detalle, ip, fecha_hora) VALUES (:uid,'UPDATE',:det,:ip,NOW())")->execute([':uid'=>$_SESSION['id_usuario']??null,':det'=>"Generó y envió nueva contraseña a {$u['email']}",':ip'=>$_SERVER['REMOTE_ADDR']??'']);
-        $pdo->prepare("INSERT INTO notificaciones (id_usuario, mensaje, leida) VALUES (:uid,:msg,0)")->execute([':uid'=>$id,':msg'=>'Tu contraseña fue actualizada por un administrador. Usa la nueva contraseña enviada a tu correo.']);
-        echo '<script>alert("Nueva contraseña generada y enviada correctamente al correo del usuario.");window.location="usuarios.php";</script>';
-      }catch(Throwable $me){
-        $pdo->commit();
-        $pdo->prepare("INSERT INTO log_actividad (id_usuario, accion, detalle, ip, fecha_hora) VALUES (:uid,'UPDATE',:det,:ip,NOW())")->execute([':uid'=>$_SESSION['id_usuario']??null,':det'=>"Generó nueva contraseña para {$u['email']} pero mail falló: ".$me->getMessage(),':ip'=>$_SERVER['REMOTE_ADDR']??'']);
-        error_log('generar_enviar mail fallo pero password commit: '.$me->getMessage());
-        $pp=htmlspecialchars($passPlano,ENT_QUOTES);
-        $em=htmlspecialchars($me->getMessage(),ENT_QUOTES);
-        echo '<script>alert("Contraseña generada correctamente pero el correo no pudo enviarse. Detalle: '.$em.'\n\nNueva contraseña para '.$u['email'].': '.$pp.'\n\nCompártela manualmente al usuario.");window.location="usuarios.php";</script>';
-      }
-     }catch(Throwable $e){
-      if($pdo->inTransaction()) $pdo->rollBack();
-      error_log('generar_enviar: '.$e->getMessage());
-      $msg=htmlspecialchars($e->getMessage(),ENT_QUOTES);
-      echo '<script>alert("No se pudo generar la nueva contraseña. Detalle: '.$msg.'");window.location="usuarios.php";</script>';
+    $id = (int)($_POST['usuario_id'] ?? 0);
+    if($id){
+     $pdo = eva_pdo();
+     $st = $pdo->prepare("SELECT id_usuario, nombre, apellido, email FROM usuarios WHERE id_usuario=:id LIMIT 1");
+     $st->execute([':id'=>$id]);
+     $u = $st->fetch(PDO::FETCH_ASSOC);
+     if(!$u || empty($u['email'])){
+      echo '<script>alert("Usuario no encontrado o sin email");history.back();</script>';
+      exit;
      }
+     if(!filter_var($u['email'], FILTER_VALIDATE_EMAIL)){
+      echo '<script>alert("El email del usuario no es válido");history.back();</script>';
+      exit;
+     }
+      $passPlano = eva_generar_password(12);
+      $hash = password_hash($passPlano, PASSWORD_DEFAULT);
+      try{
+       $pdo->beginTransaction();
+       $pdo->prepare("UPDATE usuarios SET password_hash=:h WHERE id_usuario=:id")->execute([':h'=>$hash,':id'=>$id]);
+       try{ $pdo->prepare("UPDATE credenciales_clientes SET password_hash=:h, fecha_generacion=NOW() WHERE id_usuario=:id")->execute([':h'=>$hash,':id'=>$id]); }catch(Throwable $ce){}
+       $pdo->commit();
+      }catch(Throwable $e){
+       if($pdo->inTransaction()) $pdo->rollBack();
+       error_log('EVA generar_enviar DB error usuario #'.$id.': '.$e->getMessage());
+       $msg=htmlspecialchars($e->getMessage(),ENT_QUOTES);
+       echo '<script>alert("No se pudo generar la nueva contraseña. Detalle: '.$msg.'");window.location="usuarios.php";</script>';
+       exit;
+      }
+      $enviado = false;
+      try{
+        $enviado = eva_enviar_mail_credenciales($u['email'], trim($u['nombre'].' '.$u['apellido']), $u['email'], $passPlano);
+      }catch(Throwable $me){
+        error_log('EVA SMTP: error enviando credenciales a '.$u['email'].' - '.$me->getMessage());
+        $enviado = false;
+      }
+      unset($passPlano);
+      if($enviado){
+        try{
+         $pdo->prepare("INSERT INTO log_actividad (id_usuario, accion, detalle, ip, fecha_hora) VALUES (:uid,'UPDATE',:det,:ip,NOW())")->execute([':uid'=>$_SESSION['id_usuario']??null,':det'=>"Credenciales regeneradas y enviadas para el usuario #".$id,':ip'=>$_SERVER['REMOTE_ADDR']??'']);
+         $pdo->prepare("INSERT INTO notificaciones (id_usuario, mensaje, leida) VALUES (:uid,:msg,0)")->execute([':uid'=>$id,':msg'=>'Se generaron nuevas credenciales de acceso y fueron enviadas a tu correo.']);
+        }catch(Throwable $e){}
+        echo '<script>alert("Credenciales generadas y enviadas correctamente al correo del usuario.");window.location="usuarios.php";</script>';
+      } else {
+        try{
+         $pdo->prepare("INSERT INTO log_actividad (id_usuario, accion, detalle, ip, fecha_hora) VALUES (:uid,'UPDATE',:det,:ip,NOW())")->execute([':uid'=>$_SESSION['id_usuario']??null,':det'=>"Credenciales regeneradas para usuario #".$id." pero fallo envio de mail",':ip'=>$_SERVER['REMOTE_ADDR']??'']);
+        }catch(Throwable $e){}
+        echo '<script>alert("Las credenciales fueron generadas, pero no se pudo enviar el correo. Revisá la configuración de correo e intentá nuevamente.");window.location="usuarios.php";</script>';
+      }
+     exit;
+    }
+    echo '<script>alert("ID inválido");history.back();</script>';
     exit;
    }
-   echo '<script>alert("ID inválido");history.back();</script>';
-   exit;
-  }
 
  if($accion === 'eliminar'){
    $id = (int)($_POST['usuario_id'] ?? 0);

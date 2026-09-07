@@ -6,6 +6,7 @@ if(!isset($_SESSION['rol']) || $_SESSION['rol'] !== 'USUARIO'){
 }
 require_once __DIR__ . '/../config/db.php';
 require_once __DIR__ . '/includes/helpers.php';
+require_once __DIR__ . '/includes/procesador_mediciones.php';
 
 $tanques = [];
 $deviceStatus = 'Conectado';
@@ -30,6 +31,7 @@ try {
     if (!empty($tanques)) {
         $first = $tanques[0];
         $idFirst = (int)($first['id_tanque'] ?? 0);
+        try{ eva_procesar_todos($pdo, $idFirst); }catch(Throwable $e){}
         $deviceStatus = eva_device_status($pdo, $idFirst);
         if ($tanqueFilter !== 'todos' && is_numeric($tanqueFilter)) $idTanqueSel = (int)$tanqueFilter;
         elseif ($tanqueFilter !== 'todos') {
@@ -37,74 +39,27 @@ try {
             $idTanqueSel = $idFirst;
         }
     }
-    // detectar esquema mediciones
-    $hasIdTanque = false;
-    try { $c=$pdo->query("SHOW COLUMNS FROM mediciones LIKE 'id_tanque'"); $hasIdTanque=$c&&$c->rowCount()>0; } catch(Throwable $e){}
-    $hasPorcentaje = false;
-    try { $c=$pdo->query("SHOW COLUMNS FROM mediciones LIKE 'porcentaje'"); $hasPorcentaje=$c&&$c->rowCount()>0; } catch(Throwable $e){}
-    $hasTemperatura = false;
-    try { $c=$pdo->query("SHOW COLUMNS FROM mediciones LIKE 'temperatura'"); $hasTemperatura=$c&&$c->rowCount()>0; } catch(Throwable $e){}
-    $hasHumedad = false;
-    try { $c=$pdo->query("SHOW COLUMNS FROM mediciones LIKE 'humedad'"); $hasHumedad=$c&&$c->rowCount()>0; } catch(Throwable $e){}
-
-    // Construir query base
-    $params = [];
-    $where = ["DATE(m.fecha) BETWEEN :desde AND :hasta"];
-    $params[':desde']=$fechaDesde;
-    $params[':hasta']=$fechaHasta;
-    if ($hasIdTanque && $idTanqueSel) {
-        $where[]="m.id_tanque = :id_tanque";
-        $params[':id_tanque']=$idTanqueSel;
-    } elseif ($hasIdTanque && $tanqueFilter==='todos' && !empty($tanques)) {
-        // si todos, filtrar por tanques del usuario
-        $ids = array_map(fn($t)=>(int)($t['id_tanque']??0), $tanques);
-        $ids = array_filter($ids);
-        if ($ids) {
-            $placeholders = implode(',', $ids);
-            $where[]="m.id_tanque IN ($placeholders)";
+    $rows=[];
+    try{
+        if($idTanqueSel){
+            $sql="SELECT m.* FROM mediciones m LEFT JOIN sensores s ON s.id_sensor=m.id_sensor LEFT JOIN dispositivos d ON d.id_dispositivo=s.id_dispositivo WHERE (d.id_tanque=:tid OR d.id_tanque IS NULL) AND DATE(m.fecha_hora) BETWEEN :desde AND :hasta ORDER BY m.fecha_hora DESC LIMIT 200";
+            $st=$pdo->prepare($sql); $st->execute([':tid'=>$idTanqueSel,':desde'=>$fechaDesde,':hasta'=>$fechaHasta]); $rows=$st->fetchAll();
+            if(!$rows){ $sql="SELECT * FROM mediciones WHERE DATE(fecha_hora) BETWEEN :desde AND :hasta ORDER BY fecha_hora DESC LIMIT 200"; $st=$pdo->prepare($sql); $st->execute([':desde'=>$fechaDesde,':hasta'=>$fechaHasta]); $rows=$st->fetchAll(); }
+        } elseif(!empty($tanques)){
+            $ids=array_map(fn($t)=>(int)$t['id_tanque'], $tanques); $ids=array_filter($ids);
+            if($ids){ $in=implode(',',$ids); $sql="SELECT m.* FROM mediciones m LEFT JOIN sensores s ON s.id_sensor=m.id_sensor LEFT JOIN dispositivos d ON d.id_dispositivo=s.id_dispositivo WHERE (d.id_tanque IN ($in) OR d.id_tanque IS NULL) AND DATE(m.fecha_hora) BETWEEN :desde AND :hasta ORDER BY m.fecha_hora DESC LIMIT 200"; $st=$pdo->prepare($sql); $st->execute([':desde'=>$fechaDesde,':hasta'=>$fechaHasta]); $rows=$st->fetchAll(); if(!$rows){ $sql="SELECT * FROM mediciones WHERE DATE(fecha_hora) BETWEEN :desde AND :hasta ORDER BY fecha_hora DESC LIMIT 200"; $st=$pdo->prepare($sql); $st->execute([':desde'=>$fechaDesde,':hasta'=>$fechaHasta]); $rows=$st->fetchAll(); } }
         }
-    } elseif (!$hasIdTanque && $idTanqueSel) {
-        // join via sensores/dispositivos
-        // se hara JOIN luego
-    }
-
-    if ($hasIdTanque) {
-        $sql = "SELECT m.* FROM mediciones m WHERE ".implode(' AND ',$where)." ORDER BY m.fecha DESC, m.hora DESC LIMIT 200";
-        $st=$pdo->prepare($sql);
-        $st->execute($params);
-        $rows=$st->fetchAll();
-    } else {
-        // intentar join sensores->dispositivos->tanques
-        $joinWhere = implode(' AND ', array_map(fn($w)=> str_replace('m.id_tanque','d.id_tanque',$w), $where));
-        // Ajustar params: mantener mismos
-        try {
-            $sql = "SELECT m.* FROM mediciones m INNER JOIN sensores s ON s.id_sensor=m.id_sensor INNER JOIN dispositivos d ON d.id_dispositivo=s.id_dispositivo WHERE ".str_replace('m.fecha','m.fecha',$joinWhere)." ORDER BY m.fecha DESC, m.hora DESC LIMIT 200";
-            $st=$pdo->prepare($sql);
-            // traducir condicion id_tanque si existe en where original
-            $params2=$params;
-            if (isset($params2[':id_tanque'])) { $params2[':id_tanque']=$params2[':id_tanque']; }
-            $st->execute($params2);
-            $rows=$st->fetchAll();
-        } catch(Throwable $e) {
-            // fallback sin filtro de tanque
-            $sql = "SELECT m.* FROM mediciones m WHERE DATE(m.fecha) BETWEEN :desde AND :hasta ORDER BY m.fecha DESC, m.hora DESC LIMIT 200";
-            $st=$pdo->prepare($sql);
-            $st->execute([':desde'=>$fechaDesde, ':hasta'=>$fechaHasta]);
-            $rows=$st->fetchAll();
-        }
-    }
-
+    }catch(Throwable $e){ $rows=[]; }
     foreach ($rows as $r) {
-        $fechaRaw = $r['fecha'] ?? '';
-        $horaRaw = $r['hora'] ?? '';
-        $ts = strtotime(trim($fechaRaw.' '.$horaRaw));
-        $fechaFmt = $fechaRaw ? date('d/m/Y', $ts ?: time()) : '-';
-        $horaFmt = $horaRaw ? date('H:i', $ts ?: time()) : ($fechaRaw ? date('H:i', $ts ?: time()) : '-');
-        $nivel = $r['nivel'] ?? $r['distancia'] ?? $r['nivel_cm'] ?? '-';
+        $fechaHora = $r['fecha_hora'] ?? '';
+        $ts = $fechaHora ? strtotime($fechaHora) : null;
+        $fechaFmt = $ts ? date('d/m/Y',$ts) : '-';
+        $horaFmt = $ts ? date('H:i',$ts) : '-';
+        $nivel = $r['nivel_cm'] ?? $r['nivel'] ?? $r['distancia_cm'] ?? '-';
         if (is_numeric($nivel)) $nivel = (int)round((float)$nivel);
-        $pct = $r['porcentaje'] ?? $r['nivel_porcentaje'] ?? $r['porcentaje_nivel'] ?? null;
+        $pct = $r['porcentaje'] ?? null;
         if ($pct!==null && is_numeric($pct)) $pct = (int)round((float)$pct); else $pct = '-';
-        $tmp = $r['temperatura'] ?? $r['temp'] ?? '-';
+        $tmp = $r['temperatura'] ?? '-';
         if (is_numeric($tmp)) $tmp = (int)round((float)$tmp);
         $hum = $r['humedad'] ?? '-';
         if (is_numeric($hum)) $hum = (int)round((float)$hum);
@@ -150,11 +105,10 @@ try {
         $vals=[];
         for($i=$days-1;$i>=0;$i--) {
             $d=date('Y-m-d', strtotime("-$i days"));
-            // calcular promedio pct de ese dia
-            $dayVals = array_filter($rows, fn($r)=> substr($r['fecha']??'',0,10)===$d);
+            $dayVals = array_filter($rows, fn($r)=> substr($r['fecha_hora']??'',0,10)===$d);
             if ($dayVals) {
                 $sum=0;$c=0;
-                foreach($dayVals as $dv){ $pv=$dv['porcentaje']??$dv['nivel_porcentaje']??null; if(is_numeric($pv)){ $sum+=(float)$pv; $c++;}}
+                foreach($dayVals as $dv){ $pv=$dv['porcentaje']??null; if(is_numeric($pv)){ $sum+=(float)$pv; $c++;}}
                 $vals[] = $c ? (int)round($sum/$c) : 0;
             } else $vals[] = 0;
         }
@@ -375,6 +329,6 @@ window.EVA_HISTORIAL = <?php echo json_encode([
     'fechaHasta'=>$fechaHasta
 ], JSON_UNESCAPED_UNICODE); ?>;
 </script>
-<script src="js/script.js"></script>
+<script src="js/script.js?v=2"></script><script src="js/tiempo-real.js?v=2"></script>
 </body>
 </html>

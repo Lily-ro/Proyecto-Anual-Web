@@ -44,13 +44,16 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
                             $chkC->execute([':cid'=>$c['id_cliente']]);
                             $credExist=$chkC->fetch();
                             if(!$uExist && !$credExist){
-                                $passPlano=eva_generar_password(10);
+                                $passPlano=eva_generar_password(12);
                                 $hash=password_hash($passPlano,PASSWORD_DEFAULT);
                                 $pdo->prepare("INSERT INTO usuarios (nombre,apellido,email,password_hash,telefono,activo,id_rol,dni) VALUES (:n,:a,:e,:h,:t,1,(SELECT id_rol FROM roles WHERE nombre='USUARIO' LIMIT 1),:dni)")->execute([':n'=>$c['nombre'],':a'=>$c['apellido'],':e'=>$emailCli,':h'=>$hash,':t'=>$c['telefono'],':dni'=>$c['dni']]);
                                 $newUid=(int)$pdo->lastInsertId();
                                 $pdo->prepare("UPDATE clientes SET id_usuario=:uid, credenciales_generadas=1, fecha_credenciales=NOW() WHERE id_cliente=:cid")->execute([':uid'=>$newUid,':cid'=>$c['id_cliente']]);
                                 $pdo->prepare("INSERT INTO credenciales_clientes (id_cliente,id_usuario,usuario,password_hash,estado,fecha_generacion,fecha_activacion) VALUES (:cid,:uid,:us,:h,'ACTIVA',NOW(),NOW())")->execute([':cid'=>$c['id_cliente'],':uid'=>$newUid,':us'=>$emailCli,':h'=>$hash]);
-                                try{ eva_enviar_credenciales($emailCli, $c['nombre'].' '.$c['apellido'], $emailCli, $passPlano); $pdo->prepare("UPDATE notificaciones_compras SET enviada=1, fecha_envio=NOW() WHERE id_compra=:id")->execute([':id'=>$id]); }catch(Throwable $em){ error_log("EVA compras mail a {$emailCli} id_compra {$id}: ".$em->getMessage()); }
+                                $enviadoC=false;
+                                try{ $enviadoC = eva_enviar_credenciales($emailCli, $c['nombre'].' '.$c['apellido'], $emailCli, $passPlano); }catch(Throwable $em){ error_log("EVA compras mail a {$emailCli} id_compra {$id}: ".$em->getMessage()); }
+                                unset($passPlano);
+                                if($enviadoC) $pdo->prepare("UPDATE notificaciones_compras SET enviada=1, fecha_envio=NOW() WHERE id_compra=:id")->execute([':id'=>$id]);
                                 $pdo->prepare("INSERT INTO notificaciones (id_usuario,mensaje,leida) VALUES (:uid,:msg,0)")->execute([':uid'=>$newUid,':msg'=>"Tus credenciales fueron generadas al aprobar la compra {$row['codigo_compra']}"]);
                             }
                         }

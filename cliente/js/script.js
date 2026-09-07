@@ -204,15 +204,21 @@ function resumen() {
   else if (pct <= 40) { e.textContent = 'Bajo'; e.className = 'resumen-estado-value warning'; }
   else { e.textContent = 'Normal'; e.className = 'resumen-estado-value'; }
  }
- const t = document.getElementById('resumenTemp');
- if (t) t.textContent = `${Math.round(tmp)}°C`;
- const d = document.getElementById('resumenDisponible');
- if (d) d.textContent = `${Math.round(CAP * pct / 100).toLocaleString('es-AR')} L`;
- const c = document.getElementById('resumenConsumo');
- if (c) c.textContent = `${Math.round(CAP * (100 - pct) / 100).toLocaleString('es-AR')} L`;
- const p = document.getElementById('resumenPromedio');
- if (p && typeof window.EVA_RESUMEN !== 'undefined' && window.EVA_RESUMEN.promedio) p.textContent = `${Number(window.EVA_RESUMEN.promedio).toLocaleString('es-AR')} L`;
- else if (p) p.textContent = 'No hay datos disponibles';
+  const t = document.getElementById('resumenTemp');
+  if (t) t.textContent = `${Math.round(tmp)}°C`;
+  const d = document.getElementById('resumenDisponible');
+  if (d) {
+    const dispVal = (typeof window.EVA_RESUMEN!=='undefined' && window.EVA_RESUMEN.disponible) ? window.EVA_RESUMEN.disponible : Math.round(CAP * pct / 100);
+    d.textContent = `${Number(dispVal).toLocaleString('es-AR')} L`;
+  }
+  const c = document.getElementById('resumenConsumo');
+  if (c) {
+    const cons = (typeof window.EVA_RESUMEN!=='undefined' && typeof window.EVA_RESUMEN.consumoHoy==='number') ? window.EVA_RESUMEN.consumoHoy : 0;
+    c.textContent = cons ? `${Number(cons).toLocaleString('es-AR')} L` : 'Sin datos';
+  }
+  const p = document.getElementById('resumenPromedio');
+  if (p && typeof window.EVA_RESUMEN !== 'undefined' && window.EVA_RESUMEN.promedio) p.textContent = `${Number(window.EVA_RESUMEN.promedio).toLocaleString('es-AR')} L`;
+  else if (p) p.textContent = 'No hay datos disponibles';
  rChart();
 }
 function rChart() {
@@ -259,10 +265,8 @@ if (chartSelect) chartSelect.addEventListener('change', () => {
   }).catch(()=> rChart());
 });
 
-// ====== SIMULACION EN TIEMPO REAL (solo si no hay datos reales recientes) ======
 let useSimulate = true;
 if (typeof window.EVA_RESUMEN !== 'undefined' || typeof window.EVA_TANQUE !== 'undefined') {
-  // Si hay datos reales, desactivar variacion aleatoria brusca; usar polling suave
   useSimulate = false;
 }
 function simulate() {
@@ -273,22 +277,50 @@ function simulate() {
    tmp = Math.round(tmp);
    if (page === 'mitanque.php') { tank(lvl); gauge(tmp); status(); clock(); }
    if (page === 'indexcli.php') resumen();
- } else {
-   // Polling cada 15s a la API para datos frescos
  }
 }
-// Polling real cada 15s para medidas vivas
+let pollInFlight=false;
+let resumenFetchAbort=null;
 function pollReal(){
+  if(pollInFlight || document.hidden) return;
+  pollInFlight=true;
   if(page==='mitanque.php'){
-    fetch('api/tanque.php').then(r=>r.json()).then(j=>{
+    fetch('api/tanque.php',{cache:'no-store'}).then(r=>r.json()).then(j=>{
       if(j && typeof j.pct==='number'){ lvl=j.pct; tmp=j.temp; CAP=j.capacidad||CAP; tank(lvl); gauge(tmp); status(); if(j.lastUpdate){ const el=document.getElementById('lastUpdate'); if(el) el.textContent=j.lastUpdate; } }
-    }).catch(()=>{});
-  }
-  if(page==='indexcli.php'){
-    fetch('api/resumen.php').then(r=>r.json()).then(j=>{
-      if(j && typeof j.pct==='number'){ lvl=j.pct; tmp=j.temp; CAP=j.capacidad||CAP; resumen(); }
-    }).catch(()=>{});
-  }
+    }).catch(()=>{}).finally(()=>{ pollInFlight=false; });
+  } else if(page==='indexcli.php'){
+    if(resumenFetchAbort) resumenFetchAbort.abort();
+    resumenFetchAbort=new AbortController();
+    fetch('api/resumen.php',{cache:'no-store',signal:resumenFetchAbort.signal}).then(r=>r.json()).then(j=>{
+      if(j && typeof j.pct==='number'){
+        lvl=j.pct; tmp=j.temp; CAP=j.capacidad||CAP;
+        if(typeof j.disponible==='number') window.EVA_RESUMEN.disponible=j.disponible;
+        if(typeof j.consumoHoy==='number') window.EVA_RESUMEN.consumoHoy=j.consumoHoy;
+        if(typeof j.promedio==='number') window.EVA_RESUMEN.promedio=j.promedio;
+        if(j.serie && Array.isArray(j.serie)){
+          const max=Math.max(...j.serie);
+          const norm=max>0?j.serie.map(v=>Math.round((v/max)*90+10)):j.serie;
+          window.EVA_RESUMEN.chartData=norm;
+        }
+        resumen();
+      }
+    }).catch(()=>{}).finally(()=>{ pollInFlight=false; });
+  } else if(page==='historial.php'){
+    const desde=document.getElementById('histDateFrom')?.value || '';
+    const hasta=document.getElementById('histDateTo')?.value || '';
+    const tanque=document.getElementById('histTankSelect')?.value || 'todos';
+    const params=new URLSearchParams({desde,hasta,tanque});
+    fetch('api/historial.php?'+params.toString(),{cache:'no-store'}).then(r=>r.json()).then(j=>{
+      if(j && Array.isArray(j.rows) && j.rows.length>0){
+        historialTabla(j.rows);
+        historialStats(j.rows);
+      }
+    }).catch(()=>{}).finally(()=>{ pollInFlight=false; });
+  } else if(page==='alertas.php'){
+    fetch('api/alertas.php?filter='+encodeURIComponent(af),{cache:'no-store'}).then(r=>r.json()).then(j=>{
+      if(Array.isArray(j) && j.length>0){ ad=j; alertas(); }
+    }).catch(()=>{}).finally(()=>{ pollInFlight=false; });
+  } else { pollInFlight=false; }
 }
 
 // ====== CAMBIAR TEMA (oscuro/claro) ======
@@ -301,7 +333,6 @@ if (themeToggle) {
  themeToggle.addEventListener('click', () => { isLight = !isLight; localStorage.setItem('eva-theme', isLight ? 'light' : 'dark'); theme(); if (page === 'indexcli.php') rChart(); });
 }
 
-// ====== DROPDOWN DE USUARIO ======
 const userDropdown = document.getElementById('userDropdown');
 const userMenu = document.getElementById('userMenu');
 if (userDropdown && userMenu) {
@@ -310,14 +341,21 @@ if (userDropdown && userMenu) {
  userMenu.addEventListener('click', (e) => { e.stopPropagation(); });
 }
 
-// ====== INICIALIZACION SEGUN PAGINA ======
-if (page === 'indexcli.php') { resumen(); if(useSimulate) setInterval(simulate, 3000); else setInterval(pollReal, 15000); }
-if (page === 'mitanque.php') { bars(); gauge(tmp); tank(lvl); clock(); if(useSimulate) setInterval(simulate, 3000); else setInterval(pollReal, 15000); }
-if (page === 'alertas.php') { alertas(); }
-if (page === 'historial.php') { historialInit(); }
+document.addEventListener('visibilitychange', ()=>{ if(!document.hidden) pollReal(); });
+const menuBtn=document.querySelector('.menu-btn');
+const sidebar=document.querySelector('.sidebar');
+if(menuBtn && sidebar){
+  let overlay=document.querySelector('.sidebar-overlay');
+  if(!overlay){ overlay=document.createElement('div'); overlay.className='sidebar-overlay'; document.body.appendChild(overlay); overlay.addEventListener('click', ()=>{ sidebar.classList.remove('open'); document.body.classList.remove('sidebar-open'); }); }
+  menuBtn.addEventListener('click', (e)=>{ e.stopPropagation(); sidebar.classList.toggle('open'); document.body.classList.toggle('sidebar-open'); });
+  document.addEventListener('click', (e)=>{ if(window.innerWidth<=768 && sidebar.classList.contains('open') && !sidebar.contains(e.target) && !menuBtn.contains(e.target) && !overlay.contains(e.target)){ sidebar.classList.remove('open'); document.body.classList.remove('sidebar-open'); } });
+}
+if (page === 'indexcli.php') { resumen(); if(useSimulate) setInterval(simulate, 3000); else setInterval(pollReal, 30000); }
+if (page === 'mitanque.php') { bars(); gauge(tmp); tank(lvl); clock(); if(useSimulate) setInterval(simulate, 3000); else setInterval(pollReal, 30000); }
+if (page === 'alertas.php') { alertas(); setInterval(pollReal, 30000); }
+if (page === 'historial.php') { historialInit(); setInterval(pollReal, 30000); }
 if (page === 'mantenimiento.php') { mantenimientoInit(); }
 
-// ====== VISTA HISTORIAL - solo datos reales de BD, sin demo ======
 const histData = [];
 
 function historialTabla(data) {
@@ -341,7 +379,6 @@ let histChartData = {
 };
 if (typeof window.EVA_HISTORIAL !== 'undefined' && window.EVA_HISTORIAL && window.EVA_HISTORIAL.chartData) {
   const ch = window.EVA_HISTORIAL.chartData;
-  // ch tiene semana/mes/trimestre como arrays de valores 0-100
   histChartData.semana.values = ch.semana && ch.semana.length ? ch.semana : histChartData.semana.values;
   histChartData.mes.values = ch.mes && ch.mes.length ? ch.mes : histChartData.mes.values;
   histChartData.trimestre.values = ch.trimestre && ch.trimestre.length ? ch.trimestre : histChartData.trimestre.values;
@@ -500,35 +537,33 @@ function mantenimientoInit() {
   upload.addEventListener('drop', (e) => { e.preventDefault(); upload.style.borderColor = ''; upload.style.background = ''; if(e.dataTransfer.files[0]){ fileInput.files=e.dataTransfer.files; if(fileName) fileName.textContent=e.dataTransfer.files[0].name; } });
  }
 
- // El formulario ahora es POST real a PHP, no hacer handler ficticio si hay datos reales
- const form = document.getElementById('mtForm');
- const btnEnviar = document.getElementById('mtEnviar');
- if (btnEnviar && form && !hasRealRows) {
-  btnEnviar.addEventListener('click', (e) => {
-   e.preventDefault();
-   const tanque = document.getElementById('mtTanque');
-   const descripcion = document.getElementById('mtDescripcion');
-   if (!tanque.value || !descripcion.value.trim()) {
-    alert('Por favor completa todos los campos obligatorios.');
-    return;
-   }
-   const now = new Date();
-   const fecha = `${String(now.getDate()).padStart(2,'0')}/${String(now.getMonth()+1).padStart(2,'0')}/${now.getFullYear()}`;
-   const hora = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
-   mtSolicitudes.unshift({
-    id: `SOL-${String(mtSolicitudes.length + 1).padStart(3,'0')}`,
-    fecha,
-    problema: descripcion.value.trim(),
-    estado: 'Pendiente',
-    actualizacion: `${fecha} ${hora}`
-   });
-   mtTabla(mtSolicitudes);
-   tanque.value = '';
-   descripcion.value = '';
-   charCount.textContent = '0';
-   if(fileName) fileName.textContent='';
-   alert('Solicitud enviada correctamente.');
-  });
- }
- // Si es formulario real, dejar que submit haga POST normal (no preventDefault)
+  const form = document.getElementById('mtForm');
+  const btnEnviar = document.getElementById('mtEnviar');
+  if (form && btnEnviar) {
+    form.addEventListener('submit', (e) => {
+      const tanque = document.getElementById('mtTanque');
+      const descripcion = document.getElementById('mtDescripcion');
+      const f = document.getElementById('mtFileInput');
+      if (!tanque.value) { e.preventDefault(); alert('Debes seleccionar un tanque.'); return; }
+      const d = descripcion.value.trim();
+      if (!d) { e.preventDefault(); alert('La descripción es obligatoria.'); return; }
+      if (d.length > 500) { e.preventDefault(); alert('La descripción no puede superar los 500 caracteres.'); return; }
+      if (f && f.files && f.files[0]) {
+        const file = f.files[0];
+        const allowed = ['image/jpeg','image/png','image/jpg','image/webp'];
+        if (!allowed.includes(file.type)) { e.preventDefault(); alert('Formato de imagen no permitido.'); return; }
+        if (file.size > 5*1024*1024) { e.preventDefault(); alert('El archivo supera el tamaño máximo de 5 MB.'); return; }
+      }
+      btnEnviar.disabled = true;
+      btnEnviar.style.opacity = '0.7';
+      const orig = btnEnviar.innerHTML;
+      btnEnviar.innerHTML = 'Enviando...';
+      setTimeout(() => { if (btnEnviar.disabled) { btnEnviar.disabled = false; btnEnviar.style.opacity = ''; btnEnviar.innerHTML = orig; } }, 8000);
+    });
+    if (!hasRealRows) {
+      btnEnviar.addEventListener('click', (e) => {
+        if (form.checkValidity && !form.checkValidity()) return;
+      });
+    }
+  }
 }

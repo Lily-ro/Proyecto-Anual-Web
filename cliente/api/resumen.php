@@ -18,10 +18,15 @@ try {
         if(isset($med['porcentaje']) && is_numeric($med['porcentaje'])) $pct=(int)round((float)$med['porcentaje']);
         if(isset($med['temperatura']) && is_numeric($med['temperatura'])) $temp=(int)round((float)$med['temperatura']);
     }
+    try{ eva_sincronizar_consumos($pdo,$idTanque); }catch(Throwable $e){}
+    try{ eva_sincronizar_alertas($pdo,$idTanque); }catch(Throwable $e){}
     $period = $_GET['period'] ?? 'semana';
     if(!in_array($period,['semana','mes','anio'],true)) $period='semana';
     $serie = eva_consumo_serie($pdo, $idTanque, $period);
-    $disponible = (int)round($capacidad*$pct/100);
+    $disponible = isset($med['litros']) && is_numeric($med['litros']) && (float)$med['litros']>0 ? (int)round((float)$med['litros']) : (int)round($capacidad*$pct/100);
+    [$estadoTexto,$estadoDesc,$estadoClass]=eva_estado_texto($pct);
+    $lastUpdate = $med['fecha_hora'] ?? null;
+    if($lastUpdate) $lastUpdate=date('d/m/Y H:i',strtotime($lastUpdate));
     echo json_encode([
         'pct'=>$pct,
         'temp'=>$temp,
@@ -30,6 +35,9 @@ try {
         'consumoHoy'=>(int)round(eva_consumo_hoy($pdo,$idTanque)),
         'promedio'=>(int)round(eva_consumo_promedio($pdo,$idTanque)),
         'serie'=>$serie,
-        'period'=>$period
+        'period'=>$period,
+        'estado'=>$estadoTexto,
+        'estadoClass'=>$estadoClass,
+        'lastUpdate'=>$lastUpdate
     ], JSON_UNESCAPED_UNICODE);
 } catch(Throwable $e){ http_response_code(500); echo json_encode(['error'=>$e->getMessage()]); }
