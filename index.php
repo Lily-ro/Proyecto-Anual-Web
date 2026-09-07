@@ -19,11 +19,20 @@ if(isset($_SESSION['rol'])){
 $error = '';
 
 if($_SERVER['REQUEST_METHOD'] === 'POST'){
-    $email = trim($_POST['email']);
-    $password = $_POST['password'];
-
+    $email = trim($_POST['email'] ?? '');
+    $password = $_POST['password'] ?? '';
+    if(!filter_var($email, FILTER_VALIDATE_EMAIL)){ $error="Email inválido."; }
+    elseif(strlen($password)<1){ $error="Contraseña requerida."; }
+    else {
     try {
         $pdo = eva_pdo();
+        $ip=$_SERVER['REMOTE_ADDR'] ?? '';
+        try{
+         $chk=$pdo->prepare("SELECT COUNT(*) FROM login_intentos WHERE email=:e AND exito=0 AND fecha_hora>=DATE_SUB(NOW(),INTERVAL 15 MINUTE)");
+         $chk->execute([':e'=>$email]);
+         if((int)$chk->fetchColumn()>=5){ $error="Demasiados intentos. Esperá 15 minutos."; }
+        }catch(Throwable $e){}
+        if(empty($error)){
         $stmt = $pdo->prepare("SELECT u.id_usuario, u.nombre, u.apellido, u.email, u.password_hash, u.activo, r.nombre AS rol FROM usuarios u INNER JOIN roles r ON u.id_rol = r.id_rol WHERE u.email = :email LIMIT 1");
         $stmt->execute([':email' => $email]);
         $usuario = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -31,13 +40,15 @@ if($_SERVER['REQUEST_METHOD'] === 'POST'){
         if($usuario){
             if((int)$usuario['activo'] !== 1){
                 $error = "Usuario deshabilitado.";
+                try{$pdo->prepare("INSERT INTO login_intentos (email,ip,exito) VALUES (:e,:ip,0)")->execute([':e'=>$email,':ip'=>$ip]);}catch(Throwable $e){}
             }elseif(password_verify($password, $usuario['password_hash'])){
+                session_regenerate_id(true);
                 $_SESSION['id_usuario'] = $usuario['id_usuario'];
                 $_SESSION['nombre'] = $usuario['nombre'];
                 $_SESSION['apellido'] = $usuario['apellido'];
                 $_SESSION['email'] = $usuario['email'];
                 $_SESSION['rol'] = $usuario['rol'];
-
+                try{$pdo->prepare("INSERT INTO login_intentos (email,ip,exito) VALUES (:e,:ip,1)")->execute([':e'=>$email,':ip'=>$ip]);}catch(Throwable $e){}
                 try {
                     $up = $pdo->prepare("UPDATE usuarios SET ultimo_acceso = NOW() WHERE id_usuario = :id");
                     $up->execute([':id' => $usuario['id_usuario']]);
@@ -58,13 +69,17 @@ if($_SERVER['REQUEST_METHOD'] === 'POST'){
             }
         }else{
             $error = "Contraseña incorrecta.";
+            try{$pdo->prepare("INSERT INTO login_intentos (email,ip,exito) VALUES (:e,:ip,0)")->execute([':e'=>$email,':ip'=>$ip]);}catch(Throwable $e){}
         }
     }else{
         $error = "Usuario no encontrado.";
+        try{$pdo->prepare("INSERT INTO login_intentos (email,ip,exito) VALUES (:e,:ip,0)")->execute([':e'=>$email,':ip'=>$ip]);}catch(Throwable $e){}
+    }
     }
     } catch(Throwable $e){
         error_log('login error: '.$e->getMessage());
         $error = "Error interno. Intente nuevamente.";
+    }
     }
 }
 ?>
@@ -185,7 +200,7 @@ body{background:#0b1120;min-height:100vh;display:flex;padding:30px;gap:30px}
             </div>
             <div class="extras">
                 <label><input type="checkbox" name="recordar"> Recordarme</label>
-                <a href="#">¿Olvidé mi contraseña?</a>
+                <a href="recuperar.php">¿Olvidé mi contraseña?</a>
             </div>
             <button type="submit" class="btn-submit">Iniciar sesión</button>
         </form>

@@ -3,7 +3,11 @@ __pycache__/
 *.py[cod]
 *$py.class
 venv/
+
+# --- ENV y secretos ---
 .env
+config/mail_config.php
+db/migraciones_local.sql
 
 # --- VS CODE (Configuraciones de entorno) ---
 .vscode/

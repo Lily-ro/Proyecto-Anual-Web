@@ -22,108 +22,90 @@ if($_SERVER['REQUEST_METHOD'] === 'POST'){
 
   if($nombre){
    if($cuit){
-    $check = $conn->prepare("SELECT id_empresa FROM empresas WHERE cuit=? LIMIT 1");
-    $check->bind_param("s", $cuit);
-    $check->execute();
-    if($check->get_result()->num_rows > 0){
-     echo '<script>alert("Ya existe una empresa con ese CUIT");history.back();</script>';
-     $check->close();
-     exit;
+     $pdo=eva_pdo(); $chk=$pdo->prepare("SELECT id_empresa FROM empresas WHERE cuit=:c LIMIT 1"); $chk->execute([':c'=>$cuit]);
+     if($chk->fetch()){
+      echo '<script>alert("Ya existe una empresa con ese CUIT");history.back();</script>';
+      exit;
+     }
     }
-    $check->close();
-   }
-   $stmt = $conn->prepare("INSERT INTO empresas (nombre, cuit, telefono, email, direccion, ciudad, provincia, pais, activo) VALUES (?,?,?,?,?,?,?,?,?)");
-   $stmt->bind_param("ssssssssi", $nombre, $cuit, $telefono, $email, $direccion, $ciudad, $provincia, $pais, $activo);
-   if($stmt->execute()){
-    echo '<script>alert("Empresa creada exitosamente");window.location="empresas.php";</script>';
-   } else {
-    echo '<script>alert("Error al crear empresa");history.back();</script>';
-   }
-   $stmt->close();
-   exit;
-  }
-  echo '<script>alert("El nombre es obligatorio");history.back();</script>';
-  exit;
- }
-
- if($accion === 'editar'){
-  $id       = (int)($_POST['empresa_id'] ?? 0);
-  $nombre   = trim($_POST['nombre'] ?? '');
-  $cuit     = trim($_POST['cuit'] ?? '');
-  $telefono = trim($_POST['telefono'] ?? '');
-  $email    = trim($_POST['email'] ?? '');
-  $direccion = trim($_POST['direccion'] ?? '');
-  $ciudad   = trim($_POST['ciudad'] ?? '');
-  $provincia = trim($_POST['provincia'] ?? '');
-  $pais     = trim($_POST['pais'] ?? '');
-  $activo   = (int)($_POST['activo'] ?? 1);
-
-  if($id && $nombre){
-   if($cuit){
-    $check = $conn->prepare("SELECT id_empresa FROM empresas WHERE cuit=? AND id_empresa!=? LIMIT 1");
-    $check->bind_param("si", $cuit, $id);
-    $check->execute();
-    if($check->get_result()->num_rows > 0){
-     echo '<script>alert("Ya existe otra empresa con ese CUIT");history.back();</script>';
-     $check->close();
-     exit;
+    $pdo=eva_pdo(); $stmt=$pdo->prepare("INSERT INTO empresas (nombre, cuit, telefono, email, direccion, ciudad, provincia, pais, activo) VALUES (:n,:c,:t,:e,:d,:ci,:pr,:pa,:a)");
+    $ok=$stmt->execute([':n'=>$nombre,':c'=>$cuit,':t'=>$telefono,':e'=>$email,':d'=>$direccion,':ci'=>$ciudad,':pr'=>$provincia,':pa'=>$pais,':a'=>$activo]);
+    if($ok){
+     echo '<script>alert("Empresa creada exitosamente");window.location="empresas.php";</script>';
+    } else {
+     echo '<script>alert("Error al crear empresa");history.back();</script>';
     }
-    $check->close();
-   }
-   $stmt = $conn->prepare("UPDATE empresas SET nombre=?, cuit=?, telefono=?, email=?, direccion=?, ciudad=?, provincia=?, pais=?, activo=? WHERE id_empresa=?");
-   $stmt->bind_param("ssssssssii", $nombre, $cuit, $telefono, $email, $direccion, $ciudad, $provincia, $pais, $activo, $id);
-   if($stmt->execute()){
-    echo '<script>alert("Empresa actualizada exitosamente");window.location="empresas.php";</script>';
-   } else {
-    echo '<script>alert("Error al actualizar empresa");history.back();</script>';
-   }
-   $stmt->close();
-   exit;
-  }
-  echo '<script>alert("El nombre es obligatorio");history.back();</script>';
-  exit;
- }
-
- if($accion === 'toggle_estado'){
-  $id     = (int)($_POST['empresa_id'] ?? 0);
-  $activo = (int)($_POST['activo'] ?? 1);
-  if($id){
-   $stmt = $conn->prepare("UPDATE empresas SET activo=? WHERE id_empresa=?");
-   $stmt->bind_param("ii", $activo, $id);
-   if($stmt->execute()){
-    $txt = $activo ? 'activada' : 'desactivada';
-    echo '<script>alert("Empresa '.$txt.' exitosamente");window.location="empresas.php";</script>';
-   } else {
-    echo '<script>alert("Error al cambiar estado");history.back();</script>';
-   }
-   $stmt->close();
-   exit;
-  }
- }
-
- if($accion === 'eliminar'){
-  $id = (int)($_POST['empresa_id'] ?? 0);
-  if($id){
-   $checkEdif = $conn->prepare("SELECT COUNT(*) FROM edificios WHERE id_usuario IN (SELECT id_usuario FROM usuarios WHERE id_empresa=?)");
-   $checkEdif->bind_param("i", $id);
-   $checkEdif->execute();
-   $cnt = $checkEdif->get_result()->fetch_row()[0];
-   $checkEdif->close();
-   if($cnt > 0){
-    echo '<script>alert("No se puede eliminar: la empresa tiene edificios/asociados. Desactívela en su lugar.");history.back();</script>';
     exit;
    }
-   $stmt = $conn->prepare("DELETE FROM empresas WHERE id_empresa=?");
-   $stmt->bind_param("i", $id);
-   if($stmt->execute()){
-    echo '<script>alert("Empresa eliminada exitosamente");window.location="empresas.php";</script>';
-   } else {
-    echo '<script>alert("Error al eliminar empresa");history.back();</script>';
-   }
-   $stmt->close();
+   echo '<script>alert("El nombre es obligatorio");history.back();</script>';
    exit;
   }
- }
+
+  if($accion === 'editar'){
+   $id       = (int)($_POST['empresa_id'] ?? 0);
+   $nombre   = trim($_POST['nombre'] ?? '');
+   $cuit     = trim($_POST['cuit'] ?? '');
+   $telefono = trim($_POST['telefono'] ?? '');
+   $email    = trim($_POST['email'] ?? '');
+   $direccion = trim($_POST['direccion'] ?? '');
+   $ciudad   = trim($_POST['ciudad'] ?? '');
+   $provincia = trim($_POST['provincia'] ?? '');
+   $pais     = trim($_POST['pais'] ?? '');
+   $activo   = (int)($_POST['activo'] ?? 1);
+
+   if($id && $nombre){
+    if($cuit){
+     $pdo=eva_pdo(); $chk=$pdo->prepare("SELECT id_empresa FROM empresas WHERE cuit=:c AND id_empresa!=:id LIMIT 1"); $chk->execute([':c'=>$cuit,':id'=>$id]);
+     if($chk->fetch()){
+      echo '<script>alert("Ya existe otra empresa con ese CUIT");history.back();</script>';
+      exit;
+     }
+    }
+    $pdo=eva_pdo(); $stmt=$pdo->prepare("UPDATE empresas SET nombre=:n, cuit=:c, telefono=:t, email=:e, direccion=:d, ciudad=:ci, provincia=:pr, pais=:pa, activo=:a WHERE id_empresa=:id");
+    $ok=$stmt->execute([':n'=>$nombre,':c'=>$cuit,':t'=>$telefono,':e'=>$email,':d'=>$direccion,':ci'=>$ciudad,':pr'=>$provincia,':pa'=>$pais,':a'=>$activo,':id'=>$id]);
+    if($ok){
+     echo '<script>alert("Empresa actualizada exitosamente");window.location="empresas.php";</script>';
+    } else {
+     echo '<script>alert("Error al actualizar empresa");history.back();</script>';
+    }
+    exit;
+   }
+   echo '<script>alert("El nombre es obligatorio");history.back();</script>';
+   exit;
+  }
+
+  if($accion === 'toggle_estado'){
+   $id     = (int)($_POST['empresa_id'] ?? 0);
+   $activo = (int)($_POST['activo'] ?? 1);
+   if($id){
+    $pdo=eva_pdo(); $stmt=$pdo->prepare("UPDATE empresas SET activo=:a WHERE id_empresa=:id"); $ok=$stmt->execute([':a'=>$activo,':id'=>$id]);
+    if($ok){
+     $txt = $activo ? 'activada' : 'desactivada';
+     echo '<script>alert("Empresa '.$txt.' exitosamente");window.location="empresas.php";</script>';
+    } else {
+     echo '<script>alert("Error al cambiar estado");history.back();</script>';
+    }
+    exit;
+   }
+  }
+
+  if($accion === 'eliminar'){
+   $id = (int)($_POST['empresa_id'] ?? 0);
+   if($id){
+    $pdo=eva_pdo(); $chk=$pdo->prepare("SELECT COUNT(*) FROM edificios WHERE id_usuario IN (SELECT id_usuario FROM usuarios WHERE id_empresa=:id)"); $chk->execute([':id'=>$id]); $cnt=(int)$chk->fetchColumn();
+    if($cnt > 0){
+     echo '<script>alert("No se puede eliminar: la empresa tiene edificios/asociados. Desactívela en su lugar.");history.back();</script>';
+     exit;
+    }
+    $stmt=$pdo->prepare("DELETE FROM empresas WHERE id_empresa=:id"); $ok=$stmt->execute([':id'=>$id]);
+    if($ok){
+     echo '<script>alert("Empresa eliminada exitosamente");window.location="empresas.php";</script>';
+    } else {
+     echo '<script>alert("Error al eliminar empresa");history.back();</script>';
+    }
+    exit;
+   }
+  }
 }
 
 $currentPage = 'empresas';

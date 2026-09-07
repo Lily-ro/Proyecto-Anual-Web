@@ -62,29 +62,23 @@ if($_SERVER['REQUEST_METHOD'] === 'POST'){
   exit;
  }
 
- if($accion === 'eliminar'){
-  $id = (int)($_POST['edificio_id'] ?? 0);
-  if($id){
-   $check = $conn->prepare("SELECT COUNT(*) FROM tanques WHERE id_edificio=?");
-   $check->bind_param("i", $id);
-   $check->execute();
-   $cnt = $check->get_result()->fetch_row()[0];
-   $check->close();
-   if($cnt > 0){
-    echo '<script>alert("No se puede eliminar: el edificio tiene tanques asociados. Elimínalos primero.");history.back();</script>';
+  if($accion === 'eliminar'){
+   $id = (int)($_POST['edificio_id'] ?? 0);
+   if($id){
+    $pdo=eva_pdo(); $chk=$pdo->prepare("SELECT COUNT(*) FROM tanques WHERE id_edificio=:id"); $chk->execute([':id'=>$id]); $cnt=(int)$chk->fetchColumn();
+    if($cnt > 0){
+     echo '<script>alert("No se puede eliminar: el edificio tiene tanques asociados. Elimínalos primero.");history.back();</script>';
+     exit;
+    }
+    $pdo=eva_pdo(); $stmt=$pdo->prepare("DELETE FROM edificios WHERE id_edificio=:id"); $ok=$stmt->execute([':id'=>$id]);
+    if($ok){
+     echo '<script>alert("Edificio eliminado exitosamente");window.location="edificios.php";</script>';
+    } else {
+     echo '<script>alert("Error al eliminar edificio");history.back();</script>';
+    }
     exit;
    }
-   $stmt = $conn->prepare("DELETE FROM edificios WHERE id_edificio=?");
-   $stmt->bind_param("i", $id);
-   if($stmt->execute()){
-    echo '<script>alert("Edificio eliminado exitosamente");window.location="edificios.php";</script>';
-   } else {
-    echo '<script>alert("Error al eliminar edificio");history.back();</script>';
-   }
-   $stmt->close();
-   exit;
   }
- }
 }
 
 $currentPage = 'edificios';

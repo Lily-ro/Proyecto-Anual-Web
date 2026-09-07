@@ -24,93 +24,79 @@ if($_SERVER['REQUEST_METHOD'] === 'POST'){
 
   if($modelo && $id_dispositivo){
    if($numero_serie){
-    $check = $conn->prepare("SELECT id_sensor FROM sensores WHERE numero_serie=? LIMIT 1");
-    $check->bind_param("s", $numero_serie);
-    $check->execute();
-    if($check->get_result()->num_rows > 0){
-     echo '<script>alert("Ya existe un sensor con ese número de serie");history.back();</script>';
-     $check->close();
-     exit;
+     $pdo=eva_pdo(); $chk=$pdo->prepare("SELECT id_sensor FROM sensores WHERE numero_serie=:s LIMIT 1"); $chk->execute([':s'=>$numero_serie]);
+     if($chk->fetch()){
+      echo '<script>alert("Ya existe un sensor con ese número de serie");history.back();</script>';
+      exit;
+     }
     }
-    $check->close();
-   }
-   $stmt = $conn->prepare("INSERT INTO sensores (modelo, numero_serie, fecha_instalacion, estado, id_dispositivo, fabricante, precision_sensor, rango_min, rango_max, fecha_calibracion, calibrado) VALUES (?,?,?,?,?,?,?,?,?,?,?)");
-   $stmt->bind_param("ssssisdddsi", $modelo, $numero_serie, $fecha_instalacion, $estado, $id_dispositivo, $fabricante, $precision_sensor, $rango_min, $rango_max, $fecha_calibracion, $calibrado);
-   if($stmt->execute()){
-    echo '<script>alert("Sensor creado exitosamente");window.location="sensores.php";</script>';
-   } else {
-    echo '<script>alert("Error al crear sensor");history.back();</script>';
-   }
-   $stmt->close();
-   exit;
-  }
-  echo '<script>alert("Modelo y dispositivo son obligatorios");history.back();</script>';
-  exit;
- }
-
- if($accion === 'editar'){
-  $id               = (int)($_POST['sensor_id'] ?? 0);
-  $modelo           = trim($_POST['modelo'] ?? '');
-  $numero_serie     = trim($_POST['numero_serie'] ?? '');
-  $fecha_instalacion = $_POST['fecha_instalacion'] ?? '';
-  $estado           = $_POST['estado'] ?? 'ACTIVO';
-  $id_dispositivo   = (int)($_POST['id_dispositivo'] ?? 0);
-  $fabricante       = trim($_POST['fabricante'] ?? '');
-  $precision_sensor = $_POST['precision_sensor'] ?? '';
-  $rango_min        = $_POST['rango_min'] ?? '';
-  $rango_max        = $_POST['rango_max'] ?? '';
-  $fecha_calibracion = $_POST['fecha_calibracion'] ?? '';
-  $calibrado        = isset($_POST['calibrado']) ? 1 : 0;
-
-  if($id && $modelo && $id_dispositivo){
-   if($numero_serie){
-    $check = $conn->prepare("SELECT id_sensor FROM sensores WHERE numero_serie=? AND id_sensor!=? LIMIT 1");
-    $check->bind_param("si", $numero_serie, $id);
-    $check->execute();
-    if($check->get_result()->num_rows > 0){
-     echo '<script>alert("Ya existe otro sensor con ese número de serie");history.back();</script>';
-     $check->close();
-     exit;
+    $pdo=eva_pdo();
+    $stmt=$pdo->prepare("INSERT INTO sensores (modelo, numero_serie, fecha_instalacion, estado, id_dispositivo, fabricante, precision_sensor, rango_min, rango_max, fecha_calibracion, calibrado) VALUES (:modelo,:serie,:fecha,:estado,:disp,:fab,:prec,:rmin,:rmax,:fcal,:cal)");
+    $ok=$stmt->execute([':modelo'=>$modelo,':serie'=>$numero_serie,':fecha'=>($fecha_instalacion?:null),':estado'=>$estado,':disp'=>$id_dispositivo,':fab'=>$fabricante,':prec'=>($precision_sensor!==''?$precision_sensor:null),':rmin'=>($rango_min!==''?$rango_min:null),':rmax'=>($rango_max!==''?$rango_max:null),':fcal'=>($fecha_calibracion?:null),':cal'=>$calibrado]);
+    if($ok){
+     echo '<script>alert("Sensor creado exitosamente");window.location="sensores.php";</script>';
+    } else {
+     echo '<script>alert("Error al crear sensor");history.back();</script>';
     }
-    $check->close();
-   }
-   $stmt = $conn->prepare("UPDATE sensores SET modelo=?, numero_serie=?, fecha_instalacion=?, estado=?, id_dispositivo=?, fabricante=?, precision_sensor=?, rango_min=?, rango_max=?, fecha_calibracion=?, calibrado=? WHERE id_sensor=?");
-   $stmt->bind_param("ssssisdddssii", $modelo, $numero_serie, $fecha_instalacion, $estado, $id_dispositivo, $fabricante, $precision_sensor, $rango_min, $rango_max, $fecha_calibracion, $calibrado, $id);
-   if($stmt->execute()){
-    echo '<script>alert("Sensor actualizado exitosamente");window.location="sensores.php";</script>';
-   } else {
-    echo '<script>alert("Error al actualizar sensor");history.back();</script>';
-   }
-   $stmt->close();
-   exit;
-  }
-  echo '<script>alert("Modelo y dispositivo son obligatorios");history.back();</script>';
-  exit;
- }
-
- if($accion === 'eliminar'){
-  $id = (int)($_POST['sensor_id'] ?? 0);
-  if($id){
-   $check = $conn->prepare("SELECT COUNT(*) FROM mediciones WHERE id_sensor=?");
-   $check->bind_param("i", $id);
-   $check->execute();
-   $cnt = $check->get_result()->fetch_row()[0];
-   $check->close();
-   if($cnt > 0){
-    echo '<script>alert("No se puede eliminar: el sensor tiene mediciones registradas.");history.back();</script>';
     exit;
    }
-   $stmt = $conn->prepare("DELETE FROM sensores WHERE id_sensor=?");
-   $stmt->bind_param("i", $id);
-   if($stmt->execute()){
-    echo '<script>alert("Sensor eliminado exitosamente");window.location="sensores.php";</script>';
-   } else {
-    echo '<script>alert("Error al eliminar sensor");history.back();</script>';
-   }
-   $stmt->close();
+   echo '<script>alert("Modelo y dispositivo son obligatorios");history.back();</script>';
    exit;
   }
- }
+
+  if($accion === 'editar'){
+   $id               = (int)($_POST['sensor_id'] ?? 0);
+   $modelo           = trim($_POST['modelo'] ?? '');
+   $numero_serie     = trim($_POST['numero_serie'] ?? '');
+   $fecha_instalacion = $_POST['fecha_instalacion'] ?? '';
+   $estado           = $_POST['estado'] ?? 'ACTIVO';
+   $id_dispositivo   = (int)($_POST['id_dispositivo'] ?? 0);
+   $fabricante       = trim($_POST['fabricante'] ?? '');
+   $precision_sensor = $_POST['precision_sensor'] ?? '';
+   $rango_min        = $_POST['rango_min'] ?? '';
+   $rango_max        = $_POST['rango_max'] ?? '';
+   $fecha_calibracion = $_POST['fecha_calibracion'] ?? '';
+   $calibrado        = isset($_POST['calibrado']) ? 1 : 0;
+
+   if($id && $modelo && $id_dispositivo){
+    if($numero_serie){
+     $pdo=eva_pdo(); $chk=$pdo->prepare("SELECT id_sensor FROM sensores WHERE numero_serie=:s AND id_sensor!=:id LIMIT 1"); $chk->execute([':s'=>$numero_serie,':id'=>$id]);
+     if($chk->fetch()){
+      echo '<script>alert("Ya existe otro sensor con ese número de serie");history.back();</script>';
+      exit;
+     }
+    }
+    $pdo=eva_pdo();
+    $stmt=$pdo->prepare("UPDATE sensores SET modelo=:modelo, numero_serie=:serie, fecha_instalacion=:fecha, estado=:estado, id_dispositivo=:disp, fabricante=:fab, precision_sensor=:prec, rango_min=:rmin, rango_max=:rmax, fecha_calibracion=:fcal, calibrado=:cal WHERE id_sensor=:id");
+    $ok=$stmt->execute([':modelo'=>$modelo,':serie'=>$numero_serie,':fecha'=>($fecha_instalacion?:null),':estado'=>$estado,':disp'=>$id_dispositivo,':fab'=>$fabricante,':prec'=>($precision_sensor!==''?$precision_sensor:null),':rmin'=>($rango_min!==''?$rango_min:null),':rmax'=>($rango_max!==''?$rango_max:null),':fcal'=>($fecha_calibracion?:null),':cal'=>$calibrado,':id'=>$id]);
+    if($ok){
+     echo '<script>alert("Sensor actualizado exitosamente");window.location="sensores.php";</script>';
+    } else {
+     echo '<script>alert("Error al actualizar sensor");history.back();</script>';
+    }
+    exit;
+   }
+   echo '<script>alert("Modelo y dispositivo son obligatorios");history.back();</script>';
+   exit;
+  }
+
+  if($accion === 'eliminar'){
+   $id = (int)($_POST['sensor_id'] ?? 0);
+   if($id){
+    $pdo=eva_pdo(); $chk=$pdo->prepare("SELECT COUNT(*) FROM mediciones WHERE id_sensor=:id"); $chk->execute([':id'=>$id]); $cnt=(int)$chk->fetchColumn();
+    if($cnt > 0){
+     echo '<script>alert("No se puede eliminar: el sensor tiene mediciones registradas.");history.back();</script>';
+     exit;
+    }
+    $stmt=$pdo->prepare("DELETE FROM sensores WHERE id_sensor=:id"); $ok=$stmt->execute([':id'=>$id]);
+    if($ok){
+     echo '<script>alert("Sensor eliminado exitosamente");window.location="sensores.php";</script>';
+    } else {
+     echo '<script>alert("Error al eliminar sensor");history.back();</script>';
+    }
+    exit;
+   }
+  }
 }
 
 $currentPage = 'sensores';

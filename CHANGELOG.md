@@ -5,6 +5,34 @@ Todos los cambios notables de este proyecto serán documentados en este archivo.
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/),
 y este proyecto adhiere a [Semantic Versioning](https://semver.org/lang/es/).
 
+## [0.2.0] - 2026-09-07
+
+### Resumen
+Versión de estabilización y completado funcional. Cierra brechas críticas detectadas en auditoría v0.1.0: envío SMTP real de credenciales, ingesta ESP32, esquema BD faltante, seguridad sin mysqlnd, .env, técnico real y recuperación de contraseña.
+
+### Añadido
+- `db/migrations_v0_2_0.sql` — ALTER mediciones (temperatura/humedad) + tablas clientes, credenciales_clientes, productos, proveedores, compras, historial_compras, notificaciones_compras, password_resets, login_intentos con seeds demo.
+- `.env.example` + `config/env.php` — loader nativo sin composer, `eva_env()`/`eva_load_env()`.
+- `api/esp32/mediciones.php` mejorado con soporte temperatura/humedad y fallback sin columna + `eva_procesar_tanque()` automático y alertas auto.
+- `api/guardar_datos.php` unificado como wrapper tolerante a esquema (retry sin temp/hum) + soporte JSON/x-www-form.
+- `cliente/includes/procesador_mediciones.php` — ya integrado para recalcular consumos/alertas/dispositivo tras cada ingesta.
+- `cliente/api/estado.php`, `procesar.php`, `sincronizar.php`, `js/tiempo-real.js` — polling tiempo real 30s.
+- `recuperar.php` + `restablecer.php` — flujo completo password reset con token 32 bytes, expira 1h, mail PHPMailer.
+- `config/mail.php` reescrito a SMTP real `smtp.hostinger.com:465 ssl` con `ENCRYPTION_SMTPS`, sin fallback `mail()`.
+- `vendor/phpmailer` reemplazado por oficial 6.9.1 (183k+48k) — stub eliminado.
+
+### Corregido
+- `config/db.php` y `config/mail_config.php` ahora leen `.env` con fallback a valores Hostinger; `display_errors` controlado por `APP_DEBUG`.
+- `admin/sensores.php`, `empresas.php`, `edificios.php`, `instalaciones.php`, `mantenimientos.php` migrados de `mysqli::get_result()` (requiere mysqlnd) a `PDO eva_pdo()->prepare()->fetch()` — evita 500 en Hostinger.
+- `admin/usuarios.php` — generar_enviar ahora hace commit del hash antes de enviar mail, `eva_generar_password(12)` con `random_int`, `unset($passPlano)`, logs sin passwords, mensajes diferenciados.
+- `admin/clientes.php`, `compras.php` — manejo retorno bool de mail, `unset` password.
+- `index.php` — `session_regenerate_id(true)` anti-fixation, rate-limit 5 intentos/15min vía `login_intentos`, validación email, link a `recuperar.php`.
+- `.gitignore` — ahora ignora `.env` y `config/mail_config.php`.
+
+### Cambiado
+- `tecnico/mediciones.php` — reescrito a datos reales: lista 50 últimas mediciones de dispositivos asignados vía `tecnico_dispositivo`, promedios dinámicos, badges por porcentaje.
+- `CHANGELOG` y `RESUMEN_V1.md` actualizados. Versionado `v0.2.0`.
+
 ## [0.1.0] - 2026-08-26
 
 > **Primera versión funcional del repositorio** — Tag `v0.1.0` (`36335ae`). Corte tomado en `a2e0aae` (merge del 26/08/2026). Esta versión establece la arquitectura base del sistema **EVA — El Vigilante del Agua** con tres roles, 22 tablas y 61 archivos nuevos respecto al commit inicial.

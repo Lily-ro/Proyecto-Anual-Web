@@ -17,6 +17,8 @@ $distancia = isset($input['distancia_cm']) ? (float)$input['distancia_cm'] : (is
 $nivel = isset($input['nivel_cm']) ? (float)$input['nivel_cm'] : null;
 $porcentaje = isset($input['porcentaje']) ? (float)$input['porcentaje'] : null;
 $litros = isset($input['litros']) ? (float)$input['litros'] : null;
+$temperatura = isset($input['temperatura']) ? (float)$input['temperatura'] : null;
+$humedad = isset($input['humedad']) ? (float)$input['humedad'] : null;
 $fecha_hora = $input['fecha_hora'] ?? null;
 
 if(!$id_sensor){
@@ -34,11 +36,18 @@ try{
  if(!$sensor){ http_response_code(404); echo json_encode(['ok'=>false,'error'=>'Sensor no existe']); exit; }
  // validar rangos si hay
  if($porcentaje!==null && ($porcentaje<0 || $porcentaje>100)){ http_response_code(400); echo json_encode(['ok'=>false,'error'=>'porcentaje fuera de rango']); exit; }
- $stmt=$pdo->prepare("INSERT INTO mediciones (id_sensor,distancia_cm,nivel_cm,porcentaje,litros,fecha_hora) VALUES (:sid,:d,:n,:p,:l,COALESCE(:fh,NOW()))");
- $stmt->execute([':sid'=>$id_sensor,':d'=>$distancia,':n'=>$nivel,':p'=>$porcentaje,':l'=>$litros,':fh'=>$fecha_hora]);
- $id = (int)$pdo->lastInsertId();
- // Actualizar dispositivo ultima_conexion
- $pdo->prepare("UPDATE dispositivos SET ultima_conexion=NOW(), ultima_actualizacion=NOW() WHERE id_dispositivo=:did")->execute([':did'=>$sensor['id_dispositivo']]);
+  try{
+    $stmt=$pdo->prepare("INSERT INTO mediciones (id_sensor,distancia_cm,nivel_cm,porcentaje,litros,temperatura,humedad,fecha_hora) VALUES (:sid,:d,:n,:p,:l,:t,:h,COALESCE(:fh,NOW()))");
+    $stmt->execute([':sid'=>$id_sensor,':d'=>$distancia,':n'=>$nivel,':p'=>$porcentaje,':l'=>$litros,':t'=>$temperatura,':h'=>$humedad,':fh'=>$fecha_hora]);
+  } catch(Throwable $e){
+    if(stripos($e->getMessage(),'temperatura')!==false || stripos($e->getMessage(),'humedad')!==false){
+        $stmt=$pdo->prepare("INSERT INTO mediciones (id_sensor,distancia_cm,nivel_cm,porcentaje,litros,fecha_hora) VALUES (:sid,:d,:n,:p,:l,COALESCE(:fh,NOW()))");
+        $stmt->execute([':sid'=>$id_sensor,':d'=>$distancia,':n'=>$nivel,':p'=>$porcentaje,':l'=>$litros,':fh'=>$fecha_hora]);
+    } else throw $e;
+  }
+  $id = (int)$pdo->lastInsertId();
+  $pdo->prepare("UPDATE dispositivos SET ultima_conexion=NOW(), ultima_actualizacion=NOW() WHERE id_dispositivo=:did")->execute([':did'=>$sensor['id_dispositivo']]);
+  try{ require_once __DIR__ . '/../../cliente/includes/procesador_mediciones.php'; $id_tanque=(int)$pdo->query("SELECT id_tanque FROM dispositivos WHERE id_dispositivo=".(int)$sensor['id_dispositivo'])->fetchColumn(); if($id_tanque) eva_procesar_tanque($pdo,$id_tanque); }catch(Throwable $e){}
  // Verificar alertas automáticas via configuracion_alertas
  try{
    $id_tanque = (int)$pdo->query("SELECT id_tanque FROM dispositivos WHERE id_dispositivo=".(int)$sensor['id_dispositivo'])->fetchColumn();

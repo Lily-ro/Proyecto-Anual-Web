@@ -17,50 +17,34 @@ $filtroFechaHasta = $_GET['fecha_hasta'] ?? '';
 $tiposValidos   = ['PREVENTIVO','CORRECTIVO','PREDICTIVO'];
 $estadosValidos = ['PENDIENTE','EN_PROCESO','FINALIZADO','CANCELADO'];
 
-function countMantByEstados($conn, $estados){
-    $placeholders = implode(',', array_fill(0, count($estados), '?'));
-    $types = str_repeat('s', count($estados));
-    $stmt = $conn->prepare("SELECT COUNT(*) FROM mantenimientos WHERE estado IN ({$placeholders})");
-    $stmt->bind_param($types, ...$estados);
-    $stmt->execute();
-    return (int)$stmt->get_result()->fetch_row()[0];
+function countMantByEstados($estados){
+    $pdo=eva_pdo();
+    $ph=implode(',', array_fill(0,count($estados),'?'));
+    $st=$pdo->prepare("SELECT COUNT(*) FROM mantenimientos WHERE estado IN ($ph)");
+    $st->execute($estados);
+    return (int)$st->fetchColumn();
 }
-$cntProgramados = countMantByEstados($conn, ['PENDIENTE','EN_PROCESO']);
-$cntHistorial   = countMantByEstados($conn, ['FINALIZADO','CANCELADO']);
+$cntProgramados = countMantByEstados(['PENDIENTE','EN_PROCESO']);
+$cntHistorial   = countMantByEstados(['FINALIZADO','CANCELADO']);
 
-function buildMantQuery($conn, $filtroBusqueda, $filtroTipo, $estadosPermitidos, $filtroFechaDesde = '', $filtroFechaHasta = ''){
-    $where  = [];
-    $types  = '';
-    $params = [];
-
-    $placeholders = implode(',', array_fill(0, count($estadosPermitidos), '?'));
-    $where[] = "m.estado IN ({$placeholders})";
-    $types .= str_repeat('s', count($estadosPermitidos));
-    $params = array_merge($params, $estadosPermitidos);
-
-    if($filtroBusqueda !== ''){
-        $where[] = "(m.descripcion LIKE ? OR d.nombre LIKE ? OR t.nombre LIKE ? OR CONCAT(u.nombre,' ',u.apellido) LIKE ?)";
-        $like = "%{$filtroBusqueda}%";
-        $params[] = $like; $types .= 's';
-        $params[] = $like; $types .= 's';
-        $params[] = $like; $types .= 's';
-        $params[] = $like; $types .= 's';
+function buildMantQuery($filtroBusqueda, $filtroTipo, $estadosPermitidos, $filtroFechaDesde = '', $filtroFechaHasta = ''){
+    $pdo=eva_pdo();
+    $where=[]; $params=[];
+    $ph=implode(',', array_fill(0,count($estadosPermitidos),'?'));
+    $where[]="m.estado IN ($ph)";
+    $params=array_merge($params,$estadosPermitidos);
+    if($filtroBusqueda!==''){
+        $where[]="(m.descripcion LIKE ? OR d.nombre LIKE ? OR t.nombre LIKE ? OR CONCAT(u.nombre,' ',u.apellido) LIKE ?)";
+        $like="%{$filtroBusqueda}%";
+        $params[]=$like; $params[]=$like; $params[]=$like; $params[]=$like;
     }
-    if($filtroTipo !== '' && in_array($filtroTipo, ['PREVENTIVO','CORRECTIVO','PREDICTIVO'])){
-        $where[] = "m.tipo = ?";
-        $params[] = $filtroTipo; $types .= 's';
+    if($filtroTipo!=='' && in_array($filtroTipo,['PREVENTIVO','CORRECTIVO','PREDICTIVO'],true)){
+        $where[]="m.tipo = ?"; $params[]=$filtroTipo;
     }
-    if($filtroFechaDesde !== ''){
-        $where[] = "m.fecha_programada >= ?";
-        $params[] = $filtroFechaDesde . ' 00:00:00'; $types .= 's';
-    }
-    if($filtroFechaHasta !== ''){
-        $where[] = "m.fecha_programada <= ?";
-        $params[] = $filtroFechaHasta . ' 23:59:59'; $types .= 's';
-    }
-
-    $whereSQL = $where ? 'WHERE ' . implode(' AND ', $where) : '';
-    $sql = "SELECT m.id_mantenimiento, m.tipo, m.descripcion, m.fecha_programada, m.fecha_realizada,
+    if($filtroFechaDesde!==''){ $where[]="m.fecha_programada >= ?"; $params[]=$filtroFechaDesde.' 00:00:00'; }
+    if($filtroFechaHasta!==''){ $where[]="m.fecha_programada <= ?"; $params[]=$filtroFechaHasta.' 23:59:59'; }
+    $whereSQL=$where?'WHERE '.implode(' AND ',$where):'';
+    $sql="SELECT m.id_mantenimiento, m.tipo, m.descripcion, m.fecha_programada, m.fecha_realizada,
                    m.costo, m.estado,
                    d.nombre AS dispositivo,
                    t.nombre AS tanque,
@@ -71,13 +55,9 @@ function buildMantQuery($conn, $filtroBusqueda, $filtroTipo, $estadosPermitidos,
             JOIN usuarios u ON m.id_tecnico = u.id_usuario
             {$whereSQL}
             ORDER BY m.fecha_programada DESC";
-
-    $stmt = $conn->prepare($sql);
-    if($params){
-        $stmt->bind_param($types, ...$params);
-    }
-    $stmt->execute();
-    return $stmt->get_result();
+    $st=$pdo->prepare($sql);
+    $st->execute($params);
+    return $st->fetchAll(PDO::FETCH_ASSOC);
 }
 
 function badgeTipoMant($tipo){
@@ -110,8 +90,8 @@ function badgeCosto($costo){
     return '<span class="badge '.$cls.'">$'.number_format($c, 2, ',', '.').'</span>';
 }
 
-$resProgramados = buildMantQuery($conn, $filtroBusqueda, $filtroTipo, ['PENDIENTE','EN_PROCESO'], $filtroFechaDesde, $filtroFechaHasta);
-$resHistorial   = buildMantQuery($conn, $filtroBusqueda, $filtroTipo, ['FINALIZADO','CANCELADO'], $filtroFechaDesde, $filtroFechaHasta);
+$resProgramados = buildMantQuery($filtroBusqueda, $filtroTipo, ['PENDIENTE','EN_PROCESO'], $filtroFechaDesde, $filtroFechaHasta);
+$resHistorial   = buildMantQuery($filtroBusqueda, $filtroTipo, ['FINALIZADO','CANCELADO'], $filtroFechaDesde, $filtroFechaHasta);
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -175,84 +155,84 @@ $resHistorial   = buildMantQuery($conn, $filtroBusqueda, $filtroTipo, ['FINALIZA
          <th>Acciones</th>
         </tr>
        </thead>
-       <tbody>
-        <?php if($resProgramados && $resProgramados->num_rows > 0): ?>
-         <?php while($m = $resProgramados->fetch_assoc()): ?>
-          <tr>
-           <td>MT-<?php echo str_pad($m['id_mantenimiento'], 3, '0', STR_PAD_LEFT); ?></td>
-           <td><?php echo badgeTipoMant($m['tipo']); ?></td>
-           <td><?php echo htmlspecialchars($m['descripcion'] ?? '-'); ?></td>
-           <td><?php echo htmlspecialchars($m['dispositivo']); ?> / <?php echo htmlspecialchars($m['tanque']); ?></td>
-           <td><?php echo $m['fecha_programada'] ? date('d/m/Y', strtotime($m['fecha_programada'])) : '-'; ?></td>
-           <td><?php echo htmlspecialchars($m['tecnico']); ?></td>
-           <td><?php echo badgeCosto($m['costo']); ?></td>
-           <td><?php echo badgeEstadoMant($m['estado']); ?></td>
-           <td class="actions-cell">
-            <button class="btn-icon" title="Ver"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>
-            <button class="btn-icon" title="Editar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
-           </td>
-          </tr>
-         <?php endwhile; ?>
-        <?php else: ?>
-         <tr><td colspan="9" style="text-align:center;color:var(--tx4)">No hay mantenimientos programados</td></tr>
-        <?php endif; ?>
-       </tbody>
-      </table>
+        <tbody>
+         <?php if(!empty($resProgramados)): ?>
+          <?php foreach($resProgramados as $m): ?>
+           <tr>
+            <td>MT-<?php echo str_pad($m['id_mantenimiento'], 3, '0', STR_PAD_LEFT); ?></td>
+            <td><?php echo badgeTipoMant($m['tipo']); ?></td>
+            <td><?php echo htmlspecialchars($m['descripcion'] ?? '-'); ?></td>
+            <td><?php echo htmlspecialchars($m['dispositivo']); ?> / <?php echo htmlspecialchars($m['tanque']); ?></td>
+            <td><?php echo $m['fecha_programada'] ? date('d/m/Y', strtotime($m['fecha_programada'])) : '-'; ?></td>
+            <td><?php echo htmlspecialchars($m['tecnico']); ?></td>
+            <td><?php echo badgeCosto($m['costo']); ?></td>
+            <td><?php echo badgeEstadoMant($m['estado']); ?></td>
+            <td class="actions-cell">
+             <button class="btn-icon" title="Ver"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>
+             <button class="btn-icon" title="Editar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+            </td>
+           </tr>
+          <?php endforeach; ?>
+         <?php else: ?>
+          <tr><td colspan="9" style="text-align:center;color:var(--tx4)">No hay mantenimientos programados</td></tr>
+         <?php endif; ?>
+        </tbody>
+       </table>
+      </div>
      </div>
     </div>
-   </div>
 
-   <div class="tab-content" id="tab-historial">
-    <div class="card">
-     <div class="card-header">
-      <form method="GET" class="filters-row">
-       <input type="hidden" name="tab" value="historial">
-       <div class="filter-group">
-        <input type="text" name="busqueda" class="filter-input" placeholder="Buscar en historial..." value="<?php echo htmlspecialchars($filtroBusqueda); ?>">
-       </div>
-       <div class="filter-group">
-        <input type="date" name="fecha_desde" class="filter-input" value="<?php echo htmlspecialchars($filtroFechaDesde); ?>">
-       </div>
-       <div class="filter-group">
-        <input type="date" name="fecha_hasta" class="filter-input" value="<?php echo htmlspecialchars($filtroFechaHasta); ?>">
-       </div>
-       <div class="filter-group">
-        <button type="submit" class="btn btn-primary">Filtrar</button>
-       </div>
-      </form>
-     </div>
-     <div class="table-responsive">
-      <table class="table">
-       <thead>
-        <tr>
-         <th>ID</th>
-         <th>Tipo</th>
-         <th>Descripción</th>
-         <th>Dispositivo / Tanque</th>
-         <th>Fecha completado</th>
-         <th>Técnico</th>
-         <th>Costo</th>
-         <th>Estado</th>
-        </tr>
-       </thead>
-       <tbody>
-        <?php if($resHistorial && $resHistorial->num_rows > 0): ?>
-         <?php while($m = $resHistorial->fetch_assoc()): ?>
-          <tr>
-           <td>MT-<?php echo str_pad($m['id_mantenimiento'], 3, '0', STR_PAD_LEFT); ?></td>
-           <td><?php echo badgeTipoMant($m['tipo']); ?></td>
-           <td><?php echo htmlspecialchars($m['descripcion'] ?? '-'); ?></td>
-           <td><?php echo htmlspecialchars($m['dispositivo']); ?> / <?php echo htmlspecialchars($m['tanque']); ?></td>
-           <td><?php echo $m['fecha_realizada'] ? date('d/m/Y', strtotime($m['fecha_realizada'])) : '-'; ?></td>
-           <td><?php echo htmlspecialchars($m['tecnico']); ?></td>
-           <td><?php echo badgeCosto($m['costo']); ?></td>
-           <td><?php echo badgeEstadoMant($m['estado']); ?></td>
-          </tr>
-         <?php endwhile; ?>
-        <?php else: ?>
-         <tr><td colspan="8" style="text-align:center;color:var(--tx4)">No hay registros en el historial</td></tr>
-        <?php endif; ?>
-       </tbody>
+    <div class="tab-content" id="tab-historial">
+     <div class="card">
+      <div class="card-header">
+       <form method="GET" class="filters-row">
+        <input type="hidden" name="tab" value="historial">
+        <div class="filter-group">
+         <input type="text" name="busqueda" class="filter-input" placeholder="Buscar en historial..." value="<?php echo htmlspecialchars($filtroBusqueda); ?>">
+        </div>
+        <div class="filter-group">
+         <input type="date" name="fecha_desde" class="filter-input" value="<?php echo htmlspecialchars($filtroFechaDesde); ?>">
+        </div>
+        <div class="filter-group">
+         <input type="date" name="fecha_hasta" class="filter-input" value="<?php echo htmlspecialchars($filtroFechaHasta); ?>">
+        </div>
+        <div class="filter-group">
+         <button type="submit" class="btn btn-primary">Filtrar</button>
+        </div>
+       </form>
+      </div>
+      <div class="table-responsive">
+       <table class="table">
+        <thead>
+         <tr>
+          <th>ID</th>
+          <th>Tipo</th>
+          <th>Descripción</th>
+          <th>Dispositivo / Tanque</th>
+          <th>Fecha completado</th>
+          <th>Técnico</th>
+          <th>Costo</th>
+          <th>Estado</th>
+         </tr>
+        </thead>
+        <tbody>
+         <?php if(!empty($resHistorial)): ?>
+          <?php foreach($resHistorial as $m): ?>
+           <tr>
+            <td>MT-<?php echo str_pad($m['id_mantenimiento'], 3, '0', STR_PAD_LEFT); ?></td>
+            <td><?php echo badgeTipoMant($m['tipo']); ?></td>
+            <td><?php echo htmlspecialchars($m['descripcion'] ?? '-'); ?></td>
+            <td><?php echo htmlspecialchars($m['dispositivo']); ?> / <?php echo htmlspecialchars($m['tanque']); ?></td>
+            <td><?php echo $m['fecha_realizada'] ? date('d/m/Y', strtotime($m['fecha_realizada'])) : '-'; ?></td>
+            <td><?php echo htmlspecialchars($m['tecnico']); ?></td>
+            <td><?php echo badgeCosto($m['costo']); ?></td>
+            <td><?php echo badgeEstadoMant($m['estado']); ?></td>
+           </tr>
+          <?php endforeach; ?>
+         <?php else: ?>
+          <tr><td colspan="8" style="text-align:center;color:var(--tx4)">No hay registros en el historial</td></tr>
+         <?php endif; ?>
+        </tbody>
       </table>
      </div>
     </div>

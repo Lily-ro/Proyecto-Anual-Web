@@ -1,21 +1,23 @@
 <?php
-// EVA - Conexion central unica. NO crear db2.php ni conexiones por rol.
-// Mantiene credenciales originales del proyecto y añade fallback para hosting Hostinger (u767...) y local (root).
-// Produccion: /home/u767580032/domains/dashboard.elvigilantedeagua.com/public_html/config/db.php linea 11
+require_once __DIR__ . '/env.php';
 error_reporting(E_ALL);
-ini_set('display_errors', 0);
+$debug = eva_env('APP_DEBUG','false');
+if(strtolower((string)$debug)==='true' || $debug==='1'){ ini_set('display_errors','1'); } else { ini_set('display_errors','0'); }
 ini_set('log_errors', 1);
 
-$host = "localhost";
-
-// Candidatos en orden: produccion Hostinger (u767...), original proyecto (u156...), local XAMPP (root)
-$candidatos = [
+$host = eva_env('DB_HOST','localhost');
+$envUser=eva_env('DB_USER',null);
+$envPass=eva_env('DB_PASS',null);
+$envDb=eva_env('DB_NAME',null);
+$candidatos=[];
+if($envUser && $envDb){ $candidatos[]=['user'=>$envUser,'pass'=>$envPass??'','db'=>$envDb]; }
+$candidatos = array_merge($candidatos, [
     ['user' => 'u767580032_elvigilante',     'pass' => '#VALzona122233', 'db' => 'u767580032_elvigilante'],
     ['user' => 'u156482620_EVAelvigilante', 'pass' => '#VALzona122233', 'db' => 'u156482620_EVAelvigilante'],
     ['user' => 'root',                      'pass' => '',               'db' => 'u156482620_EVAelvigilante'],
     ['user' => 'root',                      'pass' => '',               'db' => 'u767580032_elvigilante'],
     ['user' => 'root',                      'pass' => 'root',           'db' => 'u156482620_EVAelvigilante'],
-];
+]);
 
 $conn = null;
 $pdo = null;

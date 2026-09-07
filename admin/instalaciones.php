@@ -49,12 +49,10 @@ $sql = "SELECT i.id_instalacion, i.fecha_instalacion, i.observaciones, i.latitud
         {$whereSQL}
         ORDER BY i.fecha_instalacion DESC";
 
-$stmt = $conn->prepare($sql);
-if($params){
-    $stmt->bind_param($types, ...$params);
-}
-$stmt->execute();
-$resInstalaciones = $stmt->get_result();
+$pdo=eva_pdo();
+$stmt=$pdo->prepare($sql);
+$stmt->execute($params);
+$resInstalaciones=$stmt->fetchAll(PDO::FETCH_ASSOC);
 
 function badgeCosto($costo){
     $c = (float)$costo;
@@ -122,27 +120,27 @@ function coordenadasLink($lat, $lng){
        <th>Acciones</th>
       </tr>
      </thead>
-     <tbody>
-      <?php if($resInstalaciones && $resInstalaciones->num_rows > 0): ?>
-       <?php while($i = $resInstalaciones->fetch_assoc()): ?>
-        <tr>
-         <td>INS-<?php echo str_pad($i['id_instalacion'], 3, '0', STR_PAD_LEFT); ?></td>
-         <td><?php echo htmlspecialchars($i['dispositivo']); ?></td>
-         <td><?php echo htmlspecialchars($i['edificio']); ?></td>
-         <td><?php echo htmlspecialchars($i['tanque']); ?></td>
-         <td><?php echo $i['fecha_instalacion'] ? date('d/m/Y H:i', strtotime($i['fecha_instalacion'])) : '-'; ?></td>
-         <td><?php echo htmlspecialchars($i['tecnico']); ?></td>
-         <td><?php echo htmlspecialchars($i['observaciones'] ?? '-'); ?></td>
-         <td class="actions-cell">
-          <button class="btn-icon" title="Ver"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>
-          <button class="btn-icon" title="Editar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
-         </td>
-        </tr>
-       <?php endwhile; ?>
-      <?php else: ?>
-       <tr><td colspan="8" style="text-align:center;color:var(--tx4)">No hay instalaciones registradas</td></tr>
-      <?php endif; ?>
-     </tbody>
+      <tbody>
+       <?php if(!empty($resInstalaciones)): ?>
+        <?php foreach($resInstalaciones as $i): ?>
+         <tr>
+          <td>INS-<?php echo str_pad($i['id_instalacion'], 3, '0', STR_PAD_LEFT); ?></td>
+          <td><?php echo htmlspecialchars($i['dispositivo']); ?></td>
+          <td><?php echo htmlspecialchars($i['edificio']); ?></td>
+          <td><?php echo htmlspecialchars($i['tanque']); ?></td>
+          <td><?php echo $i['fecha_instalacion'] ? date('d/m/Y H:i', strtotime($i['fecha_instalacion'])) : '-'; ?></td>
+          <td><?php echo htmlspecialchars($i['tecnico']); ?></td>
+          <td><?php echo htmlspecialchars($i['observaciones'] ?? '-'); ?></td>
+          <td class="actions-cell">
+           <button class="btn-icon" title="Ver"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>
+           <button class="btn-icon" title="Editar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+          </td>
+         </tr>
+        <?php endforeach; ?>
+       <?php else: ?>
+        <tr><td colspan="8" style="text-align:center;color:var(--tx4)">No hay instalaciones registradas</td></tr>
+       <?php endif; ?>
+      </tbody>
     </table>
    </div>
   </div>
