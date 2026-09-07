@@ -52,11 +52,9 @@ Proyecto-Anual-Web/
 │   ├── env.php                    # **NUEVO** — eva_load_env()/eva_env() parser nativo
 │   ├── mail.php                   # **REESCRITO** — PHPMailer real, ENCRYPTION_SMTPS, sin mail()
 │   ├── mail_config.php            # **MOD** — lee eva_env(), ignorado por git
-│   ├── mail_config.example.php    # Plantilla
 │   ├── auth.php / logout.php
 ├── db/
-│   ├── u156482620_EVAelvigilante (1).sql  # Dump base 22 tablas
-│   └── migrations_v0_2_0.sql      # **NUEVO** — ALTER mediciones + 8 tablas + seeds
+│   ├── u156482620_EVAelvigilante (1).sql  
 ├── api/
 │   ├── guardar_datos.php          # **MOD** — wrapper tolerante (retry sin temp/hum), soporta JSON
 │   └── esp32/mediciones.php       # **MOD** — soporta temp/hum, eva_procesar_tanque()
