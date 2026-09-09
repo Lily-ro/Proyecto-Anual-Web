@@ -1,4 +1,5 @@
-# EVA — El Vigilante del Agua · Resumen V1
+# EVA — El Vigilante del Agua · Resumen V0.1.0
+
 
 > **Proyecto Anual Web · Primera Versión** — Sistema inteligente de monitoreo de tanques de agua con roles **ADMIN / TÉCNICO / USUARIO (Cliente)**, dispositivos ESP32, sensores ultrasónicos y dashboard en tiempo real.
 > Fecha de corte: **25-26 de agosto de 2026** · Repositorio local `Proyecto-Anual-Web`
