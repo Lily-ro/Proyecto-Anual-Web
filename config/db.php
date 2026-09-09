@@ -24,7 +24,7 @@ $pdo = null;
 $ultimoError = '';
 foreach ($candidatos as $c) {
     $u = $c['user']; $p = $c['pass']; $d = $c['db'];
-    // Intentar mysqli
+    
     try {
         mysqli_report(MYSQLI_REPORT_OFF);
         $tmp = @new mysqli($host, $u, $p, $d);
@@ -39,12 +39,11 @@ foreach ($candidatos as $c) {
 }
 if (!$conn) {
     error_log("EVA db.php: todos los candidatos fallaron. Ultimo error: {$ultimoError}");
-    // Mensaje generico para usuario final, detalle en log
+    
     http_response_code(500);
     die("Error de conexion a la base de datos. Contacte al administrador.");
 }
 
-// PDO centralizado reutilizando credenciales que funcionaron ($host,$user,$pass,$db)
 try {
     $dsn = "mysql:host={$host};dbname={$db};charset=utf8mb4";
     $pdo = new PDO($dsn, $user, $pass, [

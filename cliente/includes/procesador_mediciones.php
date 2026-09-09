@@ -3,6 +3,7 @@ declare(strict_types=1);
 require_once __DIR__ . '/../../config/db.php';
 
 function eva_procesador_calcular_pct(array $med, array $tanque): int {
+    if (function_exists('eva_calcular_pct')) return eva_calcular_pct($tanque, $med);
     if (isset($med['porcentaje']) && is_numeric($med['porcentaje'])) return max(0, min(100, (int)round((float)$med['porcentaje'])));
     $altura = (float)($tanque['altura_cm'] ?? 0);
     if ($altura > 0) {
@@ -17,12 +18,16 @@ function eva_procesador_calcular_pct(array $med, array $tanque): int {
 
 function eva_procesador_actualizar_consumos(PDO $pdo, int $idTanque): int {
     $cnt = 0;
-    $cap = 5000.0;
+    $cap = 0;
     try {
-        $st = $pdo->prepare("SELECT capacidad_litros FROM tanques WHERE id_tanque=:id LIMIT 1");
+        $st = $pdo->prepare("SELECT capacidad_litros, volumen_util, altura_cm, diametro FROM tanques WHERE id_tanque=:id LIMIT 1");
         $st->execute([':id' => $idTanque]);
         $t = $st->fetch();
-        if ($t && isset($t['capacidad_litros'])) $cap = (float)$t['capacidad_litros'];
+        if ($t) {
+            if (function_exists('eva_tanque_capacidad_efectiva')) $cap = (float)eva_tanque_capacidad_efectiva($t);
+            elseif (isset($t['capacidad_litros']) && (float)$t['capacidad_litros']>0) $cap = (float)$t['capacidad_litros'];
+            elseif (isset($t['volumen_util']) && (float)$t['volumen_util']>0) $cap = (float)$t['volumen_util'];
+        }
     } catch (Throwable $e) {}
     try {
         $rows = $pdo->prepare("SELECT DATE(m.fecha_hora) as d, MIN(m.litros) as min_l, MAX(m.litros) as max_l, AVG(m.litros) as avg_l, COUNT(*) as c, MIN(m.porcentaje) as min_p, MAX(m.porcentaje) as max_p, AVG(m.porcentaje) as avg_p FROM mediciones m LEFT JOIN sensores s ON s.id_sensor=m.id_sensor LEFT JOIN dispositivos d ON d.id_dispositivo=s.id_dispositivo WHERE (d.id_tanque=:tid OR d.id_tanque IS NULL) GROUP BY DATE(m.fecha_hora) ORDER BY d ASC");
@@ -191,12 +196,17 @@ function eva_procesar_todos(PDO $pdo, ?int $idTanque = null): array {
 }
 
 function eva_dashboard_datos(PDO $pdo, int $idTanque): array {
-    $out = ['pct' => 0, 'litros' => 0, 'temp' => 0, 'hum' => 0, 'estado' => 'Sin datos', 'estadoClass' => '', 'lastUpdate' => null, 'capacidad' => 0];
+    $out = ['pct' => 0, 'litros' => 0, 'temp' => 0, 'hum' => 0, 'estado' => 'Sin datos', 'estadoClass' => '', 'lastUpdate' => null, 'capacidad' => 0, 'advertencia' => null];
     try {
-        $tSt = $pdo->prepare("SELECT capacidad_litros, altura_cm FROM tanques WHERE id_tanque=:id LIMIT 1");
+        $tSt = $pdo->prepare("SELECT capacidad_litros, volumen_util, altura_cm, diametro FROM tanques WHERE id_tanque=:id LIMIT 1");
         $tSt->execute([':id' => $idTanque]);
         $tanque = $tSt->fetch();
-        $out['capacidad'] = $tanque ? (int)$tanque['capacidad_litros'] : 0;
+        if ($tanque && function_exists('eva_tanque_capacidad_efectiva')) {
+            $out['capacidad'] = (int)round(eva_tanque_capacidad_efectiva($tanque));
+            $out['advertencia'] = eva_tanque_advertencia($tanque);
+        } else {
+            $out['capacidad'] = $tanque ? (int)round((float)($tanque['capacidad_litros'] ?? 0)) : 0;
+        }
         $med = null;
         try {
             $st = $pdo->prepare("SELECT m.* FROM mediciones m LEFT JOIN sensores s ON s.id_sensor=m.id_sensor LEFT JOIN dispositivos d ON d.id_dispositivo=s.id_dispositivo WHERE (d.id_tanque=:id OR d.id_tanque IS NULL) ORDER BY m.fecha_hora DESC LIMIT 1");
@@ -210,15 +220,24 @@ function eva_dashboard_datos(PDO $pdo, int $idTanque): array {
             $out['pct'] = eva_procesador_calcular_pct($med, $tanque ?: []);
             if (isset($med['temperatura']) && is_numeric($med['temperatura'])) $out['temp'] = (int)round((float)$med['temperatura']);
             if (isset($med['humedad']) && is_numeric($med['humedad'])) $out['hum'] = (int)round((float)$med['humedad']);
-            if (isset($med['litros']) && is_numeric($med['litros']) && (float)$med['litros'] > 0) $out['litros'] = (int)round((float)$med['litros']);
-            else $out['litros'] = (int)round($out['capacidad'] * $out['pct'] / 100);
+            if (function_exists('eva_calcular_litros')) $out['litros'] = (int)round(eva_calcular_litros($tanque ?: [], $med, $out['pct']));
+            else {
+                if (isset($med['litros']) && is_numeric($med['litros']) && (float)$med['litros'] > 0) $out['litros'] = (int)round((float)$med['litros']);
+                else $out['litros'] = (int)round($out['capacidad'] * $out['pct'] / 100);
+            }
             if (!empty($med['fecha_hora'])) $out['lastUpdate'] = date('d/m/Y H:i', strtotime($med['fecha_hora']));
             $out['fechaRaw'] = $med['fecha_hora'];
         }
-        if ($out['pct'] <= 10) { $out['estado'] = 'Crítico'; $out['estadoClass'] = 'alert'; }
-        elseif ($out['pct'] >= 90) { $out['estado'] = 'Sobrecarga'; $out['estadoClass'] = 'warning'; }
-        elseif ($out['pct'] <= 25) { $out['estado'] = 'Bajo'; $out['estadoClass'] = 'warning'; }
-        else { $out['estado'] = 'Normal'; $out['estadoClass'] = ''; }
+        if (function_exists('eva_estado_texto')) {
+            [$txt, $desc, $cls] = eva_estado_texto($out['pct']);
+            if ($out['capacidad'] === 0 && $out['pct'] === 0) { $out['estado'] = 'Sin datos'; $out['estadoClass'] = ''; }
+            else { $out['estado'] = $txt; $out['estadoClass'] = $cls; }
+        } else {
+            if ($out['pct'] <= 10) { $out['estado'] = 'Crítico'; $out['estadoClass'] = 'alert'; }
+            elseif ($out['pct'] >= 90) { $out['estado'] = 'Sobrecarga'; $out['estadoClass'] = 'warning'; }
+            elseif ($out['pct'] <= 25) { $out['estado'] = 'Bajo'; $out['estadoClass'] = 'warning'; }
+            else { $out['estado'] = 'Normal'; $out['estadoClass'] = ''; }
+        }
         try {
             $st = $pdo->prepare("SELECT litros_consumidos FROM consumos WHERE id_tanque=:id AND fecha=CURDATE() LIMIT 1");
             $st->execute([':id' => $idTanque]);

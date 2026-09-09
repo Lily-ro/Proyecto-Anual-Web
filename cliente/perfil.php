@@ -31,7 +31,7 @@ try {
             $perfil['ultimo_acceso'] = $row['ultimo_acceso'] ?? null;
             $perfil['telefono'] = $row['telefono'] ?? $row['celular'] ?? null;
             $perfil['direccion'] = $row['direccion'] ?? null;
-            // actualizar sesion por si cambió
+            
             $_SESSION['nombre'] = $perfil['nombre'];
             $_SESSION['apellido'] = $perfil['apellido'];
             $_SESSION['email'] = $perfil['email'];

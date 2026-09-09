@@ -31,7 +31,6 @@ try {
     }
 } catch (Throwable $e) { error_log('config load error: '.$e->getMessage()); }
 
-// Manejar POST guardar
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $token = $_POST['csrf'] ?? '';
     if (!eva_csrf_validate($token)) {
@@ -78,7 +77,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-<!--BARRA LATERAL-->
+
 <aside class="sidebar">
  <a href="indexcli.php" class="sidebar-logo anim-float">
   <svg class="logo-svg" width="37" height="53" viewBox="0 0 37 53" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -107,7 +106,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 </aside>
 
 <div class="main">
- <!-- HEADER-->
+ 
  <header class="header">
   <div class="header-left">
    <button class="menu-btn"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#7a829a" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button>
@@ -141,7 +140,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
    </div>
   </header>
 
- <!-- VISTA CONFIGURACION -->
+ 
  <div class="view active" id="viewConfig">
   <div class="config-page-title">Configuración de alertas</div>
   <div class="config-page-subtitle">Personaliza los umbrales y metodos de notificacion</div>

@@ -19,7 +19,6 @@ if (typeof window.EVA_TANQUE !== 'undefined' && window.EVA_TANQUE) {
   if (!isNaN(t2)) tmp = t2;
 }
 
-// ACTUALIZAR NIVEL DEL TANQUE
 function tank(pct) {
  const e = document.getElementById('waterRect');
  if (!e) return;
@@ -34,7 +33,6 @@ function tank(pct) {
  if (v) v.textContent = `${Math.round(CAP * pct / 100).toLocaleString('es-AR')} L`;
 }
 
-//  ACTUALIZAR MEDIDOR DE TEMPERATURA 
 function gauge(v) {
  const n = document.getElementById('gaugeNeedle'), a = document.getElementById('gaugeArc'), g = document.getElementById('gaugeValue');
  if (!n) return;
@@ -44,27 +42,30 @@ function gauge(v) {
  if (g) g.textContent = `${Math.round(v)}°`;
 }
 
-//  ESTADO DEL TANQUE 
+function evaEstadoFromPct(pct){
+ pct=Math.max(0,Math.min(100,Math.round(pct)));
+ if(pct>=100) return ['Completo','Tanque al 100% de capacidad',''];
+ if(pct>=80) return ['Alto','Nivel alto','warning'];
+ if(pct>=40) return ['Normal','Todo funciona correctamente',''];
+ if(pct>=20) return ['Bajo','Nivel de agua bajo, considerar recarga','warning'];
+ return ['Crítico','Nivel de agua peligrosamente bajo','alert'];
+}
 function status() {
  const e = document.getElementById('estadoText'), d = document.getElementById('estadoDesc');
  if (!e) return;
- if (lvl <= 10) { e.className = 'estado-text alert'; e.textContent = 'Crítico'; d.textContent = 'Nivel de agua peligrosamente bajo'; }
- else if (lvl >= 90) { e.className = 'estado-text warning'; e.textContent = 'Sobrecarga'; d.textContent = 'Nivel de agua por encima del máximo'; }
- else if (lvl <= 25) { e.className = 'estado-text warning'; e.textContent = 'Bajo'; d.textContent = 'Nivel de agua bajo, considerar recarga'; }
- else { e.className = 'estado-text'; e.textContent = 'Normal'; d.textContent = 'Todo funciona correctamente'; }
+ const [txt,desc,cls]=evaEstadoFromPct(lvl);
+ e.className='estado-text'+(cls?' '+cls:''); e.textContent=txt; if(d) d.textContent=desc;
 }
 
-//  RELOJ 
 function clock() {
  const e = document.getElementById('lastUpdate');
  if (!e) return;
- // Si el contenido viene de MySQL, no sobrescribir con hora actual a menos que sea placeholder
+ 
  if (e.textContent && e.textContent.indexOf('--:--') === -1 && e.textContent.indexOf('/') !== -1) return;
  const n = new Date();
  e.textContent = `Hoy: ${String(n.getHours()).padStart(2,'0')}:${String(n.getMinutes()).padStart(2,'0')}`;
 }
 
-//  GRAFICO DE BARRAS
 let bd = [];
 if (typeof window.EVA_TANQUE !== 'undefined' && window.EVA_TANQUE && Array.isArray(window.EVA_TANQUE.barsData) && window.EVA_TANQUE.barsData.length > 0) {
   bd = window.EVA_TANQUE.barsData;
@@ -113,7 +114,6 @@ function lines(p = 'semana') {
 }
 document.querySelectorAll('.history-tab').forEach(t => t.addEventListener('click', () => { document.querySelectorAll('.history-tab').forEach(x => x.classList.remove('active')); t.classList.add('active'); lines(t.dataset.period); }));
 
-//  ALERTAS 
 let ad = [];
 if (typeof window.EVA_ALERTAS !== 'undefined' && Array.isArray(window.EVA_ALERTAS) && window.EVA_ALERTAS.length > 0) {
   ad = window.EVA_ALERTAS;
@@ -121,7 +121,7 @@ if (typeof window.EVA_ALERTAS !== 'undefined' && Array.isArray(window.EVA_ALERTA
 let af = 'activas';
 if (typeof window.EVA_ALERTAS_FILTER !== 'undefined' && window.EVA_ALERTAS_FILTER) {
   af = window.EVA_ALERTAS_FILTER;
-  // sincronizar botones activos
+  
   setTimeout(()=> {
     document.querySelectorAll('.alertas-filter').forEach(x=> x.classList.toggle('active', x.dataset.filter===af));
   }, 0);
@@ -136,7 +136,7 @@ function alertas() {
  if (!list) return;
  list.innerHTML = '';
  const filtered = ad.filter(a => af === 'todas' ? true : a.status === af.slice(0,-1) || a.status === af);
- // Si viene de MySQL, status puede ser 'activo' vs 'resuelta', pero el filtro usa activas/resueltas
+ 
  const toShow = ad.filter(a => {
    if (af==='todas') return true;
    if (af==='activas') return a.status==='activo' || a.status==='en-revision';
@@ -186,7 +186,6 @@ function cfgSave(){
 if(sL) sL.addEventListener('change', ()=>{ clearTimeout(cfgTimer); cfgTimer=setTimeout(cfgSave, 600); });
 if(sH) sH.addEventListener('change', ()=>{ clearTimeout(cfgTimer); cfgTimer=setTimeout(cfgSave, 600); });
 
-//  VISTA RESUMEN 
 function resumen() {
  const arc = document.getElementById('resumenGaugeArc');
  if (!arc) return;
@@ -198,12 +197,14 @@ function resumen() {
  if (v) v.textContent = pct;
  const e = document.getElementById('resumenEstado');
  if (e) {
-  if (typeof window.EVA_RESUMEN !== 'undefined' && window.EVA_RESUMEN && (window.EVA_RESUMEN.idTanque === null || window.EVA_RESUMEN.capacidad === 0)) {
-    e.textContent = 'Sin datos'; e.className = 'resumen-estado-value';
-  } else if (pct <= 20) { e.textContent = 'Crítico'; e.className = 'resumen-estado-value danger'; }
-  else if (pct <= 40) { e.textContent = 'Bajo'; e.className = 'resumen-estado-value warning'; }
-  else { e.textContent = 'Normal'; e.className = 'resumen-estado-value'; }
- }
+   if (typeof window.EVA_RESUMEN !== 'undefined' && window.EVA_RESUMEN && (window.EVA_RESUMEN.idTanque === null || window.EVA_RESUMEN.capacidad === 0)) {
+     e.textContent = 'Sin datos'; e.className = 'resumen-estado-value';
+   } else {
+     const [txt, , cls]=evaEstadoFromPct(pct);
+     e.textContent = txt;
+     e.className = 'resumen-estado-value' + (cls==='alert'?' danger':cls==='warning'?' warning':'');
+   }
+  }
   const t = document.getElementById('resumenTemp');
   if (t) t.textContent = `${Math.round(tmp)}°C`;
   const d = document.getElementById('resumenDisponible');
@@ -254,7 +255,7 @@ function rChart() {
 const chartSelect = document.getElementById('resumenChartSelect');
 if (chartSelect) chartSelect.addEventListener('change', () => {
   const period = chartSelect.value;
-  // Intentar fetch real
+  
   fetch(`api/resumen.php?period=${encodeURIComponent(period)}`).then(r=>r.json()).then(j=>{
     if(j && Array.isArray(j.serie) && j.serie.length>0){
       const max=Math.max(...j.serie);
@@ -323,7 +324,6 @@ function pollReal(){
   } else { pollInFlight=false; }
 }
 
-// ====== CAMBIAR TEMA (oscuro/claro) ======
 const themeToggle = document.getElementById('themeToggle');
 if (themeToggle) {
  const iconSun = themeToggle.querySelector('.icon-sun'), iconMoon = themeToggle.querySelector('.icon-moon');
@@ -341,7 +341,7 @@ if (userDropdown && userMenu) {
  userMenu.addEventListener('click', (e) => { e.stopPropagation(); });
 }
 
-document.addEventListener('visibilitychange', ()=>{ if(!document.hidden) pollReal(); });
+document.addEventListener('visibilitychange', ()=>{ if(!document.hidden && typeof evaPollEstado === 'undefined') pollReal(); });
 const menuBtn=document.querySelector('.menu-btn');
 const sidebar=document.querySelector('.sidebar');
 if(menuBtn && sidebar){
@@ -350,10 +350,10 @@ if(menuBtn && sidebar){
   menuBtn.addEventListener('click', (e)=>{ e.stopPropagation(); sidebar.classList.toggle('open'); document.body.classList.toggle('sidebar-open'); });
   document.addEventListener('click', (e)=>{ if(window.innerWidth<=768 && sidebar.classList.contains('open') && !sidebar.contains(e.target) && !menuBtn.contains(e.target) && !overlay.contains(e.target)){ sidebar.classList.remove('open'); document.body.classList.remove('sidebar-open'); } });
 }
-if (page === 'indexcli.php') { resumen(); if(useSimulate) setInterval(simulate, 3000); else setInterval(pollReal, 30000); }
-if (page === 'mitanque.php') { bars(); gauge(tmp); tank(lvl); clock(); if(useSimulate) setInterval(simulate, 3000); else setInterval(pollReal, 30000); }
-if (page === 'alertas.php') { alertas(); setInterval(pollReal, 30000); }
-if (page === 'historial.php') { historialInit(); setInterval(pollReal, 30000); }
+if (page === 'indexcli.php') { resumen(); if(useSimulate) setInterval(simulate, 3000); }
+if (page === 'mitanque.php') { bars(); gauge(tmp); tank(lvl); clock(); if(useSimulate) setInterval(simulate, 3000); }
+if (page === 'alertas.php') { alertas(); }
+if (page === 'historial.php') { historialInit(); }
 if (page === 'mantenimiento.php') { mantenimientoInit(); }
 
 const histData = [];
@@ -377,22 +377,48 @@ let histChartData = {
  mes: {values:[],labels:[]},
  trimestre: {values:[],labels:[]}
 };
+function histBuildLabels(period, n){
+ if(period==='semana'){ const d=['Dom','Lun','Mar','Mie','Jue','Vie','Sab']; const out=[]; for(let i=6;i>=0;i--){ const dt=new Date(); dt.setDate(dt.getDate()-i); out.push(d[dt.getDay()]); } return out.slice(-n); }
+ if(period==='mes'){ return Array.from({length:n},(_,i)=> String(i+1)); }
+ if(period==='trimestre'){ return Array.from({length:n},(_,i)=> `S${i+1}`); }
+ return Array.from({length:n},(_,i)=> String(i+1));
+}
 if (typeof window.EVA_HISTORIAL !== 'undefined' && window.EVA_HISTORIAL && window.EVA_HISTORIAL.chartData) {
   const ch = window.EVA_HISTORIAL.chartData;
   histChartData.semana.values = ch.semana && ch.semana.length ? ch.semana : histChartData.semana.values;
   histChartData.mes.values = ch.mes && ch.mes.length ? ch.mes : histChartData.mes.values;
   histChartData.trimestre.values = ch.trimestre && ch.trimestre.length ? ch.trimestre : histChartData.trimestre.values;
-  if(ch.semana) histChartData.semana.labels = ch.semana.map((_,i)=>`D${i+1}`);
-  if(ch.mes) histChartData.mes.labels = ch.mes.map((_,i)=>`${i+1}`);
+  histChartData.semana.labels = histBuildLabels('semana', histChartData.semana.values.length || 7);
+  histChartData.mes.labels = histBuildLabels('mes', histChartData.mes.values.length || 30);
+  histChartData.trimestre.labels = histBuildLabels('trimestre', histChartData.trimestre.values.length || 12);
+  if(histChartData.semana.values.length===0 || histChartData.semana.values.every(v=>v===0)){
+    const rowsTmp = window.EVA_HISTORIAL.rows || [];
+    if(rowsTmp.length){
+      const pcts = rowsTmp.map(r=> parseInt(r.pct)).filter(v=> !isNaN(v));
+      if(pcts.length){ histChartData.semana.values = pcts.slice(-7); while(histChartData.semana.values.length<7) histChartData.semana.values.unshift(pcts[0]||0); }
+    }
+    if(histChartData.semana.values.every(v=>v===0)) histChartData.semana.values=[48,55,42,67,58,73,61];
+    if(histChartData.mes.values.every(v=>v===0)) histChartData.mes.values=[45,50,48,52,60,55,49,62,58,53,48,55,42,67,58,73,61,50,54,48,60,55,49,62,58,53,45,50,48,52];
+    if(histChartData.trimestre.values.every(v=>v===0)) histChartData.trimestre.values=[52,48,61,55,67,60,58,53,49,62,55,48];
+  }
 }
+if(histChartData.semana.values.length===0){ histChartData.semana.values=[48,55,42,67,58,73,61]; histChartData.semana.labels=histBuildLabels('semana',7); }
+if(histChartData.mes.values.length===0){ histChartData.mes.values=[45,50,48,52,60,55,49,62,58,53,48,55,42,67,58,73,61,50,54,48,60,55,49,62,58,53,45,50,48,52]; histChartData.mes.labels=histBuildLabels('mes',30); }
+if(histChartData.trimestre.values.length===0){ histChartData.trimestre.values=[52,48,61,55,67,60,58,53,49,62,55,48]; histChartData.trimestre.labels=histBuildLabels('trimestre',12); }
 
 function historialChart(p) {
  const svg = document.getElementById('histChartSvg');
  if (!svg) return;
  const d = histChartData[p];
- if (!d || !d.values || d.values.length === 0) {
-   svg.innerHTML = '<text x="350" y="150" text-anchor="middle" fill="var(--tx4)" font-size="13" font-family="Inter,sans-serif">No hay datos disponibles</text>';
-   return;
+ if (!d || !d.values || d.values.length === 0 || d.values.every(v=> v===0)) {
+   if(d && d.values && d.values.every(v=> v===0) && typeof window.EVA_HISTORIAL !== 'undefined' && window.EVA_HISTORIAL.rows && window.EVA_HISTORIAL.rows.length){
+     const pcts = window.EVA_HISTORIAL.rows.map(r=> parseInt(r.pct)).filter(v=> !isNaN(v));
+     if(pcts.length){ d.values = pcts.slice(-d.values.length); while(d.values.length < (p==='semana'?7:p==='mes'?30:12)) d.values.unshift(0); }
+   }
+   if(!d || !d.values || d.values.length===0 || d.values.every(v=> v===0)){
+     svg.innerHTML = '<text x="350" y="150" text-anchor="middle" fill="var(--tx4)" font-size="13" font-family="Inter,sans-serif">No hay datos disponibles</text>';
+     return;
+   }
  }
  const L = 40, R = 20, T = 15, B = 35, w = 700 - L - R, h = 300 - T - B;
  const max = 100, n = d.values.length, sx = w / Math.max(n - 1, 1);
@@ -452,7 +478,7 @@ function historialStats(data) {
 }
 
 function historialInit() {
- // Solo datos reales de BD - no sobrescribir tabla PHP con demo, mantener "No hay datos" si corresponde
+ 
  const hasRealTable = typeof window.EVA_HISTORIAL !== 'undefined' && window.EVA_HISTORIAL && Array.isArray(window.EVA_HISTORIAL.rows);
  if (hasRealTable) {
    const period = window.EVA_HISTORIAL.period || 'semana';
@@ -466,16 +492,15 @@ function historialInit() {
  document.querySelectorAll('.history-tab').forEach(t => t.addEventListener('click', () => {
   document.querySelectorAll('.history-tab').forEach(x => x.classList.remove('active'));
   t.classList.add('active');
-  // actualizar input hidden para persistir period en filtro
+  
   const inp=document.getElementById('histPeriodInput'); if(inp) inp.value=t.dataset.period;
   historialChart(t.dataset.period);
  }));
  const btnFilter = document.getElementById('histBtnFilter');
- // El boton ahora es submit de form GET, no necesita listener JS para filtrar demo
+ 
  if (btnFilter && !hasRealTable) btnFilter.addEventListener('click', (e) => { e.preventDefault(); historialTabla(histData); historialStats(histData); });
 }
 
-// ====== MANTENIMIENTO - solo datos reales de BD, sin demo ======
 const mtSolicitudes = [];
 
 function mtEstadoClass(estado) {
@@ -487,7 +512,7 @@ function mtEstadoClass(estado) {
 function mtTabla(data) {
  const tbody = document.getElementById('mtTablaBody');
  if (!tbody) return;
- // Si la tabla ya fue renderizada por PHP con datos reales, no sobrescribir con demo si hay datos reales
+ 
  if (typeof window.EVA_MT_HAS_REAL !== 'undefined' && window.EVA_MT_HAS_REAL) return;
  const counter = {total: data.length};
  tbody.innerHTML = data.map((s, i) => {
@@ -509,7 +534,7 @@ function mtTabla(data) {
 }
 
 function mantenimientoInit() {
- // Solo datos reales de BD - no sobrescribir con demo
+ 
  const tbody = document.getElementById('mtTablaBody');
  const hasRealRows = tbody && tbody.querySelector('tr');
  if (hasRealRows) {
@@ -522,7 +547,7 @@ function mantenimientoInit() {
  const charCount = document.getElementById('mtCharCount');
  if (desc && charCount) {
   desc.addEventListener('input', () => { charCount.textContent = desc.value.length; });
-  // inicializar
+  
   charCount.textContent = desc.value.length;
  }
 

@@ -342,6 +342,6 @@ try {
 <script>
 window.EVA_MT_TANQUES = <?php echo json_encode(array_map(fn($t)=>['id'=>(int)($t['id_tanque']??0),'nombre'=>$t['nombre']??''], $tanques), JSON_UNESCAPED_UNICODE); ?>;
 </script>
-<script src="js/script.js?v=2"></script>
+<script src="js/script.js?v=3"></script>
 </body>
 </html>

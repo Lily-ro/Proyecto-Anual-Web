@@ -92,6 +92,15 @@ function badgeCosto($costo){
 
 $resProgramados = buildMantQuery($filtroBusqueda, $filtroTipo, ['PENDIENTE','EN_PROCESO'], $filtroFechaDesde, $filtroFechaHasta);
 $resHistorial   = buildMantQuery($filtroBusqueda, $filtroTipo, ['FINALIZADO','CANCELADO'], $filtroFechaDesde, $filtroFechaHasta);
+$pdoSol = eva_pdo();
+$qSol = $pdoSol->query("SELECT sm.id_solicitud, sm.descripcion, sm.estado, sm.fecha_solicitud, sm.fecha_finalizada, t.nombre AS tanque, CONCAT(u.nombre,' ',u.apellido) AS cliente, u.email AS cliente_email, CONCAT(ut.nombre,' ',ut.apellido) AS tecnico FROM solicitudes_mantenimiento sm LEFT JOIN tanques t ON t.id_tanque=sm.id_tanque LEFT JOIN usuarios u ON u.id_usuario=sm.id_usuario LEFT JOIN usuarios ut ON ut.id_usuario=sm.id_tecnico ORDER BY sm.fecha_solicitud DESC");
+$solicitudesAdmin = $qSol ? $qSol->fetchAll(PDO::FETCH_ASSOC) : [];
+$cntSolicitudes = count($solicitudesAdmin);
+function badgeEstadoSol($e){
+ $m=['PENDIENTE'=>'pendiente','ACEPTADA'=>'advertencia','EN_PROCESO'=>'advertencia','FINALIZADA'=>'activo','CANCELADA'=>'inactivo'];
+ $cls=$m[$e]??'pendiente';
+ return '<span class="badge '.$cls.'">'.htmlspecialchars($e).'</span>';
+}
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -113,11 +122,12 @@ $resHistorial   = buildMantQuery($filtroBusqueda, $filtroTipo, ['FINALIZADO','CA
    <p class="page-desc">Programación y seguimiento de mantenimientos.</p>
   </div>
 
-  <div class="tabs-container">
-   <div class="tabs">
-    <button class="tab active" data-tab="programados">Programados <span class="tab-count"><?php echo $cntProgramados; ?></span></button>
-    <button class="tab" data-tab="historial">Historial <span class="tab-count"><?php echo $cntHistorial; ?></span></button>
-   </div>
+   <div class="tabs-container">
+    <div class="tabs">
+     <button class="tab active" data-tab="programados">Programados <span class="tab-count"><?php echo $cntProgramados; ?></span></button>
+     <button class="tab" data-tab="historial">Historial <span class="tab-count"><?php echo $cntHistorial; ?></span></button>
+     <button class="tab" data-tab="solicitudes">Solicitudes de clientes <span class="tab-count"><?php echo $cntSolicitudes; ?></span></button>
+    </div>
 
    <div class="tab-content active" id="tab-programados">
     <div class="card">
@@ -236,10 +246,36 @@ $resHistorial   = buildMantQuery($filtroBusqueda, $filtroTipo, ['FINALIZADO','CA
       </table>
      </div>
     </div>
+    <div class="tab-content" id="tab-solicitudes">
+     <div class="card">
+      <div class="card-header"><div class="card-title">Solicitudes levantadas por usuarios (tabla solicitudes_mantenimiento)</div></div>
+      <div class="table-responsive">
+       <table class="table">
+        <thead><tr><th>ID</th><th>Cliente</th><th>Email</th><th>Tanque</th><th>Descripción</th><th>Fecha solicitud</th><th>Técnico</th><th>Estado</th></tr></thead>
+        <tbody>
+         <?php if(!empty($solicitudesAdmin)): foreach($solicitudesAdmin as $s): ?>
+          <tr>
+           <td>#<?php echo (int)$s['id_solicitud']; ?></td>
+           <td><?php echo htmlspecialchars($s['cliente'] ?? '—'); ?></td>
+           <td><?php echo htmlspecialchars($s['cliente_email'] ?? '—'); ?></td>
+           <td><?php echo htmlspecialchars($s['tanque'] ?? '—'); ?></td>
+           <td><?php echo htmlspecialchars($s['descripcion'] ?? '—'); ?></td>
+           <td><?php echo $s['fecha_solicitud'] ? date('d/m/Y H:i', strtotime($s['fecha_solicitud'])) : '—'; ?></td>
+           <td><?php echo htmlspecialchars($s['tecnico'] ?? 'Sin asignar'); ?></td>
+           <td><?php echo badgeEstadoSol($s['estado']); ?></td>
+          </tr>
+         <?php endforeach; else: ?>
+          <tr><td colspan="8" style="text-align:center;color:var(--tx4)">No hay solicitudes registradas</td></tr>
+         <?php endif; ?>
+        </tbody>
+       </table>
+      </div>
+     </div>
+    </div>
+    </div>
    </div>
   </div>
  </div>
-</div>
-<script src="js/admin.js"></script>
+ <script src="js/admin.js"></script>
 </body>
 </html>

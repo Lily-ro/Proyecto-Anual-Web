@@ -97,19 +97,109 @@ function eva_consumo_serie(PDO $pdo, int $id_tanque, string $period='semana'): a
  }catch(Throwable $e){ return array_fill(0,$days,0); }
 }
 function eva_device_status(PDO $pdo, int $id_tanque): string {
- try{
-   $st=$pdo->prepare("SELECT estado, ultima_conexion FROM dispositivos WHERE id_tanque=:id ORDER BY ultima_conexion DESC LIMIT 1");
-   $st->execute([':id'=>$id_tanque]); $r=$st->fetch(); if(!$r) return 'Desconectado';
-   $estado=strtolower((string)($r['estado']??'')); if(in_array($estado,['activo','online','conectado','operativo'],true)) return 'Conectado'; if(in_array($estado,['inactivo','offline','desconectado'],true)) return 'Desconectado';
-   if(!empty($r['ultima_conexion'])){ $ts=strtotime((string)$r['ultima_conexion']); if($ts && (time()-$ts)<600) return 'Conectado'; }
-   return h($r['estado']??'Desconectado');
- }catch(Throwable $e){ return 'Conectado'; }
+  try{
+    $st=$pdo->prepare("SELECT estado, ultima_conexion FROM dispositivos WHERE id_tanque=:id ORDER BY ultima_conexion DESC LIMIT 1");
+    $st->execute([':id'=>$id_tanque]); $r=$st->fetch(); if(!$r) return 'Desconectado';
+    $estado=strtolower((string)($r['estado']??'')); if(in_array($estado,['activo','online','conectado','operativo'],true)) return 'Conectado'; if(in_array($estado,['inactivo','offline','desconectado'],true)) return 'Desconectado';
+    if(!empty($r['ultima_conexion'])){ $ts=strtotime((string)$r['ultima_conexion']); if($ts && (time()-$ts)<600) return 'Conectado'; }
+    return h($r['estado']??'Desconectado');
+  }catch(Throwable $e){ return 'Conectado'; }
+}
+function eva_tanque_capacidad_efectiva(array $tanque): float {
+  $cap = isset($tanque['capacidad_litros']) ? (float)$tanque['capacidad_litros'] : 0;
+  $vol = isset($tanque['volumen_util']) ? (float)$tanque['volumen_util'] : 0;
+  if ($cap > 0) return $cap;
+  if ($vol > 0) return $vol;
+  $h = isset($tanque['altura_cm']) ? (float)$tanque['altura_cm'] : 0;
+  $d = isset($tanque['diametro']) ? (float)$tanque['diametro'] : 0;
+  if ($h > 0 && $d > 0) {
+      $r = $d / 2;
+      $volCm3 = M_PI * $r * $r * $h;
+      return $volCm3 / 1000;
+  }
+  return 0;
+}
+function eva_tanque_volumen_geometrico(array $tanque): ?float {
+  $h = isset($tanque['altura_cm']) ? (float)$tanque['altura_cm'] : 0;
+  $d = isset($tanque['diametro']) ? (float)$tanque['diametro'] : 0;
+  if ($h > 0 && $d > 0) {
+      $r = $d / 2;
+      return M_PI * $r * $r * $h / 1000;
+  }
+  return null;
+}
+function eva_tanque_advertencia(array $tanque): ?string {
+  $cap = isset($tanque['capacidad_litros']) ? (float)$tanque['capacidad_litros'] : 0;
+  $vol = isset($tanque['volumen_util']) ? (float)$tanque['volumen_util'] : 0;
+  $geo = eva_tanque_volumen_geometrico($tanque);
+  $msgs = [];
+  if ($cap > 0 && $vol > 0 && $cap != $vol) {
+      $diff = abs($cap - $vol) / max($cap, $vol);
+      if ($diff > 0.15) $msgs[] = "capacidad_litros ({$cap} L) y volumen_util ({$vol} L) difieren " . round($diff*100) . "%";
+  }
+  $ref = $cap > 0 ? $cap : ($vol > 0 ? $vol : 0);
+  if ($geo !== null && $ref > 0) {
+      $diff2 = abs($geo - $ref) / max($geo, $ref);
+      if ($diff2 > 0.25) $msgs[] = "volumen geométrico (" . round($geo,1) . " L por Ø" . ($tanque['diametro']??'?') . "×h" . ($tanque['altura_cm']??'?') . " cm) y capacidad de referencia ({$ref} L) difieren " . round($diff2*100) . "% - revisar altura/diámetro/capacidad";
+  }
+  if ($cap > 0 && $cap < 100 && $geo !== null && $geo > 1000) {
+      $msgs[] = "capacidad muy pequeña ({$cap} L) incompatible con dimensiones físicas (geom ~" . round($geo) . " L)";
+  }
+  return $msgs ? implode(' | ', $msgs) : null;
+}
+function eva_calcular_pct(array $tanque, array $med): int {
+  $cap = eva_tanque_capacidad_efectiva($tanque);
+  $altura = (float)($tanque['altura_cm'] ?? 0);
+  if ($cap > 0 && isset($med['litros']) && is_numeric($med['litros'])) {
+      $lit = (float)$med['litros'];
+      if ($lit > 0 || (isset($med['porcentaje']) && (float)$med['porcentaje']==0 && $lit==0)) {
+          return max(0, min(100, (int)round($lit / $cap * 100)));
+      }
+  }
+  if (isset($med['porcentaje']) && is_numeric($med['porcentaje'])) {
+      return max(0, min(100, (int)round((float)$med['porcentaje'])));
+  }
+  if ($altura > 0) {
+      if (isset($med['nivel_cm']) && is_numeric($med['nivel_cm'])) {
+          $nivel = (float)$med['nivel_cm'];
+          if ($nivel > 0) return max(0, min(100, (int)round($nivel / $altura * 100)));
+          if (isset($med['distancia_cm']) && is_numeric($med['distancia_cm'])) {
+              $nivel2 = $altura - (float)$med['distancia_cm'];
+              return max(0, min(100, (int)round($nivel2 / $altura * 100)));
+          }
+          return 0;
+      }
+      if (isset($med['distancia_cm']) && is_numeric($med['distancia_cm'])) {
+          $nivel = $altura - (float)$med['distancia_cm'];
+          return max(0, min(100, (int)round($nivel / $altura * 100)));
+      }
+  }
+  if ($cap > 0 && isset($med['litros']) && is_numeric($med['litros'])) {
+      return max(0, min(100, (int)round((float)$med['litros'] / $cap * 100)));
+  }
+  return 0;
+}
+function eva_calcular_litros(array $tanque, array $med, ?int $pctOverride = null): float {
+  $cap = eva_tanque_capacidad_efectiva($tanque);
+  if ($cap <= 0) return 0;
+  $pct = $pctOverride !== null ? $pctOverride : eva_calcular_pct($tanque, $med);
+  if (isset($med['litros']) && is_numeric($med['litros'])) {
+      $litrosMed = (float)$med['litros'];
+      $esperado = $cap * $pct / 100;
+      if ($esperado > 0 && abs($litrosMed - $esperado) / max($esperado,1) > 0.10) {
+          return round($esperado, 2);
+      }
+      return round(max(0, min($cap, $litrosMed)), 2);
+  }
+  return round($cap * $pct / 100, 2);
 }
 function eva_estado_texto(int $pct): array {
- if($pct<=10) return ['Crítico','Nivel de agua peligrosamente bajo','alert'];
- if($pct>=90) return ['Sobrecarga','Nivel de agua por encima del máximo','warning'];
- if($pct<=25) return ['Bajo','Nivel de agua bajo, considerar recarga','warning'];
- return ['Normal','Todo funciona correctamente',''];
+  $pct = max(0, min(100, $pct));
+  if ($pct >= 100) return ['Completo','Tanque al 100% de capacidad',''];
+  if ($pct >= 80) return ['Alto','Nivel alto','warning'];
+  if ($pct >= 40) return ['Normal','Todo funciona correctamente',''];
+  if ($pct >= 20) return ['Bajo','Nivel de agua bajo, considerar recarga','warning'];
+  return ['Crítico','Nivel de agua peligrosamente bajo','alert'];
 }
 function eva_alert_tipo_map(string $tipo): array {
  $t=strtoupper($tipo); return match($t) {

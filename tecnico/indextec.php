@@ -22,7 +22,6 @@ function mantBadgeEstado($estado){
     return '<span class="badge '.$d['cls'].'">'.$d['txt'].'</span>';
 }
 
-// --- STATS ---
 $rSensores = $pdo->query("SELECT COUNT(*) AS total FROM sensores s INNER JOIN dispositivos d ON s.id_dispositivo = d.id_dispositivo INNER JOIN instalaciones i ON i.id_dispositivo = d.id_dispositivo WHERE i.id_tecnico = {$id_tecnico}");
 $sensoresTotal = $rSensores->fetchColumn();
 
@@ -41,19 +40,16 @@ $mantPendientes = $rMantPend->fetchColumn();
 $rDispositivos = $pdo->query("SELECT COUNT(DISTINCT d.id_dispositivo) AS total FROM dispositivos d INNER JOIN instalaciones i ON i.id_dispositivo = d.id_dispositivo WHERE i.id_tecnico = {$id_tecnico}");
 $dispositivosTotal = $rDispositivos->fetchColumn();
 
-// --- DONUT: sensores por estado ---
 $rDonut = $pdo->query("SELECT s.estado, COUNT(*) AS cnt FROM sensores s INNER JOIN dispositivos d ON s.id_dispositivo = d.id_dispositivo INNER JOIN instalaciones i ON i.id_dispositivo = d.id_dispositivo WHERE i.id_tecnico = {$id_tecnico} GROUP BY s.estado");
 $donutData = $rDonut->fetchAll(PDO::FETCH_KEY_PAIR);
 $donutActivo = $donutData['ACTIVO'] ?? 0;
 $donutInactivo = $donutData['INACTIVO'] ?? 0;
 $donutFalla = $donutData['FALLA'] ?? 0;
 
-// --- MANTENIMIENTOS PRÓXIMOS ---
 $rMantProx = $pdo->prepare("SELECT m.descripcion, m.fecha_programada, m.estado, m.tipo, t.nombre AS tanque, ed.nombre AS edificio FROM mantenimientos m INNER JOIN dispositivos d ON m.id_dispositivo = d.id_dispositivo LEFT JOIN tanques t ON d.id_tanque = t.id_tanque LEFT JOIN edificios ed ON t.id_edificio = ed.id_edificio WHERE m.id_tecnico = ? AND m.estado IN ('PENDIENTE','EN_PROCESO') ORDER BY m.fecha_programada ASC LIMIT 5");
 $rMantProx->execute([$id_tecnico]);
 $mantProximos = $rMantProx->fetchAll(PDO::FETCH_ASSOC);
 
-// --- ACTIVIDAD RECIENTE ---
 $rLog = $pdo->prepare("SELECT l.accion, l.detalle, l.fecha_hora FROM log_actividad l WHERE l.id_usuario = ? ORDER BY l.fecha_hora DESC LIMIT 5");
 $rLog->execute([$id_tecnico]);
 $logActividad = $rLog->fetchAll(PDO::FETCH_ASSOC);
@@ -72,7 +68,7 @@ $pctFalla = $totalDonut > 0 ? 100 - $pctActivo - $pctInactivo : 0;
 <link rel="stylesheet" href="css/tecnico.css">
 </head>
 <body>
-<!-- BARRA LATERAL -->
+
 <aside class="sidebar">
  <a href="indextec.php" class="sidebar-logo">
   <svg class="logo-svg" width="37" height="53" viewBox="0 0 37 53" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -143,30 +139,30 @@ $pctFalla = $totalDonut > 0 ? 100 - $pctActivo - $pctInactivo : 0;
     <div class="stat-card-icon blue"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></div>
     <div class="stat-card-info">
      <div class="stat-card-title">Sensores activos</div>
-     <div class="stat-card-value"><?php echo $sensoresTotal; ?></div>
+      <div class="stat-card-value" id="tecStatSensores"><?php echo $sensoresTotal; ?></div>
     </div>
    </div>
    <div class="stat-card anim-bounce1">
     <div class="stat-card-icon green"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v16"/></svg></div>
     <div class="stat-card-info">
      <div class="stat-card-title">Instalaciones</div>
-     <div class="stat-card-value"><?php echo $instalacionesTotal; ?></div>
-     <div class="stat-card-sub">Programadas: <?php echo $instPendientes; ?></div>
+      <div class="stat-card-value" id="tecStatInstalaciones"><?php echo $instalacionesTotal; ?></div>
+      <div class="stat-card-sub" id="tecStatInstalacionesSub">Programadas: <?php echo $instPendientes; ?></div>
     </div>
    </div>
    <div class="stat-card anim-bounce2">
     <div class="stat-card-icon orange"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/></svg></div>
     <div class="stat-card-info">
      <div class="stat-card-title">Mantenimientos</div>
-     <div class="stat-card-value"><?php echo $mantTotal; ?></div>
-     <div class="stat-card-sub">Pendientes: <?php echo $mantPendientes; ?></div>
+      <div class="stat-card-value" id="tecStatMantenimientos"><?php echo $mantTotal; ?></div>
+      <div class="stat-card-sub" id="tecStatMantSub">Pendientes: <?php echo $mantPendientes; ?></div>
     </div>
    </div>
    <div class="stat-card anim-bounce3">
     <div class="stat-card-icon cyan"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><line x1="9" y1="1" x2="9" y2="4"/><line x1="15" y1="1" x2="15" y2="4"/><line x1="9" y1="20" x2="9" y2="23"/><line x1="15" y1="20" x2="15" y2="23"/><line x1="20" y1="9" x2="23" y2="9"/><line x1="20" y1="14" x2="23" y2="14"/><line x1="1" y1="9" x2="4" y2="9"/><line x1="1" y1="14" x2="4" y2="14"/></svg></div>
     <div class="stat-card-info">
      <div class="stat-card-title">Sistemas EVA</div>
-     <div class="stat-card-value"><?php echo $dispositivosTotal; ?></div>
+      <div class="stat-card-value" id="tecStatDispositivos"><?php echo $dispositivosTotal; ?></div>
      <div class="stat-card-sub">Operativos</div>
     </div>
    </div>
@@ -256,6 +252,7 @@ $pctFalla = $totalDonut > 0 ? 100 - $pctActivo - $pctInactivo : 0;
   </div>
  </div>
 </div>
-<script src="js/tecnico.js"></script>
+ <script src="js/tecnico.js"></script>
+<script src="js/tiempo-real.js?v=3"></script>
 </body>
 </html>

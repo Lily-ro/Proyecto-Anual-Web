@@ -1,6 +1,5 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 
-/* VARIABLES DE COLOR (tema oscuro por defecto) */
 :root {
  --bg:#1a1f2e; --bg2:#222838; --bg3:#1e2433; --bg4:#2a3042;
  --tx:#c8cdd5; --tx2:#e0e4ea; --tx3:#fff; --tx4:#7a829a; --tx5:#4a5068;
@@ -12,7 +11,7 @@
  --sbbg:#f5f7fa; --sbbd:#e0e3e8; --sbac:#e8edf4;
  --gbg:#2a3042; --gtk:#4a5068; --glb:#4a5068;
 }
-/*TEMA CLARO  */
+
 body.light-theme {
  --bg:#f0f2f5; --bg2:#fff; --bg3:#fff; --bg4:#e0e3e8;
  --tx:#1a1f2e; --tx2:#1a1f2e; --tx3:#1a1f2e; --tx4:#6b7280; --tx5:#9ca3af;
@@ -25,7 +24,6 @@ body.light-theme {
  --gbg:#e0e3e8; --gtk:#d1d5db; --glb:#6b7280;
 }
 
-/*  RESET Y KEYFRAMES  */
 *{margin:0;padding:0;box-sizing:border-box}
 @keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
 @keyframes floatSoft{0%,100%{transform:translateY(0)rotate(0)}25%{transform:translateY(-3px)rotate(-1deg)}75%{transform:translateY(2px)rotate(1deg)}}
@@ -42,7 +40,6 @@ body.light-theme {
 @keyframes pulseGlowGreen{0%,100%{box-shadow:0 0 6px rgba(76,175,80,0.15)}50%{box-shadow:0 0 16px rgba(76,175,80,0.35)}}
 @keyframes alertSlideIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
 
-/*  CLASES DE ANIMACION */
 .anim-float{animation:float 3s ease-in-out infinite}
 .anim-float-slow{animation:float 4s ease-in-out infinite}
 .anim-pulse{animation:pulse 2s ease-in-out infinite}
@@ -62,13 +59,11 @@ body.light-theme {
 .anim-slide6{animation:slideInLeft .4s .25s backwards}
 .hidden{display:none}
 
-/*  LAYOUT GENERAL */
 body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--tx);display:flex;min-height:100vh;overflow-x:hidden;transition:background .3s,color .3s}
 .main{flex:1;margin-left:200px;display:flex;flex-direction:column}
 .view{display:none;padding:24px 30px;flex:1}
 .view.active{display:block}
 
-/* BARRA LATERAL  */
 .sidebar{width:200px;min-height:100vh;background:var(--bg3);display:flex;flex-direction:column;padding:24px 0;position:fixed;top:0;left:0;bottom:0;z-index:10;border-right:1px solid var(--bd)}
 .sidebar-logo{padding:0 24px;margin-bottom:40px;display:flex;align-items:center;gap:8px;text-decoration:none}
 .sidebar-logo svg,.sidebar-logo .logo-svg{width:24px;height:auto}
@@ -88,7 +83,6 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--tx);display
 .device-status .wifi-icon{width:18px;height:18px;color:var(--gn)}
 .device-status .status-text{font-size:13px;color:var(--gn);font-weight:500}
 
-/*  HEADER  */
 .header{display:flex;align-items:center;justify-content:space-between;padding:16px 30px;background:var(--bg3);border-bottom:1px solid var(--bd)}
 .header-left,.header-right{display:flex;align-items:center;gap:16px}
 .menu-btn{background:none;border:none;color:var(--tx4);font-size:20px;cursor:pointer;display:flex;align-items:center}
@@ -110,12 +104,10 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--tx);display
 .user-menu-item:hover{background:var(--hvr)}
 .user-menu-item svg{flex-shrink:0;opacity:.7}
 
-/*  TARJETAS  */
 .card{background:var(--bg2);border-radius:16px;padding:24px;border:1px solid var(--bd);transition:transform .3s,box-shadow .3s}
 .card:hover{transform:translateY(-2px);box-shadow:0 8px 30px rgba(0,0,0,.15)}
 .card-title{font-size:14px;font-weight:500;color:var(--tx2);margin-bottom:20px}
 
-/*  VISTA TANQUE */
 .tank-view-grid{display:grid;grid-template-columns:1fr 340px;grid-template-rows:auto auto;gap:20px}
 .tank-card{grid-row:1/3}
 .tank-visual{display:flex;align-items:center;gap:40px;margin-bottom:24px;padding:10px 0}
@@ -135,7 +127,6 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--tx);display
 .estado-box .estado-text.warning{color:var(--or)}
 .last-update{font-size:12px;color:var(--tx5);margin-top:12px}
 
-/* MEDIDOR DE TEMPERATURA  */
 .gauge-card{display:flex;flex-direction:column}
 .gauge-card .card-title,.chart-card .card-title::before{display:flex;align-items:center;gap:6px}
 .gauge-card .card-title::before{content:'';display:inline-block;width:4px;height:14px;background:var(--ac);border-radius:2px}
@@ -144,7 +135,6 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--tx);display
 .gauge-value-text{position:absolute;bottom:16px;left:50%;transform:translateX(-50%);font-size:28px;font-weight:700;color:var(--tx2)}
 .chart-card .card-title::before{content:'';display:inline-block;width:4px;height:14px;background:var(--ac);border-radius:2px;margin-right:8px;vertical-align:middle}
 
-/*  GRAFICO DE BARRAS */
 .chart-container{height:200px;display:flex;align-items:flex-end;gap:12px;padding:10px 0;position:relative}
 .chart-y-axis{position:absolute;left:0;top:0;bottom:30px;display:flex;flex-direction:column;justify-content:space-between;pointer-events:none}
 .chart-y-axis span{font-size:10px;color:var(--tx5);width:28px;text-align:right}
@@ -155,7 +145,6 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--tx);display
 .bar-bottom{background:linear-gradient(180deg,#7986cb,#5c6bc0);transition:height .8s cubic-bezier(.4,0,.2,1)}
 .bar-label{font-size:10px;color:var(--tx5);margin-top:8px;text-align:center}
 
-/*  HISTORIAL  */
 .history-view{padding:24px 30px}
 .history-card{background:var(--bg2);border-radius:16px;padding:28px 32px;border:1px solid var(--bd)}
 .history-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;flex-wrap:wrap;gap:12px}
@@ -181,7 +170,6 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--tx);display
 .history-stat-value.blue{color:var(--ac2)}
 .history-stat-sub{font-size:11px;color:var(--tx5);margin-top:6px}
 
-/*  ALERTAS */
 .alertas-card{background:var(--bg2);border-radius:16px;padding:28px 32px;border:1px solid var(--bd)}
 .alertas-header{margin-bottom:20px}
 .alertas-header-top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:4px;flex-wrap:wrap;gap:8px}
@@ -213,7 +201,6 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--tx);display
 .alert-badge.en-revision{background:rgba(44,108,239,0.12);color:var(--ac)}
 .alert-badge.resuelta{background:rgba(76,175,80,0.12);color:var(--gn2)}
 
-/*  CONFIGURACION  */
 .config-page-title{font-size:18px;font-weight:600;color:var(--tx2);margin-bottom:4px}
 .config-page-subtitle{font-size:13px;color:var(--tx4);margin-bottom:24px}
 .config-card{background:var(--bg2);border-radius:16px;padding:28px 32px;border:1px solid var(--bd);max-width:520px}
@@ -238,7 +225,6 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--tx);display
 .slider-input::-moz-range-thumb{width:18px;height:18px;border-radius:50%;background:#fff;border:3px solid var(--ac);cursor:pointer;box-shadow:0 2px 6px rgba(0,0,0,.3)}
 .slider-value{font-size:14px;font-weight:700;color:var(--tx2);min-width:36px;text-align:right}
 
-/* VISTA RESUMEN  */
 .resumen-grid{display:grid;grid-template-columns:1fr 1fr 1fr;grid-template-rows:auto auto;gap:20px}
 .resumen-gauge-card{grid-column:1;grid-row:1}
 .resumen-gauge-card .card-title{font-size:15px;font-weight:600;margin-bottom:10px}
@@ -280,12 +266,8 @@ body.light-theme .resumen-gauge-bg{stroke:var(--gbg)}
 body.light-theme .resumen-gauge-ticks{stroke:var(--gtk)}
 body.light-theme .resumen-gauge-labels{fill:var(--glb)}
 
-/* ====== TEMA CLARO - SVG Y ELEMENTOS HARDCODEADOS ====== */
-
-/* Tarjetas - sombra suave en modo claro */
 body.light-theme .card:hover{box-shadow:0 8px 30px rgba(0,0,0,.06)}
 
-/* Gauge del tanque */
 body.light-theme .gauge-bg{stroke:#e0e3e8}
 body.light-theme .gauge-arc{stroke:var(--ac)}
 body.light-theme .gauge-ticks line{stroke:#9ca3af}
@@ -293,7 +275,6 @@ body.light-theme .gauge-labels text{fill:#6b7280}
 body.light-theme .gauge-value-text{color:#1a1f2e}
 body.light-theme .gauge-card .gauge-wrapper{border-color:var(--ac);background:rgba(21,101,192,0.03)}
 
-/* Tanque visual */
 body.light-theme .tank-body{stroke:#d1d5db}
 body.light-theme .tank-water{fill:#42a5f5}
 body.light-theme .tank-water-shine{fill:rgba(255,255,255,0.3)}
@@ -302,7 +283,6 @@ body.light-theme .tank-label{color:#6b7280}
 body.light-theme .tank-volume{color:#1a1f2e}
 body.light-theme .tank-capacity{color:#6b7280}
 
-/* Estado del tanque */
 body.light-theme .estado-box{background:#f5f7fa;border-color:#e0e3e8}
 body.light-theme .estado-box h4{color:#1a1f2e}
 body.light-theme .estado-text{color:#2e7d32}
@@ -311,13 +291,11 @@ body.light-theme .estado-text.warning{color:#e65100}
 body.light-theme .estado-desc{color:#6b7280}
 body.light-theme .last-update{color:#9ca3af}
 
-/* Grafico de barras */
 body.light-theme .bar-top{background:linear-gradient(180deg,#f48fb1,#e57373)}
 body.light-theme .bar-bottom{background:linear-gradient(180deg,#7986cb,#5c6bc0)}
 body.light-theme .bar-label{color:#6b7280}
 body.light-theme .chart-y-axis span{color:#9ca3af}
 
-/* Historial - light theme */
 body.light-theme .grid-line{stroke:#e0e3e8}
 body.light-theme .axis-label{fill:#6b7280}
 body.light-theme .data-line{stroke:#1565c0}
@@ -327,7 +305,6 @@ body.light-theme .history-stat:hover{box-shadow:0 6px 20px rgba(0,0,0,.06)}
 body.light-theme .history-tab{color:#6b7280}
 body.light-theme .history-tab:hover:not(.active){color:#1a1f2e}
 
-/* Alertas */
 body.light-theme .alert-item{background:#fff;border-color:#e0e3e8}
 body.light-theme .alert-item:hover{background:#f5f7fa;border-color:#d1d5db}
 body.light-theme .alertas-filter:hover:not(.active){border-color:#d1d5db}
@@ -339,7 +316,6 @@ body.light-theme .alert-badge.activo{background:rgba(230,81,0,0.1);color:#e65100
 body.light-theme .alert-badge.en-revision{background:rgba(21,101,192,0.1);color:#1565c0}
 body.light-theme .alert-badge.resuelta{background:rgba(46,125,50,0.1);color:#2e7d32}
 
-/* Configuracion */
 body.light-theme .mt-step-num{border-color:var(--ac);color:var(--ac);background:transparent}
 body.light-theme .mt-step:hover .mt-step-num{background:var(--ac);color:#fff}
 body.light-theme .mt-upload{border-color:#d1d5db}
@@ -360,13 +336,11 @@ body.light-theme .slider-input::-moz-range-thumb{background:#fff;border-color:va
 body.light-theme .config-threshold-icon.orange{background:rgba(230,81,0,0.08)}
 body.light-theme .config-threshold-icon.red{background:rgba(198,40,40,0.08)}
 
-/* Resumen - valores rapidos */
 body.light-theme .resumen-rapido-item{border-color:#e0e3e8}
 body.light-theme .resumen-rapido-item:hover{background:#f5f7fa}
 body.light-theme .resumen-chart-select{background:#f5f7fa;border-color:#e0e3e8}
 body.light-theme .resumen-chart-select option{background:#fff}
 
-/* Resumen - estado y temperatura */
 body.light-theme .resumen-estado-box{background:#f5f7fa;border-color:#e0e3e8}
 body.light-theme .resumen-estado-value{color:#2e7d32}
 body.light-theme .resumen-estado-value.warning{color:#e65100}
@@ -376,13 +350,10 @@ body.light-theme .resumen-temp-icon{background:rgba(21,101,192,0.08)}
 body.light-theme .resumen-temp-value{color:#1a1f2e}
 body.light-theme .resumen-temp-label{color:#6b7280}
 
-/* User menu */
 body.light-theme .user-menu{box-shadow:0 8px 30px rgba(0,0,0,.1)}
 
-/* Dispositivo status glow */
 body.light-theme .device-status{background:rgba(46,125,50,0.06);border-color:rgba(46,125,50,0.12)}
 
-/* Mantenimiento */
 .mt-page-title{font-size:20px;font-weight:700;color:var(--tx3);margin-bottom:6px;padding-left:14px;border-left:3px solid var(--ac)}
 .mt-page-subtitle{font-size:13px;color:var(--tx4);margin-bottom:16px;line-height:1.6;padding-left:14px}
 .mt-respuestas-btn{display:inline-flex;align-items:center;gap:8px;padding:8px 20px;border:1px solid var(--bd3);background:transparent;color:var(--tx4);font-size:13px;font-weight:500;font-family:inherit;border-radius:8px;cursor:pointer;transition:all .25s;margin-bottom:24px}
@@ -426,10 +397,8 @@ body.light-theme .device-status{background:rgba(46,125,50,0.06);border-color:rgb
 .mt-info-btn{background:none;border:1px solid var(--bd3);cursor:pointer;color:var(--ac);width:32px;height:32px;border-radius:8px;transition:all .2s;display:inline-flex;align-items:center;justify-content:center}
 .mt-info-btn:hover{background:var(--ac);color:#fff;border-color:var(--ac)}
 
-/* Menu hamburguesa */
 body.light-theme .menu-btn{color:#6b7280}
 
-/* Perfil (paginas de perfil) */
 body.light-theme .profile-avatar{color:#fff}
 body.light-theme .profile-field{border-color:#e0e3e8}
 body.light-theme .content-card{background:#fff;border-color:#e0e3e8}

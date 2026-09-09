@@ -29,27 +29,21 @@ try {
     if ($tanque) {
         $hasRealData = true;
         $idTanqueSel = (int)($tanque['id_tanque'] ?? 0);
-        $capacidad = (int)($tanque['capacidad_litros'] ?? 0);
+        $capacidad = (int)round(eva_tanque_capacidad_efectiva($tanque));
         $tanqueNombre = $tanque['nombre'] ?? null;
         try{ eva_procesar_tanque($pdo, $idTanqueSel); }catch(Throwable $e){}
         $deviceStatus = eva_device_status($pdo, $idTanqueSel);
         $med = eva_latest_medicion($pdo, $idTanqueSel);
         if ($med) {
-            if (isset($med['porcentaje']) && is_numeric($med['porcentaje'])) $pct = (int)round((float)$med['porcentaje']);
-            elseif (isset($med['distancia_cm']) && isset($tanque['altura_cm']) && $tanque['altura_cm']>0) {
-                $nivel = (float)$med['nivel_cm'];
-                if(empty($nivel) && isset($med['distancia_cm'])) $nivel = (float)$tanque['altura_cm'] - (float)$med['distancia_cm'];
-                if($nivel) $pct = max(0,min(100,(int)round($nivel / (float)$tanque['altura_cm'] *100)));
-            }
+            $pct = eva_calcular_pct($tanque, $med);
+            $litros = (int)round(eva_calcular_litros($tanque, $med, $pct));
             if (isset($med['temperatura']) && is_numeric($med['temperatura'])) $temp = (int)round((float)$med['temperatura']);
             if (!empty($med['fecha_hora'])) {
                 $ts=strtotime($med['fecha_hora']);
                 if($ts) $lastUpdate=date('d/m/Y H:i',$ts);
             }
-            if(isset($med['litros']) && is_numeric($med['litros']) && (float)$med['litros']>0) $litros=(int)round((float)$med['litros']);
         }
         $pct = max(0,min(100,(int)$pct));
-        if($litros===0) $litros = (int)round($capacidad * $pct / 100);
         [$estadoTexto, $estadoDesc, $estadoClass] = eva_estado_texto($pct);
         try {
             $st=$pdo->prepare("SELECT porcentaje, fecha_hora FROM mediciones m INNER JOIN sensores s ON s.id_sensor=m.id_sensor INNER JOIN dispositivos d ON d.id_dispositivo=s.id_dispositivo WHERE d.id_tanque=:id ORDER BY m.fecha_hora DESC LIMIT 7");
@@ -73,7 +67,7 @@ try {
 <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-<!--BARRA LATERAL-->
+
 <aside class="sidebar">
  <a href="indexcli.php" class="sidebar-logo anim-float">
   <svg class="logo-svg" width="37" height="53" viewBox="0 0 37 53" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -209,6 +203,6 @@ window.EVA_TANQUE = <?php echo json_encode([
     'idTanque' => $idTanqueSel
 ], JSON_UNESCAPED_UNICODE); ?>;
 </script>
-<script src="js/script.js?v=2"></script><script src="js/tiempo-real.js?v=2"></script>
+<script src="js/script.js?v=3"></script><script src="js/tiempo-real.js?v=3"></script>
 </body>
 </html>

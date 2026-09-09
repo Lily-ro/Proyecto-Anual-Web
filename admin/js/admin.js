@@ -1,4 +1,4 @@
-﻿// TEMA
+﻿
 const themeToggle = document.getElementById('themeToggle');
 let isLight = localStorage.getItem('eva-theme') === 'light';
 if (themeToggle) {
@@ -8,7 +8,6 @@ if (themeToggle) {
  themeToggle.addEventListener('click', () => { isLight = !isLight; localStorage.setItem('eva-theme', isLight ? 'light' : 'dark'); theme(); });
 }
 
-// DROPDOWN USUARIO
 const userDropdown = document.getElementById('userDropdown');
 const userMenu = document.getElementById('userMenu');
 if (userDropdown && userMenu) {
@@ -17,7 +16,6 @@ if (userDropdown && userMenu) {
  userMenu.addEventListener('click', (e) => { e.stopPropagation(); });
 }
 
-// SIDEBAR SUBMENUS
 document.querySelectorAll('.sidebar nav li[data-toggle]').forEach(li => {
  li.addEventListener('click', () => {
   li.classList.toggle('open');
@@ -26,7 +24,6 @@ document.querySelectorAll('.sidebar nav li[data-toggle]').forEach(li => {
  });
 });
 
-// TABS
 document.querySelectorAll('.tabs').forEach(tabsEl => {
  tabsEl.querySelectorAll('.tab').forEach(tab => {
   tab.addEventListener('click', () => {
@@ -41,7 +38,6 @@ document.querySelectorAll('.tabs').forEach(tabsEl => {
  });
 });
 
-// DONUT CHART
 function drawDonut() {
  const svg = document.getElementById('donutSvg');
  if (!svg) return;
@@ -73,7 +69,6 @@ function drawDonut() {
  });
 }
 
-// LINE CHART
 function drawLineChart() {
  const svg = document.getElementById('lineChart');
  if (!svg) return;
@@ -129,7 +124,6 @@ drawNivelDiaChart();
 drawNivelEdifChart();
 drawConsumoChart();
 
-// Redibujar graficos al cambiar tema
 if (themeToggle) {
  themeToggle.addEventListener('click', () => {
   setTimeout(drawLineChart, 100);
@@ -139,7 +133,6 @@ if (themeToggle) {
  });
 }
 
-// LINE CHART - Nivel promedio de agua por dia
 function drawNivelDiaChart() {
  const svg = document.getElementById('nivelDiaChart');
  if (!svg) return;
@@ -181,7 +174,6 @@ function drawNivelDiaChart() {
  }, 100);
 }
 
-// HBAR CHART - Nivel promedio por edificio
 function drawNivelEdifChart() {
  const svg = document.getElementById('nivelEdifChart');
  if (!svg) return;
@@ -218,7 +210,6 @@ function drawNivelEdifChart() {
  }, 100);
 }
 
-// BAR CHART - Consumo semanal
 function drawConsumoChart() {
  const svg = document.getElementById('consumoChart');
  if (!svg) return;
@@ -259,7 +250,6 @@ function drawConsumoChart() {
  }, 100);
 }
 
-// ============ AUDITORIAS ============
 function filtrarAuditorias() {
  alert('Filtros aplicados (funcionalidad pendiente de backend)');
 }
@@ -270,7 +260,6 @@ function limpiarFiltros() {
  document.getElementById('auditType').value = '';
 }
 
-// ============ TANQUES - MODAL ============
 function abrirModalTanque() {
  document.getElementById('modalTanqueTitle').textContent = 'Agregar Tanque';
  document.getElementById('tanqueId').value = '';
@@ -317,7 +306,6 @@ function eliminarTanque(id) {
  }
 }
 
-// ============ COMPRAS ============
 function aprobarCompra(id) {
  if (confirm(`Aprobar la compra ${id}?`)) {
   alert(`Compra ${id} aprobada (funcionalidad pendiente de backend)`);
@@ -337,7 +325,6 @@ function cambiarEstado(id, nuevoEstado) {
  }
 }
 
-// ============ REPORTES ============
 function drawBarChart() {
  const svg = document.getElementById('barChart');
  if (!svg) return;
@@ -455,7 +442,6 @@ if (themeToggle) {
  });
 }
 
-// ============ USUARIOS - MODAL ============
 function abrirModalUsuario() {
  document.getElementById('modalUsuarioTitle').textContent = 'Nuevo usuario';
  document.getElementById('usuarioId').value = '';
@@ -536,7 +522,6 @@ function toggleEstado(id, estadoActual) {
  }
 }
 
-// ============ USUARIOS - FILTROS ============
 (function() {
  const search = document.getElementById('userSearch');
  const filterRol = document.getElementById('filterRol');

@@ -30,27 +30,24 @@ try {
     if ($tanque) {
         $hasRealData = true;
         $idTanqueSel = (int)($tanque['id_tanque'] ?? $tanque['id'] ?? 0);
-        $capacidad = (int)($tanque['capacidad_litros'] ?? $tanque['capacidad'] ?? 0);
+        $capacidad = (int)round(eva_tanque_capacidad_efectiva($tanque));
         $tanqueNombre = $tanque['nombre'] ?? null;
         try{ eva_procesar_tanque($pdo, $idTanqueSel); }catch(Throwable $e){ try{ eva_sincronizar_consumos($pdo, $idTanqueSel); }catch(Throwable $ex){} try{ eva_sincronizar_alertas($pdo, $idTanqueSel); }catch(Throwable $ex){} }
         $deviceStatus = eva_device_status($pdo, $idTanqueSel);
 
         $med = eva_latest_medicion($pdo, $idTanqueSel);
         if ($med) {
-            if (isset($med['porcentaje']) && is_numeric($med['porcentaje'])) $pct = (int)round((float)$med['porcentaje']);
-            elseif (isset($med['nivel_cm']) && is_numeric($med['nivel_cm']) && isset($tanque['altura_cm']) && $tanque['altura_cm']>0) $pct = max(0, min(100, (int)round((float)$med['nivel_cm']/ (float)$tanque['altura_cm']*100)));
-            elseif (isset($med['distancia_cm']) && isset($tanque['altura_cm']) && $tanque['altura_cm']>0) { $nivel=(float)$tanque['altura_cm']-(float)$med['distancia_cm']; $pct=max(0,min(100,(int)round($nivel/(float)$tanque['altura_cm']*100))); }
+            $pct = eva_calcular_pct($tanque, $med);
             if (isset($med['temperatura']) && is_numeric($med['temperatura'])) $temp = (int)round((float)$med['temperatura']);
-            if(isset($med['litros']) && is_numeric($med['litros'])) $disponible=(int)round((float)$med['litros']);
+            $disponible = (int)round(eva_calcular_litros($tanque, $med, $pct));
         }
         $pct = max(0, min(100, (int)$pct));
-        if($disponible===0) $disponible = (int)round($capacidad * $pct / 100);
         $consumoHoy = (int)round(eva_consumo_hoy($pdo, $idTanqueSel));
         $promedio = (int)round(eva_consumo_promedio($pdo, $idTanqueSel));
 
         [$estadoTexto, , $estadoClass] = eva_estado_texto($pct);
 
-        // Serie de consumo real (7 días) - solo datos de BD, sin demo
+        
         $serie = eva_consumo_serie($pdo, $idTanqueSel, 'semana');
         $hasData = array_sum($serie) > 0;
         if ($hasData) {
@@ -77,7 +74,7 @@ try {
 <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-<!--BARRA LATERAL-->
+
 <aside class="sidebar">
  <a href="indexcli.php" class="sidebar-logo anim-float">
   <svg class="logo-svg" width="37" height="53" viewBox="0 0 37 53" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -106,7 +103,7 @@ try {
 </aside>
 
 <div class="main">
- <!-- HEADER-->
+ 
  <header class="header">
   <div class="header-left">
    <button class="menu-btn"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#7a829a" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button>
@@ -140,7 +137,7 @@ try {
    </div>
   </header>
 
- <!-- VISTA RESUMEN -->
+ 
  <div class="view active" id="viewResumen">
   <div class="resumen-grid">
    <div class="card resumen-gauge-card anim-bounce0">
@@ -190,7 +187,7 @@ try {
  </div>
 </div>
 <script>
-// Inyectar datos reales de MySQL para que script.js los use en lugar de valores hardcodeados
+
 window.EVA_RESUMEN = <?php echo json_encode([
     'pct' => (int)$pct,
     'temp' => (int)$temp,
@@ -204,6 +201,6 @@ window.EVA_RESUMEN = <?php echo json_encode([
     'idTanque' => $idTanqueSel
 ], JSON_UNESCAPED_UNICODE); ?>;
 </script>
-<script src="js/script.js?v=2"></script><script src="js/tiempo-real.js?v=2"></script>
+<script src="js/script.js?v=3"></script><script src="js/tiempo-real.js?v=3"></script>
 </body>
 </html>

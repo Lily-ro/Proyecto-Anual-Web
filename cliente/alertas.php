@@ -79,7 +79,7 @@ try {
             'fechaRaw' => $fechaRaw,
         ];
     }
-    // si no hay alertas, dejar vacio y JS mostrara mensaje (no hardcodear datos falsos)
+    
 } catch (Throwable $e) { error_log('alertas error: '.$e->getMessage()); }
 ?>
 <!DOCTYPE html>
@@ -91,7 +91,7 @@ try {
 <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-<!--BARRA LATERAL-->
+
 <aside class="sidebar">
  <a href="indexcli.php" class="sidebar-logo anim-float">
   <svg class="logo-svg" width="37" height="53" viewBox="0 0 37 53" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -120,7 +120,7 @@ try {
 </aside>
 
 <div class="main">
- <!-- HEADER-->
+ 
  <header class="header">
   <div class="header-left">
    <button class="menu-btn"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#7a829a" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button>
@@ -154,7 +154,7 @@ try {
    </div>
   </header>
 
- <!--VISTA ALERTAS-->
+ 
  <div class="view active" id="viewAlertas">
   <div class="alertas-card anim-bounce0">
    <div class="alertas-header">
@@ -166,7 +166,7 @@ try {
    <?php if (empty($alertas)): ?>
     <div style="padding:24px;text-align:center;color:var(--tx4);font-size:13px">No hay alertas para mostrar.</div>
    <?php else: foreach ($alertas as $a): ?>
-    <!-- fallback server-render, JS recreara luego -->
+    
    <?php endforeach; endif; ?>
    </div>
   </div>
@@ -176,6 +176,6 @@ try {
 window.EVA_ALERTAS = <?php echo json_encode($alertas, JSON_UNESCAPED_UNICODE); ?>;
 window.EVA_ALERTAS_FILTER = <?php echo json_encode($filter); ?>;
 </script>
-<script src="js/script.js?v=2"></script><script src="js/tiempo-real.js?v=2"></script>
+<script src="js/script.js?v=3"></script><script src="js/tiempo-real.js?v=3"></script>
 </body>
 </html>

@@ -113,7 +113,7 @@ body{background:#0b1120;min-height:100vh;display:flex;padding:30px;gap:30px}
 .form-group label{color:#c8d0dc;display:block;margin-bottom:8px;font-size:14px;font-weight:500}
 
 .input-wrap{position:relative}
-.input-wrap input{width:100%;padding:12px 40px 12px 14px;background:#0d1525;border:1px solid #1e2d44;border-radius:8px;color:white;font-size:14px;outline:none}
+.input-wrap input{width:100%;padding:12px 40px 12px 14px;background:#0d1525;border:1px solid
 .input-wrap input::placeholder{color:#4a5568}
 .input-wrap input:focus{border-color:#2563eb}
 
@@ -200,7 +200,7 @@ body{background:#0b1120;min-height:100vh;display:flex;padding:30px;gap:30px}
             </div>
             <div class="extras">
                 <label><input type="checkbox" name="recordar"> Recordarme</label>
-                <a href="recuperar.php">¿Olvidé mi contraseña?</a>
+                <a href="auth/recuperar.php">¿Olvidé mi contraseña?</a>
             </div>
             <button type="submit" class="btn-submit">Iniciar sesión</button>
         </form>

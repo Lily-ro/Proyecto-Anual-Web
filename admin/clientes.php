@@ -26,24 +26,24 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
    $provincia=trim($_POST['provincia']??'');
    if($nombre && $apellido && $dni && $email && $calle && $numero && $codigo_postal && $localidad && $provincia){
      try{
-       // verificar email no existe en usuarios ni clientes
+       
        $chk=$pdo->prepare("SELECT id_usuario FROM usuarios WHERE email=:e LIMIT 1");
        $chk->execute([':e'=>$email]);
        if($chk->fetch()){ echo '<script>alert("Email ya existe en usuarios");history.back();</script>'; exit; }
        $chk2=$pdo->prepare("SELECT id_cliente FROM clientes WHERE email=:e LIMIT 1");
        $chk2->execute([':e'=>$email]);
        if($chk2->fetch()){ echo '<script>alert("Email ya existe en clientes");history.back();</script>'; exit; }
-       // generar password segura
+       
         $passPlano = eva_generar_password(12);
         $hash = password_hash($passPlano, PASSWORD_DEFAULT);
         $pdo->beginTransaction();
-        // crear usuario con rol USUARIO
+        
         $pdo->prepare("INSERT INTO usuarios (nombre,apellido,email,password_hash,telefono,activo,id_rol,dni) VALUES (:n,:a,:e,:h,:t,1,(SELECT id_rol FROM roles WHERE nombre='USUARIO' LIMIT 1),:dni)")->execute([':n'=>$nombre,':a'=>$apellido,':e'=>$email,':h'=>$hash,':t'=>$telefono,':dni'=>$dni]);
         $idUsuario = (int)$pdo->lastInsertId();
-        // crear cliente
+        
         $pdo->prepare("INSERT INTO clientes (id_usuario,nombre,apellido,dni,email,telefono,calle,numero,codigo_postal,localidad,provincia,pais,activo,credenciales_generadas,fecha_credenciales) VALUES (:uid,:n,:a,:dni,:e,:t,:calle,:num,:cp,:loc,:prov,'Argentina',1,1,NOW())")->execute([':uid'=>$idUsuario,':n'=>$nombre,':a'=>$apellido,':dni'=>$dni,':e'=>$email,':t'=>$telefono,':calle'=>$calle,':num'=>$numero,':cp'=>$codigo_postal,':loc'=>$localidad,':prov'=>$provincia]);
         $idCliente = (int)$pdo->lastInsertId();
-        // credenciales_clientes
+        
         try{ $pdo->prepare("INSERT INTO credenciales_clientes (id_cliente,id_usuario,usuario,password_hash,estado,fecha_generacion,fecha_activacion) VALUES (:cid,:uid,:us,:h,'ACTIVA',NOW(),NOW())")->execute([':cid'=>$idCliente,':uid'=>$idUsuario,':us'=>$email,':h'=>$hash]); }catch(Throwable $e2){}
          $pdo->prepare("INSERT INTO log_actividad (id_usuario,accion,detalle,ip,fecha_hora) VALUES (:uid,'CREATE',:det,:ip,NOW())")->execute([':uid'=>$_SESSION['id_usuario']??null,':det'=>"Creó cliente {$email} con credenciales",':ip'=>$_SERVER['REMOTE_ADDR']??'']);
          $pdo->commit();

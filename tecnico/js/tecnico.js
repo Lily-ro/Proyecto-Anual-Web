@@ -1,4 +1,4 @@
-// ESTADO GLOBAL 
+
 const page = location.pathname.split('/').pop() || 'indextec.php';
 let isLight = localStorage.getItem('eva-theme') === 'light';
 const themeToggle = document.getElementById('themeToggle');
@@ -55,7 +55,6 @@ function drawDonut() {
 if (page === 'indextec.php') drawDonut();
 if (page === 'mediciones.php') graficarMediciones();
 
-// ====== FUNCIONES: MIS DISPOSITIVOS ======
 function cambiarEstado(select, nombre) {
  if (!select.value) return;
  const card = select.closest('.dispositivo-card');
@@ -90,7 +89,6 @@ function cerrarModal(id) {
  document.getElementById(id).classList.add('hidden');
 }
 
-// Buscar dispositivos
 const buscarDisp = document.getElementById('buscarDispositivos');
 if (buscarDisp) {
  buscarDisp.addEventListener('input', function() {
@@ -101,7 +99,6 @@ if (buscarDisp) {
  });
 }
 
-// Filtrar dispositivos por estado
 const filtrarEst = document.getElementById('filtrarEstado');
 if (filtrarEst) {
  filtrarEst.addEventListener('change', function() {
@@ -112,7 +109,6 @@ if (filtrarEst) {
  });
 }
 
-// ====== FUNCIONES: ALERTAS ======
 function abrirDetalleAlerta(btn) {
  const tr = btn.closest('tr');
  document.getElementById('detalleAlertaTipo').textContent = tr.cells[0].textContent;
@@ -135,7 +131,6 @@ function marcarAtendida() {
  document.getElementById('solucionAplicada').value = '';
 }
 
-// Filtrar alertas
 const filtrarPrio = document.getElementById('filtrarPrioridad');
 const filtrarEstAlerta = document.getElementById('filtrarEstadoAlerta');
 function filtrarAlertas() {
@@ -150,7 +145,6 @@ function filtrarAlertas() {
 if (filtrarPrio) filtrarPrio.addEventListener('change', filtrarAlertas);
 if (filtrarEstAlerta) filtrarEstAlerta.addEventListener('change', filtrarAlertas);
 
-// ====== FUNCIONES: MEDICIONES ======
 function graficarMediciones() {
  const canvas = document.getElementById('graficoNivel');
  if (!canvas) return;
@@ -184,7 +178,6 @@ function graficarMediciones() {
  });
 }
 
-// Buscar mediciones
 const buscarMed = document.getElementById('buscarMediciones');
 if (buscarMed) {
  buscarMed.addEventListener('input', function() {
@@ -195,7 +188,6 @@ if (buscarMed) {
  });
 }
 
-// Filtrar mediciones por dispositivo
 const filtrarDev = document.getElementById('filtrarDispositivo');
 if (filtrarDev) {
  filtrarDev.addEventListener('change', function() {
@@ -210,7 +202,6 @@ function exportarMediciones(tipo) {
  alert('Exportando mediciones como ' + tipo.toUpperCase() + '...');
 }
 
-// ====== FUNCIONES: NOTIFICACIONES ======
 function marcarLeida(btn) {
  const item = btn.closest('.notificacion-item');
  item.classList.remove('no-leida');
@@ -228,7 +219,6 @@ function marcarTodasLeidas() {
  });
 }
 
-// Buscar notificaciones
 const buscarNotif = document.getElementById('buscarNotificaciones');
 if (buscarNotif) {
  buscarNotif.addEventListener('input', function() {
@@ -239,7 +229,6 @@ if (buscarNotif) {
  });
 }
 
-// ====== FUNCIONES: MIS TANQUES ======
 function consultarNivelTanque(nombre) {
  document.getElementById('modalNivelTanqueTitulo').textContent = 'Nivel: ' + nombre;
  document.getElementById('modalNivelTanque').classList.remove('hidden');
@@ -260,7 +249,6 @@ function verSensorTanque(nombre) {
  document.getElementById('modalSensorTanque').classList.remove('hidden');
 }
 
-// Buscar tanques
 const buscarTanques = document.getElementById('buscarTanques');
 if (buscarTanques) {
  buscarTanques.addEventListener('input', function() {
@@ -271,7 +259,6 @@ if (buscarTanques) {
  });
 }
 
-// Filtrar tanques por estado
 const filtrarEstTanque = document.getElementById('filtrarEstadoTanque');
 if (filtrarEstTanque) {
  filtrarEstTanque.addEventListener('change', function() {
@@ -282,7 +269,6 @@ if (filtrarEstTanque) {
  });
 }
 
-// ====== FUNCIONES: SENSORES ======
 function registrarCalibracion(nombre) {
  document.getElementById('modalCalibrarTitulo').textContent = 'Calibrar: ' + nombre;
  document.getElementById('modalCalibrar').classList.remove('hidden');
@@ -331,7 +317,6 @@ function agregarObservacionSensor(btn) {
  }
 }
 
-// Buscar sensores
 const buscarSensores = document.getElementById('buscarSensores');
 if (buscarSensores) {
  buscarSensores.addEventListener('input', function() {
@@ -342,7 +327,6 @@ if (buscarSensores) {
  });
 }
 
-// Filtrar sensores por estado
 const filtrarEstSensor = document.getElementById('filtrarEstadoSensor');
 if (filtrarEstSensor) {
  filtrarEstSensor.addEventListener('change', function() {
@@ -353,7 +337,6 @@ if (filtrarEstSensor) {
  });
 }
 
-// ====== FUNCIONES: MANTENIMIENTOS ======
 function toggleMantCard(header) {
  const card = header.closest('.mant-card');
  card.classList.toggle('open');
@@ -414,7 +397,6 @@ function guardarRegistroMant(btn) {
  setTimeout(() => { btn.textContent = 'Guardar registro'; btn.disabled = false; }, 2000);
 }
 
-// Buscar mantenimientos
 const buscarMant = document.getElementById('buscarMantenimientos');
 if (buscarMant) {
  buscarMant.addEventListener('input', function() {
@@ -425,7 +407,6 @@ if (buscarMant) {
  });
 }
 
-// Filtrar mantenimientos
 const filtrarEstMant = document.getElementById('filtrarEstadoMant');
 const filtrarTipoMant = document.getElementById('filtrarTipoMant');
 function filtrarMantenimientos() {
@@ -440,7 +421,6 @@ function filtrarMantenimientos() {
 if (filtrarEstMant) filtrarEstMant.addEventListener('change', filtrarMantenimientos);
 if (filtrarTipoMant) filtrarTipoMant.addEventListener('change', filtrarMantenimientos);
 
-// ====== FUNCIONES: INSTALACIONES ======
 function toggleInstCard(header) {
  const card = header.closest('.inst-card');
  card.classList.toggle('open');
@@ -491,7 +471,6 @@ function guardarRegistroInst(btn) {
  setTimeout(() => { btn.textContent = 'Guardar registro'; btn.disabled = false; }, 2000);
 }
 
-// Buscar instalaciones
 const buscarInst = document.getElementById('buscarInstalaciones');
 if (buscarInst) {
  buscarInst.addEventListener('input', function() {
@@ -502,7 +481,6 @@ if (buscarInst) {
  });
 }
 
-// Filtrar instalaciones por estado
 const filtrarEstInst = document.getElementById('filtrarEstadoInst');
 if (filtrarEstInst) {
  filtrarEstInst.addEventListener('change', function() {

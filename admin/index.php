@@ -95,7 +95,7 @@ function tiempoDesde($fecha){
     <div class="stat-card-icon blue"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg></div>
     <div class="stat-card-info">
      <div class="stat-card-title">Clientes</div>
-     <div class="stat-card-value"><?php echo $cntClientes; ?></div>
+      <div class="stat-card-value" id="adminStatClientes"><?php echo $cntClientes; ?></div>
      <div class="stat-card-sub">Activos</div>
     </div>
    </div>
@@ -103,7 +103,7 @@ function tiempoDesde($fecha){
     <div class="stat-card-icon cyan"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21h18M3 7v14M9 7v14M15 7v14M21 7v14M6 11h.01M6 15h.01M12 11h.01M12 15h.01M18 11h.01M18 15h.01"/></svg></div>
     <div class="stat-card-info">
      <div class="stat-card-title">Edificios</div>
-     <div class="stat-card-value"><?php echo $cntEdificios; ?></div>
+      <div class="stat-card-value" id="adminStatEdificios"><?php echo $cntEdificios; ?></div>
      <div class="stat-card-sub">Activos</div>
     </div>
    </div>
@@ -111,7 +111,7 @@ function tiempoDesde($fecha){
     <div class="stat-card-icon cyan"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><line x1="9" y1="1" x2="9" y2="4"/><line x1="15" y1="1" x2="15" y2="4"/><line x1="9" y1="20" x2="9" y2="23"/><line x1="15" y1="20" x2="15" y2="23"/><line x1="20" y1="9" x2="23" y2="9"/><line x1="20" y1="14" x2="23" y2="14"/><line x1="1" y1="9" x2="4" y2="9"/><line x1="1" y1="14" x2="4" y2="14"/></svg></div>
     <div class="stat-card-info">
      <div class="stat-card-title">Dispositivos EVA</div>
-     <div class="stat-card-value"><?php echo $cntDispositivos; ?></div>
+      <div class="stat-card-value" id="adminStatDispositivos"><?php echo $cntDispositivos; ?></div>
      <div class="stat-card-sub">Activos</div>
     </div>
    </div>
@@ -119,7 +119,7 @@ function tiempoDesde($fecha){
     <div class="stat-card-icon green"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v16"/></svg></div>
     <div class="stat-card-info">
      <div class="stat-card-title">Instalaciones</div>
-     <div class="stat-card-value"><?php echo $cntInstalaciones; ?></div>
+      <div class="stat-card-value" id="adminStatInstalaciones"><?php echo $cntInstalaciones; ?></div>
      <div class="stat-card-sub">Totales</div>
     </div>
    </div>
@@ -127,7 +127,7 @@ function tiempoDesde($fecha){
     <div class="stat-card-icon orange"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg></div>
     <div class="stat-card-info">
      <div class="stat-card-title">Tanques</div>
-     <div class="stat-card-value"><?php echo $cntTanques; ?></div>
+      <div class="stat-card-value" id="adminStatTanques"><?php echo $cntTanques; ?></div>
      <div class="stat-card-sub">Totales</div>
     </div>
    </div>
@@ -135,7 +135,7 @@ function tiempoDesde($fecha){
     <div class="stat-card-icon blue"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg></div>
     <div class="stat-card-info">
      <div class="stat-card-title">Tecnicos</div>
-     <div class="stat-card-value"><?php echo $cntTecnicos; ?></div>
+      <div class="stat-card-value" id="adminStatTecnicos"><?php echo $cntTecnicos; ?></div>
      <div class="stat-card-sub">Activos</div>
     </div>
    </div>
@@ -143,7 +143,7 @@ function tiempoDesde($fecha){
     <div class="stat-card-icon purple"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg></div>
     <div class="stat-card-info">
      <div class="stat-card-title">Sensores</div>
-     <div class="stat-card-value"><?php echo $cntSensores; ?></div>
+      <div class="stat-card-value" id="adminStatSensores"><?php echo $cntSensores; ?></div>
      <div class="stat-card-sub">Instalados</div>
     </div>
    </div>
@@ -332,7 +332,8 @@ function tiempoDesde($fecha){
   </div>
  </div>
 </div>
-<script src="js/admin.js"></script>
+ <script src="js/admin.js"></script>
+<script src="js/tiempo-real.js?v=3"></script>
 <script>
 (function(){
  var svg = document.getElementById('donutSvg');

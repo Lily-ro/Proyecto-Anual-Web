@@ -75,7 +75,6 @@ $cntAprob = (int)$pdo->query("SELECT COUNT(*) FROM compras WHERE estado='Aprobad
 $cntEntrega = (int)$pdo->query("SELECT COUNT(*) FROM compras WHERE estado='En entrega'")->fetchColumn();
 $cntComp = (int)$pdo->query("SELECT COUNT(*) FROM compras WHERE estado='Completada'")->fetchColumn();
 
-// filtros
 $fBusqueda=trim($_GET['busqueda']??'');
 $fEstado=$_GET['estado']??'';
 $where=[]; $params=[];
