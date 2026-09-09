@@ -113,7 +113,7 @@ body{background:#0b1120;min-height:100vh;display:flex;padding:30px;gap:30px}
 .form-group label{color:#c8d0dc;display:block;margin-bottom:8px;font-size:14px;font-weight:500}
 
 .input-wrap{position:relative}
-.input-wrap input{width:100%;padding:12px 40px 12px 14px;background:#0d1525;border:1px solid
+.input-wrap input{width:100%;padding:12px 40px 12px 14px;background:#0d1525;border:1px solid #1e293b;border-radius:8px;color:#e2e8f0;outline:none;transition:border-color .2s}
 .input-wrap input::placeholder{color:#4a5568}
 .input-wrap input:focus{border-color:#2563eb}
 
@@ -135,23 +135,7 @@ body{background:#0b1120;min-height:100vh;display:flex;padding:30px;gap:30px}
 .login-footer a{color:#2563eb;text-decoration:none;font-weight:500}
 .login-footer a:hover{text-decoration:underline}
 
-@media(max-width:900px){
-    body{flex-direction:column;padding:20px;gap:20px}
-    .login-left{display:none}
-    .login-right{width:100%;margin-right:0;border-radius:20px;padding:40px 30px}
-    .login-box{max-width:400px}
-}
 
-@media(max-width:480px){
-    body{padding:10px;gap:10px}
-    .login-right{padding:30px 20px;border-radius:16px}
-    .login-header .logo-row span{font-size:22px;letter-spacing:4px}
-    .login-header p{font-size:13px}
-    .form-group label{font-size:13px}
-    .input-wrap input{padding:11px 38px 11px 12px;font-size:13px}
-    .btn-submit{padding:12px;font-size:14px}
-    .extras{flex-direction:column;gap:10px;align-items:flex-start}
-}
 </style>
 </head>
 <body>

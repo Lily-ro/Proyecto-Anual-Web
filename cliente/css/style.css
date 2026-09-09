@@ -85,7 +85,7 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--tx);display
 
 .header{display:flex;align-items:center;justify-content:space-between;padding:16px 30px;background:var(--bg3);border-bottom:1px solid var(--bd)}
 .header-left,.header-right{display:flex;align-items:center;gap:16px}
-.menu-btn{background:none;border:none;color:var(--tx4);font-size:20px;cursor:pointer;display:flex;align-items:center}
+.menu-btn{background:none;border:none;color:var(--tx4);font-size:20px;cursor:pointer;display:none;align-items:center}
 .theme-btn{background:none;border:none;color:var(--tx4);cursor:pointer;display:flex;align-items:center;width:36px;height:36px;justify-content:center;border-radius:50%;transition:background .2s}
 .theme-btn svg{color:var(--tx4);transition:transform .5s}
 .theme-btn:hover svg{transform:rotate(180deg)}
@@ -427,6 +427,7 @@ body.sidebar-open .sidebar-overlay{display:block}
  .resumen-chart-card{grid-column:1/3}
 }
 @media(max-width:768px){
+ .menu-btn{display:flex}
  .sidebar{width:220px;transform:translateX(-100%);transition:transform .3s ease;z-index:20;padding:20px 0}
  .sidebar.open{transform:translateX(0)}
  .sidebar-logo span,.sidebar nav li span,.device-status h4,.device-status .status-text{display:flex}
