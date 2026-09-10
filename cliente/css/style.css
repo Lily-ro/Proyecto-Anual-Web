@@ -63,6 +63,8 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--tx);display
 .main{flex:1;margin-left:200px;display:flex;flex-direction:column}
 .view{display:none;padding:24px 30px;flex:1}
 .view.active{display:block}
+.content{padding:24px 30px;flex:1}
+.content-card{background:var(--bg2);border:1px solid var(--bd);border-radius:14px;padding:28px 32px}
 
 .sidebar{width:200px;min-height:100vh;background:var(--bg3);display:flex;flex-direction:column;padding:24px 0;position:fixed;top:0;left:0;bottom:0;z-index:10;border-right:1px solid var(--bd)}
 .sidebar-logo{padding:0 24px;margin-bottom:40px;display:flex;align-items:center;gap:8px;text-decoration:none}
@@ -83,8 +85,11 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--tx);display
 .device-status .wifi-icon{width:18px;height:18px;color:var(--gn)}
 .device-status .status-text{font-size:13px;color:var(--gn);font-weight:500}
 
-.header{display:flex;align-items:center;justify-content:space-between;padding:16px 30px;background:var(--bg3);border-bottom:1px solid var(--bd)}
-.header-left,.header-right{display:flex;align-items:center;gap:16px}
+.header{display:flex;align-items:center;justify-content:space-between;padding:20px 30px;background:var(--bg3);border-bottom:1px solid var(--bd)}
+.header-left{display:flex;flex-direction:column}
+.header-greeting{font-size:22px;font-weight:700;color:var(--tx2)}
+.header-subtitle{font-size:13px;color:var(--tx4);margin-top:2px}
+.header-right{display:flex;align-items:center;gap:16px}
 .menu-btn{background:none;border:none;color:var(--tx4);font-size:20px;cursor:pointer;display:none;align-items:center}
 .theme-btn{background:none;border:none;color:var(--tx4);cursor:pointer;display:flex;align-items:center;width:36px;height:36px;justify-content:center;border-radius:50%;transition:background .2s}
 .theme-btn svg{color:var(--tx4);transition:transform .5s}
@@ -398,6 +403,23 @@ body.light-theme .device-status{background:rgba(46,125,50,0.06);border-color:rgb
 .mt-info-btn:hover{background:var(--ac);color:#fff;border-color:var(--ac)}
 
 body.light-theme .menu-btn{color:#6b7280}
+
+.profile-avatar{width:72px;height:72px;border-radius:50%;background:linear-gradient(135deg,#3b82f6,#06b6d4);display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:700;color:#fff;flex-shrink:0}
+.profile-header{display:flex;align-items:center;gap:20px;padding:24px 28px}
+.profile-info{display:flex;flex-direction:column;gap:4px}
+.profile-name{font-size:20px;font-weight:700;color:var(--tx)}
+.profile-role{font-size:13px;color:var(--tx4)}
+.profile-section{padding:0 28px 20px}
+.profile-section-title{font-size:14px;font-weight:700;color:var(--tx);margin-bottom:8px}
+.profile-field{display:flex;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--bd)}
+.profile-field-label{font-size:13px;color:var(--tx4)}
+.profile-field-value{font-size:13px;font-weight:500;color:var(--tx2)}
+.actions-row{display:flex;gap:12px;padding:20px 28px}
+.btn-primary{padding:10px 24px;border:none;background:var(--ac);color:#fff;border-radius:8px;font-size:13px;font-weight:500;cursor:pointer;transition:all .2s}
+.btn-primary:hover{opacity:.9;transform:translateY(-1px)}
+.btn-outline{padding:10px 24px;border:1px solid var(--bd3);background:transparent;color:var(--tx2);border-radius:8px;font-size:13px;font-weight:500;cursor:pointer;transition:all .2s}
+.btn-outline:hover{border-color:var(--ac);color:var(--ac)}
+.content-divider{height:1px;background:var(--bd);margin-bottom:20px}
 
 body.light-theme .profile-avatar{color:#fff}
 body.light-theme .profile-field{border-color:#e0e3e8}
