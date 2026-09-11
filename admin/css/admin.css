@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+﻿@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 
 :root {
  --bg:#0b1120; --bg2:#111c30; --bg3:#0d1525; --bg4:#1a2540;
@@ -371,7 +371,6 @@ body.light-theme .format-card{background:#fff;border-color:#e0e3e8;color:#6b7280
  body.light-theme .switch-input:checked + .switch-slider{background:#1565c0}
  body.light-theme .badge.rol-cliente{background:rgba(21,101,192,0.08);color:#1565c0}
  body.light-theme .badge.rol-tecnico{background:rgba(46,125,50,0.08);color:#2e7d32}
-
 @media(max-width:1600px){
  .stats-row-6{grid-template-columns:repeat(4,1fr)}
  .stats-row,.stats-row-4{grid-template-columns:repeat(4,1fr)}
@@ -433,4 +432,19 @@ body.light-theme .format-card{background:#fff;border-color:#e0e3e8;color:#6b7280
  .format-options{flex-direction:column}
  .roles-grid{grid-template-columns:1fr}
  .permissions-grid{grid-template-columns:1fr}
+}
+.menu-btn{background:none;border:none;color:var(--tx4);cursor:pointer;display:none;align-items:center;justify-content:center;width:36px;height:36px;border-radius:8px;transition:background .2s}
+.menu-btn:hover{background:var(--hvr)}
+.menu-btn svg{width:22px;height:22px}
+.sidebar-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:9}
+body.sidebar-open .sidebar-overlay{display:block}
+@media(max-width:768px){
+ .menu-btn{display:flex!important}
+ .sidebar{width:220px!important;transform:translateX(-100%)!important;transition:transform .3s ease!important;z-index:20!important;padding:20px 0!important;height:100vh!important;height:100dvh!important}
+ .sidebar.open{transform:translateX(0)!important}
+ .sidebar-logo span,.sidebar-role,.sidebar nav li span,.sidebar nav li .arrow,.sidebar nav .sub-menu,.sidebar-footer a span{display:flex!important}
+ .sidebar nav li{justify-content:flex-start!important;padding:12px 24px!important;margin:2px 10px!important}
+ .sidebar-logo{justify-content:flex-start!important;padding:0 24px!important}
+ .sidebar-footer a{justify-content:flex-start!important;padding:12px 14px!important}
+ .main{margin-left:0!important;width:100%!important}
 }

@@ -1,4 +1,4 @@
-let CAP = 0;
+﻿let CAP = 0;
 let lvl = 0, tmp = 0;
 const page = location.pathname.split('/').pop() || 'indexcli.php';
 
@@ -39,7 +39,7 @@ function gauge(v) {
  const p = v / 100, ang = -90 + p * 180, l = p * 314;
  n.setAttribute('transform', `rotate(${ang} 130 140)`);
  if (a) a.setAttribute('stroke-dasharray', `${l} 314`);
- if (g) g.textContent = `${Math.round(v)}°`;
+ if (g) g.textContent = `${Math.round(v)}Â°`;
 }
 
 function evaEstadoFromPct(pct){
@@ -48,7 +48,7 @@ function evaEstadoFromPct(pct){
  if(pct>=80) return ['Alto','Nivel alto','warning'];
  if(pct>=40) return ['Normal','Todo funciona correctamente',''];
  if(pct>=20) return ['Bajo','Nivel de agua bajo, considerar recarga','warning'];
- return ['Crítico','Nivel de agua peligrosamente bajo','alert'];
+ return ['CrÃ­tico','Nivel de agua peligrosamente bajo','alert'];
 }
 function status() {
  const e = document.getElementById('estadoText'), d = document.getElementById('estadoDesc');
@@ -131,6 +131,29 @@ function alertIcon(t) {
  if (t === 'info') return `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>`;
  return `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>`;
 }
+function resolverAlerta(id, btn){
+ if(!id) return;
+ if(btn) { btn.disabled=true; btn.textContent='Resolviendo...'; }
+ fetch('api/resolver_alerta.php', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({id_alerta:id})})
+ .then(async r=>{
+   const txt=await r.text();
+   if(!txt){ throw new Error('Respuesta vacía del servidor (HTTP '+r.status+')'); }
+   let j=null;
+   try{ j=JSON.parse(txt); }catch(e){ throw new Error('Respuesta no válida ('+r.status+'): '+txt.substring(0,300)); }
+   if(!r.ok) throw new Error(j.error||('HTTP '+r.status));
+   return j;
+ }).then(j=>{
+   if(j && j.ok){
+     const idx=ad.findIndex(x=>x.id===id);
+     if(idx>-1){ ad[idx].status='resuelta'; ad[idx].estadoRaw='CERRADA'; }
+     alertas();
+     if(typeof evaPollEstado==='function') setTimeout(evaPollEstado, 300);
+   } else {
+     alert(j.error || 'No se pudo resolver');
+     if(btn){ btn.disabled=false; btn.textContent='Resolver'; }
+   }
+ }).catch(e=>{ alert(e.message||'Error de conexión'); if(btn){ btn.disabled=false; btn.textContent='Resolver'; } console.error('resolver',e); });
+}
 function alertas() {
  const list = document.getElementById('alertasList');
  if (!list) return;
@@ -149,8 +172,10 @@ function alertas() {
  }
  toShow.forEach((a, i) => {
   const d = document.createElement('div'); d.className = 'alert-item'; d.style.animationDelay = `${i * 0.06}s`;
+  if(a.status==='resuelta'){ d.style.opacity='0.75'; d.style.borderColor='rgba(76,175,80,0.2)'; }
   const ic = a.icon === 'warning' ? (a.type === 'danger' ? 'danger-icon' : 'warning-icon') : a.icon === 'info' ? 'info-icon' : 'success-icon';
-  d.innerHTML = `<div class="alert-icon ${ic}">${alertIcon(a.icon)}</div><div class="alert-content"><div class="alert-name">${a.title}</div><div class="alert-desc">${a.desc}</div></div><div class="alert-meta"><div class="alert-date">${a.date}</div><div class="alert-badge ${a.status}">${a.status === 'activo' ? 'Activo' : (a.status==='en-revision'?'En revisión':'Resuelta')}</div></div>`;
+  const btnHtml = (a.status==='activo' || a.status==='en-revision') ? `<button onclick="resolverAlerta(${a.id}, this)" style="margin-left:8px;padding:6px 14px;border:none;border-radius:6px;background:#4caf50;color:#fff;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap">Resolver</button>` : `<span style="margin-left:8px;padding:6px 14px;border-radius:6px;background:rgba(76,175,80,0.12);color:#4caf50;font-size:11px;font-weight:700">✓ Resuelta</span>`;
+  d.innerHTML = `<div class="alert-icon ${ic}">${alertIcon(a.icon)}</div><div class="alert-content"><div class="alert-name">${a.title}</div><div class="alert-desc">${a.desc}</div></div><div class="alert-meta"><div class="alert-date">${a.date}</div><div class="alert-badge ${a.status}">${a.status === 'activo' ? 'Activo' : (a.status==='en-revision'?'En revisión':'Resuelta')}</div>${btnHtml}</div>`;
   list.appendChild(d);
  });
 } 
@@ -206,7 +231,7 @@ function resumen() {
    }
   }
   const t = document.getElementById('resumenTemp');
-  if (t) t.textContent = `${Math.round(tmp)}°C`;
+  if (t) t.textContent = `${Math.round(tmp)}Â°C`;
   const d = document.getElementById('resumenDisponible');
   if (d) {
     const dispVal = (typeof window.EVA_RESUMEN!=='undefined' && window.EVA_RESUMEN.disponible) ? window.EVA_RESUMEN.disponible : Math.round(CAP * pct / 100);
@@ -341,6 +366,26 @@ if (userDropdown && userMenu) {
  userMenu.addEventListener('click', (e) => { e.stopPropagation(); });
 }
 
+function aplicarEstadoDispositivo(txt){
+ var el=document.querySelector('.device-status');
+ var txtEl=document.querySelector('.status-text');
+ var icon=document.querySelector('.wifi-icon');
+ if(!el||!txtEl) return;
+ var raw=(txt||txtEl.textContent||'').trim();
+ var esCon = raw==='Conectado' || raw==='🟢 CONECTADO' || raw.toLowerCase()==='conectado';
+ if(raw.toLowerCase().indexOf('desconectado')!==-1) esCon=false;
+ else if(raw.toLowerCase().indexOf('conectado')!==-1) esCon=true;
+ if(esCon){
+   el.style.background='rgba(76,175,80,0.08)'; el.style.borderColor='rgba(76,175,80,0.15)';
+   txtEl.textContent='Conectado'; txtEl.style.color='#4caf50'; txtEl.style.fontWeight='700';
+   if(icon) icon.setAttribute('stroke','#4caf50');
+ } else {
+   el.style.background='rgba(244,67,54,0.08)'; el.style.borderColor='rgba(244,67,54,0.15)';
+   txtEl.textContent='Desconectado'; txtEl.style.color='#f44336'; txtEl.style.fontWeight='700';
+   if(icon) icon.setAttribute('stroke','#f44336');
+ }
+}
+(function(){ var s=document.querySelector('.status-text'); if(s) aplicarEstadoDispositivo(s.textContent.trim()); })();
 document.addEventListener('visibilitychange', ()=>{ if(!document.hidden && typeof evaPollEstado === 'undefined') pollReal(); });
 const menuBtn=document.querySelector('.menu-btn');
 const sidebar=document.querySelector('.sidebar');
@@ -365,7 +410,7 @@ function historialTabla(data) {
  data.forEach(r => {
   const tr = document.createElement('tr');
   const st = r.estado === 'Normal' ? 'color:var(--gn)' : r.estado === 'Bajo' ? 'color:var(--or)' : 'color:var(--rd2)';
-  tr.innerHTML = `<td style="padding:10px 14px;font-size:13px;color:var(--tx);border-bottom:1px solid var(--bd);white-space:nowrap">${r.fecha}</td><td style="padding:10px 14px;font-size:13px;color:var(--tx);border-bottom:1px solid var(--bd);white-space:nowrap">${r.hora}</td><td style="padding:10px 14px;font-size:13px;color:var(--tx);border-bottom:1px solid var(--bd);white-space:nowrap">${r.nivel}</td><td style="padding:10px 14px;font-size:13px;color:var(--tx);border-bottom:1px solid var(--bd);white-space:nowrap">${r.pct}%</td><td style="padding:10px 14px;font-size:13px;color:var(--tx);border-bottom:1px solid var(--bd);white-space:nowrap">${r.tmp}°C</td><td style="padding:10px 14px;font-size:13px;color:var(--tx);border-bottom:1px solid var(--bd);white-space:nowrap">${r.hum}%</td><td style="padding:10px 14px;font-size:13px;border-bottom:1px solid var(--bd);white-space:nowrap"><span style="padding:3px 10px;border-radius:6px;font-size:11px;font-weight:600;${st};background:${r.estado==='Normal'?'rgba(76,175,80,0.12)':r.estado==='Bajo'?'rgba(255,152,0,0.12)':'rgba(244,67,54,0.12)'}">${r.estado}</span></td>`;
+  tr.innerHTML = `<td style="padding:10px 14px;font-size:13px;color:var(--tx);border-bottom:1px solid var(--bd);white-space:nowrap">${r.fecha}</td><td style="padding:10px 14px;font-size:13px;color:var(--tx);border-bottom:1px solid var(--bd);white-space:nowrap">${r.hora}</td><td style="padding:10px 14px;font-size:13px;color:var(--tx);border-bottom:1px solid var(--bd);white-space:nowrap">${r.nivel}</td><td style="padding:10px 14px;font-size:13px;color:var(--tx);border-bottom:1px solid var(--bd);white-space:nowrap">${r.pct}%</td><td style="padding:10px 14px;font-size:13px;color:var(--tx);border-bottom:1px solid var(--bd);white-space:nowrap">${r.tmp}Â°C</td><td style="padding:10px 14px;font-size:13px;color:var(--tx);border-bottom:1px solid var(--bd);white-space:nowrap">${r.hum}%</td><td style="padding:10px 14px;font-size:13px;border-bottom:1px solid var(--bd);white-space:nowrap"><span style="padding:3px 10px;border-radius:6px;font-size:11px;font-weight:600;${st};background:${r.estado==='Normal'?'rgba(76,175,80,0.12)':r.estado==='Bajo'?'rgba(255,152,0,0.12)':'rgba(244,67,54,0.12)'}">${r.estado}</span></td>`;
   tbody.appendChild(tr);
  });
  const count = document.getElementById('histTableCount');
@@ -571,13 +616,13 @@ function mantenimientoInit() {
       const f = document.getElementById('mtFileInput');
       if (!tanque.value) { e.preventDefault(); alert('Debes seleccionar un tanque.'); return; }
       const d = descripcion.value.trim();
-      if (!d) { e.preventDefault(); alert('La descripción es obligatoria.'); return; }
-      if (d.length > 500) { e.preventDefault(); alert('La descripción no puede superar los 500 caracteres.'); return; }
+      if (!d) { e.preventDefault(); alert('La descripciÃ³n es obligatoria.'); return; }
+      if (d.length > 500) { e.preventDefault(); alert('La descripciÃ³n no puede superar los 500 caracteres.'); return; }
       if (f && f.files && f.files[0]) {
         const file = f.files[0];
         const allowed = ['image/jpeg','image/png','image/jpg','image/webp'];
         if (!allowed.includes(file.type)) { e.preventDefault(); alert('Formato de imagen no permitido.'); return; }
-        if (file.size > 5*1024*1024) { e.preventDefault(); alert('El archivo supera el tamaño máximo de 5 MB.'); return; }
+        if (file.size > 5*1024*1024) { e.preventDefault(); alert('El archivo supera el tamaÃ±o mÃ¡ximo de 5 MB.'); return; }
       }
       btnEnviar.disabled = true;
       btnEnviar.style.opacity = '0.7';

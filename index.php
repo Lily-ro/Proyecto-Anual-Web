@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 session_start();
 require_once(__DIR__ . '/config/db.php');
 
@@ -21,8 +21,8 @@ $error = '';
 if($_SERVER['REQUEST_METHOD'] === 'POST'){
     $email = trim($_POST['email'] ?? '');
     $password = $_POST['password'] ?? '';
-    if(!filter_var($email, FILTER_VALIDATE_EMAIL)){ $error="Email inválido."; }
-    elseif(strlen($password)<1){ $error="Contraseña requerida."; }
+    if(!filter_var($email, FILTER_VALIDATE_EMAIL)){ $error="Email invÃ¡lido."; }
+    elseif(strlen($password)<1){ $error="ContraseÃ±a requerida."; }
     else {
     try {
         $pdo = eva_pdo();
@@ -30,7 +30,7 @@ if($_SERVER['REQUEST_METHOD'] === 'POST'){
         try{
          $chk=$pdo->prepare("SELECT COUNT(*) FROM login_intentos WHERE email=:e AND exito=0 AND fecha_hora>=DATE_SUB(NOW(),INTERVAL 15 MINUTE)");
          $chk->execute([':e'=>$email]);
-         if((int)$chk->fetchColumn()>=5){ $error="Demasiados intentos. Esperá 15 minutos."; }
+         if((int)$chk->fetchColumn()>=5){ $error="Demasiados intentos. EsperÃ¡ 15 minutos."; }
         }catch(Throwable $e){}
         if(empty($error)){
         $stmt = $pdo->prepare("SELECT u.id_usuario, u.nombre, u.apellido, u.email, u.password_hash, u.activo, r.nombre AS rol FROM usuarios u INNER JOIN roles r ON u.id_rol = r.id_rol WHERE u.email = :email LIMIT 1");
@@ -65,10 +65,10 @@ if($_SERVER['REQUEST_METHOD'] === 'POST'){
                     header("Location: cliente/indexcli.php");
                     exit;
                 default:
-                    $error = "Rol inválido.";
+                    $error = "Rol invÃ¡lido.";
             }
         }else{
-            $error = "Contraseña incorrecta.";
+            $error = "ContraseÃ±a incorrecta.";
             try{$pdo->prepare("INSERT INTO login_intentos (email,ip,exito) VALUES (:e,:ip,0)")->execute([':e'=>$email,':ip'=>$ip]);}catch(Throwable $e){}
         }
     }else{
@@ -89,7 +89,7 @@ if($_SERVER['REQUEST_METHOD'] === 'POST'){
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>EVA | Iniciar Sesión</title>
+<title>EVA | Iniciar SesiÃ³n</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',sans-serif}
 
@@ -134,6 +134,8 @@ body{background:#0b1120;min-height:100vh;display:flex;padding:30px;gap:30px}
 .login-footer{text-align:center;margin-top:24px;color:#8892a4;font-size:13px}
 .login-footer a{color:#2563eb;text-decoration:none;font-weight:500}
 .login-footer a:hover{text-decoration:underline}
+@media(max-width:900px){body{flex-direction:column;padding:16px;gap:16px}.login-left{display:none}.login-right{width:100%;margin-right:0;padding:36px 24px;border-radius:16px}}
+@media(max-width:480px){.login-right{padding:28px 18px}}
 
 
 </style>
@@ -174,27 +176,43 @@ body{background:#0b1120;min-height:100vh;display:flex;padding:30px;gap:30px}
                 </div>
             </div>
             <div class="form-group">
-                <label>Contraseña</label>
+                <label>ContraseÃ±a</label>
                 <div class="input-wrap">
-                    <input type="password" name="password" id="pass" placeholder="Ingresa tu Contraseña" required>
-                    <button type="button" class="eye-btn" onclick="var p=document.getElementById('pass');p.type=p.type==='password'?'text':'password';">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="#4a5568" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                    <input type="password" name="password" id="pass" placeholder="Ingresa tu ContraseÃ±a" required>
+                    <button type="button" class="eye-btn" id="eyeBtn" aria-label="Mostrar u ocultar contraseña">
+                        <svg class="eye-open" viewBox="0 0 24 24" fill="none" stroke="#4a5568" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                        <svg class="eye-closed hidden" viewBox="0 0 24 24" fill="none" stroke="#4a5568" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94"/><path d="M9.53 9.53A3 3 0 0012 15a3 3 0 002.47-5.47"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
                     </button>
                 </div>
             </div>
             <div class="extras">
                 <label><input type="checkbox" name="recordar"> Recordarme</label>
-                <a href="auth/recuperar.php">¿Olvidé mi contraseña?</a>
+                <a href="auth/recuperar.php">Â¿OlvidÃ© mi contraseÃ±a?</a>
             </div>
-            <button type="submit" class="btn-submit">Iniciar sesión</button>
+            <button type="submit" class="btn-submit">Iniciar sesiÃ³n</button>
         </form>
 
         <div class="login-footer">
-            ¿No tenés cuenta? <a href="#">Contáctanos</a>
+            Â¿No tenÃ©s cuenta? <a href="#">ContÃ¡ctanos</a>
         </div>
 
     </div>
 </div>
 
+<script>
+(function(){
+ var btn=document.getElementById('eyeBtn');
+ var inp=document.getElementById('pass');
+ if(!btn||!inp) return;
+ var open=btn.querySelector('.eye-open');
+ var closed=btn.querySelector('.eye-closed');
+ btn.addEventListener('click',function(){
+  var isPass=inp.type==='password';
+  inp.type=isPass?'text':'password';
+  if(open) open.classList.toggle('hidden',isPass);
+  if(closed) closed.classList.toggle('hidden',!isPass);
+ });
+})();
+</script>
 </body>
 </html>

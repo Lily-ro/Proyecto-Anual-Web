@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 session_start();
 if(!isset($_SESSION['rol']) || $_SESSION['rol'] !== 'TECNICO'){
     header("Location: ../index.php");
@@ -22,7 +22,7 @@ if(!isset($_SESSION['rol']) || $_SESSION['rol'] !== 'TECNICO'){
   </svg>
   <span>EVA</span>
  </a>
- <div class="sidebar-role">Técnico</div>
+ <div class="sidebar-role">TÃ©cnico</div>
  <nav>
   <ul>
    <li class="anim-slide1"><a href="indextec.php"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg><span>Inicio</span></a></li>
@@ -31,25 +31,25 @@ if(!isset($_SESSION['rol']) || $_SESSION['rol'] !== 'TECNICO'){
    <li class="anim-slide4"><a href="mediciones.php"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg><span>Mediciones</span></a></li>
    <li class="active anim-slide5"><a href="mitanques.php"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21h18M3 7v1a3 3 0 006 0V7m0 0H9m6 0h6M3 7l1.5-4h15L21 7M4 7v10a2 2 0 002 2h12a2 2 0 002-2V7"/></svg><span>Mis tanques</span></a></li>
    <li class="anim-slide6"><a href="sensores.php"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v4m0 14v4m-7.07-15.07l2.83 2.83m8.48 8.48l2.83 2.83M1 12h4m14 0h4m-15.07 7.07l2.83-2.83m8.48-8.48l2.83-2.83"/></svg><span>Sensores</span></a></li>
-   <li class="anim-slide7" data-toggle="mant"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/></svg><span>Mantenimiento</span><span class="arrow">▶</span></li>
+   <li class="anim-slide7" data-toggle="mant"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/></svg><span>Mantenimiento</span><span class="arrow">â–¶</span></li>
    <ul class="sub-menu"><li><a href="mantenimientos.php">Lista de mantenimientos</a></li></ul>
-   <li class="anim-slide8" data-toggle="inst"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v16"/></svg><span>Instalación</span><span class="arrow">▶</span></li>
+   <li class="anim-slide8" data-toggle="inst"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v16"/></svg><span>InstalaciÃ³n</span><span class="arrow">â–¶</span></li>
    <ul class="sub-menu"><li><a href="instalaciones.php">Lista de instalaciones</a></li></ul>
-   <li class="anim-slide9"><a href="historialtecnico.php"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg><span>Histórico Técnico</span></a></li>
+   <li class="anim-slide9"><a href="historialtecnico.php"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg><span>HistÃ³rico TÃ©cnico</span></a></li>
    <li class="anim-slide10"><a href="notificaciones.php"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg><span>Notificaciones</span></a></li>
    <li class="anim-slide11"><a href="perfil.php"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><span>Perfil</span></a></li>
   </ul>
  </nav>
- <div class="sidebar-footer"><a href="../config/logout.php"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg><span>Cerrar sesión</span></a></div>
+ <div class="sidebar-footer"><a href="../config/logout.php"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg><span>Cerrar sesiÃ³n</span></a></div>
 </aside>
 
 <div class="main">
  <header class="header">
-  <div class="header-left"><div class="header-greeting">Mis Tanques</div><div class="header-subtitle">Tanques asignados a tu cuenta</div></div>
-  <div class="header-right">
+  <div class="header-left" style="display:flex;align-items:center;gap:12px"><button class="menu-btn" aria-label="Abrir menu"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button><div><div class="header-greeting">Mis Tanques</div><div class="header-subtitle">Tanques asignados a tu cuenta</div></div></div>
+   <div class="header-right">
    <button class="bell-btn" title="Notificaciones"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg><span class="bell-badge">3</span></button>
    <button class="theme-btn" id="themeToggle" title="Cambiar tema"><svg class="icon-sun" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg><svg class="icon-moon hidden" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg></button>
-   <div class="user-dropdown" id="userDropdown"><div class="user-info"><div class="user-details"><div class="user-name">Técnico</div><div class="user-role">Soporte</div></div><div class="user-avatar">T</div><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#7a829a" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></div><div class="user-menu hidden" id="userMenu"><a class="user-menu-item" href="perfil.php"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><span>Mi perfil</span></a></div></div>
+   <div class="user-dropdown" id="userDropdown"><div class="user-info"><div class="user-details"><div class="user-name">TÃ©cnico</div><div class="user-role">Soporte</div></div><div class="user-avatar">T</div><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#7a829a" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></div><div class="user-menu hidden" id="userMenu"><a class="user-menu-item" href="perfil.php"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><span>Mi perfil</span></a></div></div>
   </div>
  </header>
 
@@ -215,11 +215,11 @@ if(!isset($_SESSION['rol']) || $_SESSION['rol'] !== 'TECNICO'){
    <table class="table">
     <thead><tr><th>Fecha</th><th>Actividad</th><th>Detalle</th></tr></thead>
     <tbody>
-     <tr><td>12/07/2026</td><td>Mantenimiento preventivo</td><td>Limpieza y calibración de sensor</td></tr>
-     <tr><td>28/06/2026</td><td>Revisión general</td><td>Inspección de estructura y válvulas</td></tr>
-     <tr><td>15/06/2026</td><td>Reparación</td><td>Reemplazo de sonda ultrasónica</td></tr>
-     <tr><td>01/06/2026</td><td>Instalación</td><td>Instalación inicial del sistema EVA</td></tr>
-     <tr><td>20/05/2026</td><td>Calibración</td><td>Calibración de sensor de nivel</td></tr>
+     <tr><td>12/07/2026</td><td>Mantenimiento preventivo</td><td>Limpieza y calibraciÃ³n de sensor</td></tr>
+     <tr><td>28/06/2026</td><td>RevisiÃ³n general</td><td>InspecciÃ³n de estructura y vÃ¡lvulas</td></tr>
+     <tr><td>15/06/2026</td><td>ReparaciÃ³n</td><td>Reemplazo de sonda ultrasÃ³nica</td></tr>
+     <tr><td>01/06/2026</td><td>InstalaciÃ³n</td><td>InstalaciÃ³n inicial del sistema EVA</td></tr>
+     <tr><td>20/05/2026</td><td>CalibraciÃ³n</td><td>CalibraciÃ³n de sensor de nivel</td></tr>
     </tbody>
    </table>
   </div>
@@ -235,11 +235,11 @@ if(!isset($_SESSION['rol']) || $_SESSION['rol'] !== 'TECNICO'){
   <div class="modal-body">
    <div class="dispositivo-info-grid">
     <div class="dispositivo-info-item"><span class="dispositivo-info-label">Modelo</span><span class="dispositivo-info-val" id="dispModelo">EVA-US-200</span></div>
-    <div class="dispositivo-info-item"><span class="dispositivo-info-label">N° Serie</span><span class="dispositivo-info-val" id="dispSerial">EVA-US-2024-001</span></div>
+    <div class="dispositivo-info-item"><span class="dispositivo-info-label">NÂ° Serie</span><span class="dispositivo-info-val" id="dispSerial">EVA-US-2024-001</span></div>
     <div class="dispositivo-info-item"><span class="dispositivo-info-label">Firmware</span><span class="dispositivo-info-val" id="dispFirmware">v2.4.1</span></div>
-    <div class="dispositivo-info-item"><span class="dispositivo-info-label">Batería</span><span class="dispositivo-info-val" id="dispBateria">87%</span></div>
-    <div class="dispositivo-info-item"><span class="dispositivo-info-label">Señal</span><span class="dispositivo-info-val" id="dispSenal">-42 dBm</span></div>
-    <div class="dispositivo-info-item"><span class="dispositivo-info-label">Última conexión</span><span class="dispositivo-info-val" id="dispConexion">14/07/2026 08:30</span></div>
+    <div class="dispositivo-info-item"><span class="dispositivo-info-label">BaterÃ­a</span><span class="dispositivo-info-val" id="dispBateria">87%</span></div>
+    <div class="dispositivo-info-item"><span class="dispositivo-info-label">SeÃ±al</span><span class="dispositivo-info-val" id="dispSenal">-42 dBm</span></div>
+    <div class="dispositivo-info-item"><span class="dispositivo-info-label">Ãšltima conexiÃ³n</span><span class="dispositivo-info-val" id="dispConexion">14/07/2026 08:30</span></div>
    </div>
   </div>
  </div>
@@ -254,11 +254,11 @@ if(!isset($_SESSION['rol']) || $_SESSION['rol'] !== 'TECNICO'){
   <div class="modal-body">
    <div class="dispositivo-info-grid">
     <div class="dispositivo-info-item"><span class="dispositivo-info-label">Modelo</span><span class="dispositivo-info-val" id="sensorModelo">EVA-US-200</span></div>
-    <div class="dispositivo-info-item"><span class="dispositivo-info-label">N° Serie</span><span class="dispositivo-info-val" id="sensorSerial">EVA-US-2024-001</span></div>
+    <div class="dispositivo-info-item"><span class="dispositivo-info-label">NÂ° Serie</span><span class="dispositivo-info-val" id="sensorSerial">EVA-US-2024-001</span></div>
     <div class="dispositivo-info-item"><span class="dispositivo-info-label">Estado</span><span class="dispositivo-info-val" id="sensorEstado">Activo</span></div>
-    <div class="dispositivo-info-item"><span class="dispositivo-info-label">Precisión</span><span class="dispositivo-info-val" id="sensorPrecision">±1mm</span></div>
-    <div class="dispositivo-info-item"><span class="dispositivo-info-label">Fecha instalación</span><span class="dispositivo-info-val" id="sensorFechaInst">01/03/2026</span></div>
-    <div class="dispositivo-info-item"><span class="dispositivo-info-label">Fecha calibración</span><span class="dispositivo-info-val" id="sensorFechaCal">12/07/2026</span></div>
+    <div class="dispositivo-info-item"><span class="dispositivo-info-label">PrecisiÃ³n</span><span class="dispositivo-info-val" id="sensorPrecision">Â±1mm</span></div>
+    <div class="dispositivo-info-item"><span class="dispositivo-info-label">Fecha instalaciÃ³n</span><span class="dispositivo-info-val" id="sensorFechaInst">01/03/2026</span></div>
+    <div class="dispositivo-info-item"><span class="dispositivo-info-label">Fecha calibraciÃ³n</span><span class="dispositivo-info-val" id="sensorFechaCal">12/07/2026</span></div>
    </div>
   </div>
  </div>

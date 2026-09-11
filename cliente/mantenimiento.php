@@ -137,12 +137,20 @@ try {
             $id = (int)($r['id_solicitud'] ?? 0);
             $fechaRaw = $r['fecha_solicitud'] ?? $r['created_at'] ?? '';
             $fechaFmt = $fechaRaw ? date('d/m/Y', strtotime((string)$fechaRaw)) : '-';
+            $fechaFull = $fechaRaw ? date('d/m/Y H:i', strtotime((string)$fechaRaw)) : '-';
             $actualRaw = $r['updated_at'] ?? $r['fecha_solicitud'] ?? $fechaRaw;
             $actualFmt = $actualRaw ? date('d/m/Y H:i', strtotime((string)$actualRaw)) : $fechaFmt;
             $problema = $r['descripcion'] ?? '-';
             $estadoRaw = strtoupper(trim((string)($r['estado'] ?? 'PENDIENTE')));
             $estadoBadge = match($estadoRaw){ 'PENDIENTE'=>'activo','ACEPTADA'=>'en-revision','EN_PROCESO'=>'en-revision','FINALIZADA'=>'resuelta','CANCELADA'=>'resuelta', default=>'activo' };
-            $solicitudes[]=['id'=>$id,'fecha'=>$fechaFmt,'problema'=>h((string)$problema),'estado'=>h($estadoRaw),'estadoClass'=>$estadoBadge,'actualizacion'=>$actualFmt];
+            $tanqueNombre = $r['tanque_nombre'] ?? 'Tanque #'.$r['id_tanque'];
+            $obsAdmin = $r['observaciones_admin'] ?? '';
+            $img = $r['imagen'] ?? '';
+            $tecNombre='Sin asignar';
+            if(!empty($r['id_tecnico'])){
+                try{ $stT=$pdo->prepare("SELECT nombre,apellido FROM usuarios WHERE id_usuario=:id LIMIT 1"); $stT->execute([':id'=>$r['id_tecnico']]); $trow=$stT->fetch(); if($trow) $tecNombre=trim($trow['nombre'].' '.$trow['apellido']); }catch(Throwable $e){}
+            }
+            $solicitudes[]=['id'=>$id,'fecha'=>$fechaFmt,'fechaFull'=>$fechaFull,'problema'=>h((string)$problema),'problemaRaw'=>(string)$problema,'estado'=>h($estadoRaw),'estadoClass'=>$estadoBadge,'actualizacion'=>$actualFmt,'tanqueNombre'=>h($tanqueNombre),'observaciones'=>h($obsAdmin),'tecnico'=>h($tecNombre),'imagen'=>$img];
         }
     }
     if (empty($solicitudes)) {
@@ -319,28 +327,43 @@ try {
      <tbody id="mtTablaBody">
      <?php if (empty($solicitudes)): ?>
        <tr><td colspan="6" style="text-align:center;padding:20px;color:var(--tx4);font-size:13px">No tienes solicitudes de mantenimiento.</td></tr>
-     <?php else: foreach ($solicitudes as $idx=>$s): $num = str_pad((string)$s['id'],4,'0',STR_PAD_LEFT); ?>
-      <tr style="animation:slideUp .3s <?php echo $idx*0.05; ?>s backwards">
-       <td>#<?php echo h($num); ?></td>
-       <td><?php echo h($s['fecha']); ?></td>
-       <td><?php echo $s['problema']; ?></td>
-       <td><span class="alert-badge <?php echo h($s['estadoClass']); ?>"><?php echo h($s['estado']); ?></span></td>
-       <td style="font-size:12px;color:var(--tx5)"><?php echo h($s['actualizacion']); ?></td>
-       <td>
-        <button class="mt-info-btn" title="Ver detalles">
-         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
-        </button>
-       </td>
-      </tr>
-     <?php endforeach; endif; ?>
+      <?php else: foreach ($solicitudes as $idx=>$s): $num = str_pad((string)$s['id'],4,'0',STR_PAD_LEFT); ?>
+       <tr style="animation:slideUp .3s <?php echo $idx*0.05; ?>s backwards">
+        <td>#<?php echo h($num); ?></td>
+        <td><?php echo h($s['fecha']); ?></td>
+        <td><?php echo $s['problema']; ?></td>
+        <td><span class="alert-badge <?php echo h($s['estadoClass']); ?>"><?php echo h($s['estado']); ?></span></td>
+        <td style="font-size:12px;color:var(--tx5)"><?php echo h($s['actualizacion']); ?></td>
+        <td>
+         <button class="mt-info-btn" title="Ver detalles" data-id="<?php echo $s['id']; ?>" data-tanque="<?php echo h($s['tanqueNombre']); ?>" data-fecha="<?php echo h($s['fechaFull']); ?>" data-estado="<?php echo h($s['estado']); ?>" data-problema="<?php echo h($s['problemaRaw']); ?>" data-tecnico="<?php echo h($s['tecnico']); ?>" data-obs="<?php echo h($s['observaciones']); ?>" data-actual="<?php echo h($s['actualizacion']); ?>" onclick="verDetalleMt(this)">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+         </button>
+        </td>
+       </tr>
+      <?php endforeach; endif; ?>
      </tbody>
     </table>
    </div>
   </div>
  </div>
-</div>
+ </div>
+<div id="mtDetalleModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:100;align-items:center;justify-content:center;padding:16px"><div style="background:var(--bg2);border:1px solid var(--bd);border-radius:14px;max-width:520px;width:100%;max-height:85vh;overflow-y:auto"><div style="display:flex;justify-content:space-between;align-items:center;padding:18px 20px;border-bottom:1px solid var(--bd)"><strong style="color:var(--tx2)">Detalle mantenimiento</strong><button onclick="cerrarDetalleMt()" style="background:none;border:none;color:var(--tx4);font-size:22px;cursor:pointer">×</button></div><div style="padding:20px;display:flex;flex-direction:column;gap:12px;font-size:13px;color:var(--tx)" id="mtDetalleBody"></div><div style="padding:14px 20px;border-top:1px solid var(--bd);text-align:right"><button onclick="cerrarDetalleMt()" style="padding:8px 16px;border-radius:8px;border:1px solid var(--bd);background:var(--bg);color:var(--tx);cursor:pointer">Cerrar</button></div></div></div>
 <script>
 window.EVA_MT_TANQUES = <?php echo json_encode(array_map(fn($t)=>['id'=>(int)($t['id_tanque']??0),'nombre'=>$t['nombre']??''], $tanques), JSON_UNESCAPED_UNICODE); ?>;
+function verDetalleMt(btn){
+ var d=btn.dataset;
+ var body=document.getElementById('mtDetalleBody');
+ body.innerHTML='<div><strong style="color:var(--tx2)">Solicitud #'+d.id+'</strong><span style="margin-left:8px;padding:3px 8px;border-radius:6px;background:var(--hvr);font-size:11px;color:var(--tx4)">'+d.estado+'</span></div>'
+ +'<div><span style="color:var(--tx4);font-size:11px;text-transform:uppercase">Tanque</span><br>'+d.tanque+'</div>'
+ +'<div><span style="color:var(--tx4);font-size:11px;text-transform:uppercase">Fecha solicitud</span><br>'+d.fecha+'</div>'
+ +'<div><span style="color:var(--tx4);font-size:11px;text-transform:uppercase">Última actualización</span><br>'+d.actual+'</div>'
+ +'<div><span style="color:var(--tx4);font-size:11px;text-transform:uppercase">Descripción</span><br>'+(d.problema||'-')+'</div>'
+ +'<div><span style="color:var(--tx4);font-size:11px;text-transform:uppercase">Técnico asignado</span><br>'+(d.tecnico||'Sin asignar')+'</div>'
+ +'<div><span style="color:var(--tx4);font-size:11px;text-transform:uppercase">Respuesta / Observaciones</span><br>'+(d.obs||'Sin respuesta aún')+'</div>';
+ document.getElementById('mtDetalleModal').style.display='flex';
+}
+function cerrarDetalleMt(){ document.getElementById('mtDetalleModal').style.display='none'; }
+document.getElementById('mtDetalleModal').addEventListener('click',function(e){ if(e.target===this) cerrarDetalleMt(); });
 </script>
 <script src="js/script.js?v=3"></script>
 </body>

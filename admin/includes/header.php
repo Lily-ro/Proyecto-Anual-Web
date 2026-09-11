@@ -1,13 +1,15 @@
-<?php
-if (!isset($pageTitle)) $pageTitle = 'Panel de Administración';
+﻿<?php
+if (!isset($pageTitle)) $pageTitle = 'Panel de AdministraciÃ³n';
 if (!isset($pageSubtitle)) $pageSubtitle = 'Resumen general del sistema';
 ?>
 <header class="header">
- <div class="header-left">
-  <div class="header-greeting">¡Hola, <?php echo $_SESSION['nombre'] ?? 'Administrador'; ?>!</div>
+ <div class="header-left" style="display:flex;align-items:center;gap:12px">
+  <button class="menu-btn" aria-label="Abrir menú"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button>
+  <div>
+  <div class="header-greeting">Â¡Hola, <?php echo $_SESSION['nombre'] ?? 'Administrador'; ?>!</div>
   <div class="header-subtitle"><?php echo $pageSubtitle; ?></div>
- </div>
- <div class="header-right">
+ </div></div>
+  <div class="header-right">
   <button class="bell-btn" title="Notificaciones">
    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>
    <span class="bell-badge">3</span>

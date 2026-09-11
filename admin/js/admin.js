@@ -8,6 +8,14 @@ if (themeToggle) {
  themeToggle.addEventListener('click', () => { isLight = !isLight; localStorage.setItem('eva-theme', isLight ? 'light' : 'dark'); theme(); });
 }
 
+const menuBtn=document.querySelector('.menu-btn');
+const sidebar=document.querySelector('.sidebar');
+if(menuBtn && sidebar){
+ let overlay=document.querySelector('.sidebar-overlay');
+ if(!overlay){ overlay=document.createElement('div'); overlay.className='sidebar-overlay'; document.body.appendChild(overlay); overlay.addEventListener('click', ()=>{ sidebar.classList.remove('open'); document.body.classList.remove('sidebar-open'); }); }
+ menuBtn.addEventListener('click', (e)=>{ e.stopPropagation(); sidebar.classList.toggle('open'); document.body.classList.toggle('sidebar-open'); });
+ document.addEventListener('click', (e)=>{ if(window.innerWidth<=768 && sidebar.classList.contains('open') && !sidebar.contains(e.target) && !menuBtn.contains(e.target) && !overlay.contains(e.target)){ sidebar.classList.remove('open'); document.body.classList.remove('sidebar-open'); } });
+}
 const userDropdown = document.getElementById('userDropdown');
 const userMenu = document.getElementById('userMenu');
 if (userDropdown && userMenu) {

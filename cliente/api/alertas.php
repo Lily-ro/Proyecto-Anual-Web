@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 declare(strict_types=1);
 session_start();
 header('Content-Type: application/json; charset=utf-8');
@@ -35,7 +35,7 @@ try{
         $fechaRaw=$r['fecha_hora']??$r['fecha']??'';
         $fechaFmt='';
         if($fechaRaw){ $ts=strtotime((string)$fechaRaw); if($ts){ if(date('Y-m-d',$ts)===date('Y-m-d')) $fechaFmt='Hoy '.date('H:i',$ts); else $fechaFmt=date('d \d\e M',$ts); } else $fechaFmt=htmlspecialchars((string)$fechaRaw); }
-        $out[]=['type'=>$badge,'icon'=>$icon,'title'=>$titulo,'desc'=>htmlspecialchars($desc),'date'=>$fechaFmt,'status'=>$statusForFilter,'estadoRaw'=>$estadoRaw];
+        $out[]=['id'=>(int)($r['id_alerta']??0),'type'=>$badge,'icon'=>$icon,'title'=>$titulo,'desc'=>htmlspecialchars($desc),'date'=>$fechaFmt,'status'=>$statusForFilter,'estadoRaw'=>$estadoRaw];
     }
     echo json_encode($out, JSON_UNESCAPED_UNICODE);
 }catch(Throwable $e){ http_response_code(500); echo json_encode(['error'=>$e->getMessage()]); }
