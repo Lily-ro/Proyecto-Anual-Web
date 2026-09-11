@@ -98,7 +98,39 @@ try{ $pdo=eva_pdo(); $uid=eva_current_user_id(); $t=eva_first_tanque($pdo,$uid);
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>EVA - Mi Perfil</title>
 <link rel="stylesheet" href="css/style.css">
+<<<<<<< HEAD
 <style>.pass-wrap{position:relative}.pass-wrap input{padding-right:42px}.pass-eye{position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--tx4);display:flex}.msg-ok{background:rgba(76,175,80,0.12);border:1px solid rgba(76,175,80,0.2);color:var(--gn);padding:12px 16px;border-radius:8px;margin-bottom:16px;font-size:13px}.msg-err{background:rgba(244,67,54,0.12);border:1px solid rgba(244,67,54,0.2);color:var(--rd);padding:12px 16px;border-radius:8px;margin-bottom:16px;font-size:13px}</style>
+=======
+<style>
+.header-left{display:flex;flex-direction:column}
+.header-greeting{font-size:22px;font-weight:700;color:var(--tx2)}
+.header-subtitle{font-size:13px;color:var(--tx4);margin-top:2px}
+.content{padding:24px 30px;flex:1}
+.content-card{background:var(--bg2);border:1px solid var(--bd);border-radius:14px;padding:28px 32px}
+.content-divider{height:1px;background:var(--bd);margin-bottom:20px}
+.profile-avatar{width:72px;height:72px;border-radius:50%;background:linear-gradient(135deg,#3b82f6,#06b6d4);display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:700;color:#fff;flex-shrink:0}
+.profile-header{display:flex;align-items:center;gap:20px;padding:24px 28px}
+.profile-info{display:flex;flex-direction:column;gap:4px}
+.profile-name{font-size:20px;font-weight:700;color:var(--tx)}
+.profile-role{font-size:13px;color:var(--tx4)}
+.profile-section{padding:0 28px 20px}
+.profile-section-title{font-size:14px;font-weight:700;color:var(--tx);margin-bottom:8px}
+.profile-field{display:flex;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--bd)}
+.profile-field-label{font-size:13px;color:var(--tx4)}
+.profile-field-value{font-size:13px;font-weight:500;color:var(--tx2)}
+.actions-row{display:flex;gap:12px;padding:20px 28px}
+.btn-primary{padding:10px 24px;border:none;background:var(--ac);color:#fff;border-radius:8px;font-size:13px;font-weight:500;cursor:pointer;transition:all .2s}
+.btn-primary:hover{opacity:.9;transform:translateY(-1px)}
+.btn-outline{padding:10px 24px;border:1px solid var(--bd3);background:transparent;color:var(--tx2);border-radius:8px;font-size:13px;font-weight:500;cursor:pointer;transition:all .2s}
+.btn-outline:hover{border-color:var(--ac);color:var(--ac)}
+body.light-theme .profile-field{border-color:#e0e3e8}
+body.light-theme .content-card{background:#fff;border-color:#e0e3e8}
+body.light-theme .content-divider{background:#e0e3e8}
+body.light-theme .profile-section-title{color:#1a1f2e}
+body.light-theme .profile-field-label{color:#6b7280}
+body.light-theme .profile-field-value{color:#1a1f2e}
+</style>
+>>>>>>> ad7f7b988ee33fa7a2a84311d3fa13c5b3715ab0
 </head>
 <body>
 <aside class="sidebar">
@@ -111,12 +143,21 @@ try{ $pdo=eva_pdo(); $uid=eva_current_user_id(); $t=eva_first_tanque($pdo,$uid);
  </a>
  <nav>
   <ul>
+<<<<<<< HEAD
    <li class="anim-slide1"><a href="indexcli.php"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg><span>Resumen</span></a></li>
    <li class="anim-slide2"><a href="mitanque.php"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="4" y1="18" x2="20" y2="18"/><rect x="7" y="12" width="10" height="6" rx="1" fill="currentColor" opacity="0.3"/></svg><span>Mi Tanque</span></a></li>
    <li class="anim-slide3"><a href="alertas.php"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg><span>Alertas</span></a></li>
    <li class="anim-slide4"><a href="configuracion.php"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 01-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg><span>Configuración</span></a></li>
    <li class="anim-slide5"><a href="historial.php"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg><span>Historial</span></a></li>
    <li class="anim-slide6"><a href="mantenimiento.php"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/></svg><span>Mantenimiento</span></a></li>
+=======
+    <li class="anim-slide1"><a href="indexcli.php"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg><span>Resumen</span></a></li>
+    <li class="anim-slide2"><a href="mitanque.php"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="4" y1="18" x2="20" y2="18"/><rect x="7" y="12" width="10" height="6" rx="1" fill="currentColor" opacity="0.3"/></svg><span>Mi Tanque</span></a></li>
+    <li class="anim-slide3"><a href="alertas.php"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg><span>Alertas</span></a></li>
+    <li class="anim-slide4"><a href="configuracion.php"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 01-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg><span>Configuración</span></a></li>
+    <li class="anim-slide5"><a href="historial.php"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg><span>Historial</span></a></li>
+    <li class="anim-slide6"><a href="mantenimiento.php"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/></svg><span>Mantenimiento</span></a></li>
+>>>>>>> ad7f7b988ee33fa7a2a84311d3fa13c5b3715ab0
   </ul>
  </nav>
  <div class="device-status" style="<?php echo $deviceStatus==='Conectado' ? 'background:rgba(76,175,80,0.08);border-color:rgba(76,175,80,0.15)' : 'background:rgba(244,67,54,0.08);border-color:rgba(244,67,54,0.15)'; ?>">
@@ -130,9 +171,10 @@ try{ $pdo=eva_pdo(); $uid=eva_current_user_id(); $t=eva_first_tanque($pdo,$uid);
 
 <div class="main">
  <header class="header">
-  <div class="header-left">
-   <button class="menu-btn"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#7a829a" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button>
-  </div>
+   <div class="header-left">
+    <div class="header-greeting">Mi Perfil</div>
+    <div class="header-subtitle">Información personal y configuración de cuenta</div>
+   </div>
   <div class="header-right">
    <button class="theme-btn" id="themeToggle" title="Cambiar tema">
     <svg class="icon-sun" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
@@ -149,6 +191,7 @@ try{ $pdo=eva_pdo(); $uid=eva_current_user_id(); $t=eva_first_tanque($pdo,$uid);
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
       <span>Mi perfil</span>
      </a>
+<<<<<<< HEAD
      <a class="user-menu-item" href="configuracion.php">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
       <span>Configuración</span>
@@ -157,22 +200,36 @@ try{ $pdo=eva_pdo(); $uid=eva_current_user_id(); $t=eva_first_tanque($pdo,$uid);
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
       <span>Cerrar sesión</span>
      </a>
+=======
+      <a class="user-menu-item" href="../config/logout.php">
+       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+       <span>Cerrar sesión</span>
+      </a>
+>>>>>>> ad7f7b988ee33fa7a2a84311d3fa13c5b3715ab0
     </div>
    </div>
   </div>
  </header>
 
+<<<<<<< HEAD
  <div class="view active">
   <?php if($msgOk): ?><div class="msg-ok"><?php echo h($msgOk); ?></div><?php endif; ?>
   <?php if($msgErr): ?><div class="msg-err"><?php echo h($msgErr); ?></div><?php endif; ?>
   <div class="content-card anim-bounce0" style="margin-bottom:20px">
+=======
+ <div class="content">
+  <div class="content-card anim-bounce0">
+>>>>>>> ad7f7b988ee33fa7a2a84311d3fa13c5b3715ab0
    <div class="profile-header">
     <div class="profile-avatar"><?php echo h($iniciales); ?></div>
     <div class="profile-info">
      <div class="profile-name"><?php echo h(trim(($perfil['nombre']??'').' '.($perfil['apellido']??''))) ?: 'Usuario'; ?></div>
      <div class="profile-role"><?php echo h($perfil['rol'] ?? 'Cliente'); ?></div>
+<<<<<<< HEAD
      <?php if (!empty($perfil['ultimo_acceso'])): ?><div style="font-size:12px;color:var(--tx4);margin-top:4px">Último acceso: <?php echo h(date('d/m/Y H:i', strtotime($perfil['ultimo_acceso']))); ?></div><?php endif; ?>
      <?php if (!empty($perfil['fecha_registro'])): ?><div style="font-size:12px;color:var(--tx4)">Miembro desde: <?php echo h(date('d/m/Y', strtotime($perfil['fecha_registro']))); ?></div><?php endif; ?>
+=======
+>>>>>>> ad7f7b988ee33fa7a2a84311d3fa13c5b3715ab0
     </div>
    </div>
    <div class="content-divider"></div>
@@ -193,6 +250,7 @@ try{ $pdo=eva_pdo(); $uid=eva_current_user_id(); $t=eva_first_tanque($pdo,$uid);
     <?php if (!empty($perfil['codigo_postal'])): ?><div class="profile-field"><div class="profile-field-label">Código postal</div><div class="profile-field-value"><?php echo h($perfil['codigo_postal']); ?></div></div><?php endif; ?>
     <?php if(empty($perfil['telefono']) && empty($perfil['direccion'])): ?><div style="font-size:13px;color:var(--tx4);padding:8px 0">Sin información de contacto adicional.</div><?php endif; ?>
    </div>
+<<<<<<< HEAD
    <?php if(!empty($perfil['cliente'])): ?>
    <div class="content-divider"></div>
    <div class="profile-section">
@@ -206,6 +264,17 @@ try{ $pdo=eva_pdo(); $uid=eva_current_user_id(); $t=eva_first_tanque($pdo,$uid);
    <div class="actions-row">
     <a href="#cambiarPass" onclick="document.getElementById('cambiarPass').scrollIntoView({behavior:'smooth'});return false;" class="btn btn-primary">Cambiar contraseña</a>
     <a href="../config/logout.php" class="btn btn-outline" style="text-decoration:none;text-align:center;display:inline-flex;align-items:center">Cerrar sesión</a>
+=======
+   <?php if (!empty($perfil['ultimo_acceso'])): ?>
+   <div class="profile-section">
+    <div class="profile-section-title">Actividad</div>
+    <div class="profile-field"><div class="profile-field-label">Último acceso</div><div class="profile-field-value"><?php echo h(date('d/m/Y H:i', strtotime($perfil['ultimo_acceso']))); ?></div></div>
+   </div>
+   <?php endif; ?>
+   <div class="actions-row">
+    <button class="btn btn-primary">Editar Perfil</button>
+    <button class="btn btn-outline">Cambiar Contraseña</button>
+>>>>>>> ad7f7b988ee33fa7a2a84311d3fa13c5b3715ab0
    </div>
   </div>
 
