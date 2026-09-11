@@ -35,9 +35,9 @@ $resAlertas = $conn->query("SELECT DATE_FORMAT(a.fecha_hora,'%d/%m %H:%i') AS fe
 $resMantHist = $conn->query("SELECT CONCAT(ut.nombre,' ',ut.apellido) AS tecnico, d.nombre AS dispositivo, m.estado, DATE_FORMAT(m.fecha_programada,'%d/%m/%Y') AS fecha FROM mantenimientos m JOIN dispositivos d ON m.id_dispositivo=d.id_dispositivo JOIN usuarios ut ON m.id_tecnico=ut.id_usuario ORDER BY m.fecha_programada DESC LIMIT 5");
 
 function badgeEstado($estado){
-    $map = ['ONLINE'=>'activo','OFFLINE'=>'inactivo','MANTENIMIENTO'=>'advertencia'];
-    $cls = $map[$estado] ?? 'inactivo';
-    return '<span class="badge '.$cls.'">'.htmlspecialchars($estado).'</span>';
+     $map = ['ONLINE'=>['cls'=>'activo','txt'=>'Conectado'],'OFFLINE'=>['cls'=>'inactivo','txt'=>'Desconectado'],'MANTENIMIENTO'=>['cls'=>'advertencia','txt'=>'Mantenimiento']];
+     $info = $map[$estado] ?? ['cls'=>'inactivo','txt'=>($estado==='ONLINE'?'Conectado':($estado==='OFFLINE'?'Desconectado':$estado))];
+     return '<span class="badge '.$info['cls'].'">'.htmlspecialchars($info['txt']).'</span>';
 }
 function badgeBateria($b){
     $b = (float)$b;
