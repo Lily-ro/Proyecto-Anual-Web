@@ -7,6 +7,34 @@ if(!isset($_SESSION['rol']) || $_SESSION['rol'] !== 'USUARIO'){
 require_once __DIR__ . '/../config/db.php';
 require_once __DIR__ . '/includes/helpers.php';
 
+$msgOk=''; $msgErr='';
+if($_SERVER['REQUEST_METHOD']==='POST' && isset($_POST['cambiar_pass'])){
+    $actual = $_POST['actual'] ?? '';
+    $nueva = $_POST['nueva'] ?? '';
+    $confirm = $_POST['confirm'] ?? '';
+    if($actual==='' || $nueva==='' || $confirm===''){ $msgErr='Completá todos los campos.'; }
+    elseif($nueva !== $confirm){ $msgErr='La nueva contraseña y su confirmación no coinciden.'; }
+    elseif(mb_strlen($nueva) < 8){ $msgErr='La nueva contraseña debe tener al menos 8 caracteres.'; }
+    elseif(!preg_match('/[A-Za-z]/',$nueva) || !preg_match('/[0-9]/',$nueva)){ $msgErr='La contraseña debe contener letras y números.'; }
+    elseif($actual === $nueva){ $msgErr='La nueva contraseña no puede ser igual a la actual.'; }
+    else {
+        try{
+            $pdo=eva_pdo();
+            $uid=eva_current_user_id();
+            $st=$pdo->prepare("SELECT password_hash FROM usuarios WHERE id_usuario=:id LIMIT 1");
+            $st->execute([':id'=>$uid]);
+            $row=$st->fetch();
+            if(!$row || !password_verify($actual, $row['password_hash'])){ $msgErr='La contraseña actual es incorrecta.'; }
+            else {
+                $hash=password_hash($nueva, PASSWORD_DEFAULT);
+                $pdo->prepare("UPDATE usuarios SET password_hash=:h WHERE id_usuario=:id")->execute([':h'=>$hash,':id'=>$uid]);
+                try{ eva_log_actividad($pdo,(int)$uid,'UPDATE','Cambió su contraseña'); }catch(Throwable $e){}
+                $msgOk='Contraseña actualizada correctamente.';
+            }
+        }catch(Throwable $e){ $msgErr='Error interno. Intentá nuevamente.'; error_log('cambiar_pass: '.$e->getMessage()); }
+    }
+}
+
 $perfil = [
     'nombre' => $_SESSION['nombre'] ?? 'Usuario',
     'apellido' => $_SESSION['apellido'] ?? '',
@@ -15,6 +43,8 @@ $perfil = [
     'ultimo_acceso' => null,
     'telefono' => null,
     'direccion' => null,
+    'dni' => null,
+    'fecha_registro' => null,
 ];
 try {
     $pdo = eva_pdo();
@@ -29,17 +59,33 @@ try {
             $perfil['email'] = $row['email'] ?? $perfil['email'];
             $perfil['rol'] = $row['rol_nombre'] ?? $perfil['rol'];
             $perfil['ultimo_acceso'] = $row['ultimo_acceso'] ?? null;
-            $perfil['telefono'] = $row['telefono'] ?? $row['celular'] ?? null;
+            $perfil['telefono'] = $row['telefono'] ?? null;
             $perfil['direccion'] = $row['direccion'] ?? null;
-            
+            $perfil['dni'] = $row['dni'] ?? null;
+            $perfil['fecha_registro'] = $row['fecha_registro'] ?? null;
             $_SESSION['nombre'] = $perfil['nombre'];
             $_SESSION['apellido'] = $perfil['apellido'];
             $_SESSION['email'] = $perfil['email'];
+        }
+        $st2=$pdo->prepare("SELECT * FROM clientes WHERE id_usuario=:uid LIMIT 1");
+        $st2->execute([':uid'=>$uid]);
+        $cli=$st2->fetch();
+        if($cli){
+            $perfil['telefono'] = $cli['telefono'] ?? $perfil['telefono'];
+            $perfil['dni'] = $cli['dni'] ?? $perfil['dni'];
+            $parts=[];
+            if(!empty($cli['calle'])) $parts[] = trim($cli['calle'].' '.$cli['numero'].(!empty($cli['piso'])?' Piso '.$cli['piso']:''));
+            if(!empty($cli['localidad'])) $parts[]=$cli['localidad'];
+            if(!empty($cli['provincia'])) $parts[]=$cli['provincia'];
+            if($parts) $perfil['direccion']=implode(', ',$parts);
+            if(!empty($cli['codigo_postal'])) $perfil['codigo_postal']=$cli['codigo_postal'];
         }
     }
 } catch (Throwable $e) { error_log('perfil error: '.$e->getMessage()); }
 $iniciales = strtoupper(substr($perfil['nombre'] ?? 'U',0,1) . substr($perfil['apellido'] ?? '',0,1));
 if (trim($iniciales)==='') $iniciales = strtoupper(substr($perfil['nombre'] ?? 'U',0,2));
+$deviceStatus='Conectado';
+try{ $pdo=eva_pdo(); $uid=eva_current_user_id(); $t=eva_first_tanque($pdo,$uid); if($t) $deviceStatus=eva_device_status($pdo,(int)$t['id_tanque']); }catch(Throwable $e){}
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -48,6 +94,11 @@ if (trim($iniciales)==='') $iniciales = strtoupper(substr($perfil['nombre'] ?? '
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>EVA - Mi Perfil</title>
 <link rel="stylesheet" href="css/style.css">
+<style>
+.pass-wrap{position:relative}.pass-wrap input{padding-right:42px}.pass-eye{position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--tx4);display:flex}
+.msg-ok{background:rgba(76,175,80,0.12);border:1px solid rgba(76,175,80,0.2);color:var(--gn);padding:12px 16px;border-radius:8px;margin-bottom:16px;font-size:13px}
+.msg-err{background:rgba(244,67,54,0.12);border:1px solid rgba(244,67,54,0.2);color:var(--rd);padding:12px 16px;border-radius:8px;margin-bottom:16px;font-size:13px}
+</style>
 </head>
 <body>
 <aside class="sidebar">
@@ -66,20 +117,20 @@ if (trim($iniciales)==='') $iniciales = strtoupper(substr($perfil['nombre'] ?? '
    <li class="anim-slide4"><a href="configuracion.php"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 01-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg><span>Configuración</span></a></li>
   </ul>
  </nav>
- <div class="device-status">
+ <div class="device-status" style="<?php echo $deviceStatus==='Conectado' ? 'background:rgba(76,175,80,0.08);border-color:rgba(76,175,80,0.15)' : 'background:rgba(244,67,54,0.08);border-color:rgba(244,67,54,0.15)'; ?>">
   <h4>Dispositivo</h4>
   <div class="status-row">
-   <svg class="wifi-icon anim-pulse" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12.55a11 11 0 0114.08 0"/><path d="M1.42 9a16 16 0 0121.16 0"/><path d="M8.53 16.11a6 6 0 016.95 0"/><line x1="12" y1="20" x2="12.01" y2="20"/></svg>
-   <span class="status-text">Conectado</span>
+   <svg class="wifi-icon anim-pulse" viewBox="0 0 24 24" fill="none" stroke="<?php echo $deviceStatus==='Conectado' ? '#4caf50' : '#f44336'; ?>" stroke-width="2"><path d="M5 12.55a11 11 0 0114.08 0"/><path d="M1.42 9a16 16 0 0121.16 0"/><path d="M8.53 16.11a6 6 0 016.95 0"/><line x1="12" y1="20" x2="12.01" y2="20"/></svg>
+    <span class="status-text" style="color:<?php echo $deviceStatus==='Conectado' ? '#4caf50' : '#f44336'; ?>;font-weight:700"><?php echo $deviceStatus==='Conectado' ? 'Conectado' : 'Desconectado'; ?></span>
   </div>
  </div>
 </aside>
 
 <div class="main">
  <header class="header">
-  <div class="header-left">
-   <button class="menu-btn"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#7a829a" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button>
-  </div>
+   <div class="header-left">
+    <button class="menu-btn"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#7a829a" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button>
+   </div>
   <div class="header-right">
    <button class="theme-btn" id="themeToggle" title="Cambiar tema">
     <svg class="icon-sun" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
@@ -96,9 +147,9 @@ if (trim($iniciales)==='') $iniciales = strtoupper(substr($perfil['nombre'] ?? '
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
       <span>Mi perfil</span>
      </a>
-     <a class="user-menu-item" href="configuracion.php">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
-      <span>Configuración</span>
+     <a class="user-menu-item" href="../config/logout.php">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+      <span>Cerrar sesión</span>
      </a>
     </div>
    </div>
@@ -106,33 +157,79 @@ if (trim($iniciales)==='') $iniciales = strtoupper(substr($perfil['nombre'] ?? '
  </header>
 
  <div class="view active">
-  <div class="content-card anim-bounce0">
-   <div class="profile-header">
-    <div class="profile-avatar"><?php echo h($iniciales); ?></div>
-    <div class="profile-info">
-     <div class="profile-name"><?php echo h(trim(($perfil['nombre']??'').' '.($perfil['apellido']??''))) ?: 'Usuario'; ?></div>
-     <div class="profile-role"><?php echo h($perfil['rol'] ?? 'Cliente'); ?></div>
-     <?php if (!empty($perfil['ultimo_acceso'])): ?><div style="font-size:12px;color:var(--tx4);margin-top:4px">Último acceso: <?php echo h(date('d/m/Y H:i', strtotime($perfil['ultimo_acceso']))); ?></div><?php endif; ?>
+  <?php if($msgOk): ?><div class="msg-ok"><?php echo h($msgOk); ?></div><?php endif; ?>
+  <?php if($msgErr): ?><div class="msg-err"><?php echo h($msgErr); ?></div><?php endif; ?>
+
+  <div class="profile-grid">
+   <div class="content-card anim-bounce0">
+    <div class="profile-header">
+     <div class="profile-avatar"><?php echo h($iniciales); ?></div>
+     <div class="profile-info">
+      <div class="profile-name"><?php echo h(trim(($perfil['nombre']??'').' '.($perfil['apellido']??''))) ?: 'Usuario'; ?></div>
+      <div class="profile-role"><?php echo h($perfil['rol'] ?? 'Cliente'); ?></div>
+      <?php if (!empty($perfil['ultimo_acceso'])): ?><div style="font-size:12px;color:var(--tx4);margin-top:4px">Último acceso: <?php echo h(date('d/m/Y H:i', strtotime($perfil['ultimo_acceso']))); ?></div><?php endif; ?>
+      <?php if (!empty($perfil['fecha_registro'])): ?><div style="font-size:12px;color:var(--tx4)">Miembro desde: <?php echo h(date('d/m/Y', strtotime($perfil['fecha_registro']))); ?></div><?php endif; ?>
+     </div>
+    </div>
+    <div class="content-divider"></div>
+    <div class="profile-section">
+     <div class="profile-section-title">Datos personales</div>
+     <div class="profile-field"><div class="profile-field-label">Nombre</div><div class="profile-field-value"><?php echo h($perfil['nombre'] ?? '-'); ?></div></div>
+     <div class="profile-field"><div class="profile-field-label">Apellido</div><div class="profile-field-value"><?php echo h($perfil['apellido'] ?? '-'); ?></div></div>
+     <?php if(!empty($perfil['dni'])): ?><div class="profile-field"><div class="profile-field-label">DNI</div><div class="profile-field-value"><?php echo h($perfil['dni']); ?></div></div><?php endif; ?>
+     <div class="profile-field"><div class="profile-field-label">Correo electrónico</div><div class="profile-field-value"><?php echo h($perfil['email'] ?? '-'); ?></div></div>
+     <div class="profile-field"><div class="profile-field-label">Rol</div><div class="profile-field-value"><?php echo h($perfil['rol'] ?? 'Cliente'); ?></div></div>
+    </div>
+    <?php if(!empty($perfil['telefono']) || !empty($perfil['direccion'])): ?>
+    <div class="content-divider"></div>
+    <div class="profile-section">
+     <div class="profile-section-title">Información de contacto</div>
+     <?php if(!empty($perfil['telefono'])): ?><div class="profile-field"><div class="profile-field-label">Teléfono</div><div class="profile-field-value"><?php echo h($perfil['telefono']); ?></div></div><?php endif; ?>
+     <?php if(!empty($perfil['direccion'])): ?><div class="profile-field"><div class="profile-field-label">Dirección</div><div class="profile-field-value"><?php echo h($perfil['direccion']); ?></div></div><?php endif; ?>
+     <?php if(!empty($perfil['codigo_postal'])): ?><div class="profile-field"><div class="profile-field-label">Código postal</div><div class="profile-field-value"><?php echo h($perfil['codigo_postal']); ?></div></div><?php endif; ?>
+    </div>
+    <?php endif; ?>
+    <div class="content-divider"></div>
+    <div class="actions-row">
+     <a href="../config/logout.php" class="btn btn-outline">Cerrar sesión</a>
     </div>
    </div>
-   <div class="content-divider"></div>
-   <div class="profile-section">
-    <div class="profile-section-title">Información Personal</div>
-    <div class="profile-field"><div class="profile-field-label">Nombre</div><div class="profile-field-value"><?php echo h($perfil['nombre'] ?? '-'); ?></div></div>
-    <div class="profile-field"><div class="profile-field-label">Apellido</div><div class="profile-field-value"><?php echo h($perfil['apellido'] ?? '-'); ?></div></div>
-    <div class="profile-field"><div class="profile-field-label">Correo electrónico</div><div class="profile-field-value"><?php echo h($perfil['email'] ?? '-'); ?></div></div>
-    <div class="profile-field"><div class="profile-field-label">Rol</div><div class="profile-field-value"><?php echo h($perfil['rol'] ?? 'Cliente'); ?></div></div>
-    <?php if (!empty($perfil['telefono'])): ?><div class="profile-field"><div class="profile-field-label">Teléfono</div><div class="profile-field-value"><?php echo h($perfil['telefono']); ?></div></div><?php endif; ?>
-    <?php if (!empty($perfil['direccion'])): ?><div class="profile-field"><div class="profile-field-label">Dirección</div><div class="profile-field-value"><?php echo h($perfil['direccion']); ?></div></div><?php endif; ?>
-   </div>
-   <div class="content-divider"></div>
-   <div class="content-divider"></div>
-   <div class="actions-row">
-    <a href="../config/logout.php" class="btn btn-danger" style="text-decoration:none;text-align:center;display:inline-block">Cerrar sesión</a>
+
+   <div class="content-card anim-bounce1" id="cambiarPass">
+    <div class="profile-section">
+     <div class="profile-section-title">Cambiar contraseña</div>
+     <div style="font-size:13px;color:var(--tx4);margin-bottom:16px">La contraseña debe tener al menos 8 caracteres, incluir letras y números.</div>
+     <form method="POST">
+      <input type="hidden" name="cambiar_pass" value="1">
+      <div style="margin-bottom:14px">
+       <label style="font-size:13px;font-weight:500;color:var(--tx2);display:block;margin-bottom:6px">Contraseña actual</label>
+       <div class="pass-wrap">
+        <input type="password" name="actual" id="passActual" class="form-input" required>
+        <button type="button" class="pass-eye" onclick="togglePass('passActual',this)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>
+       </div>
+      </div>
+      <div style="margin-bottom:14px">
+       <label style="font-size:13px;font-weight:500;color:var(--tx2);display:block;margin-bottom:6px">Nueva contraseña</label>
+       <div class="pass-wrap">
+        <input type="password" name="nueva" id="passNueva" class="form-input" required>
+        <button type="button" class="pass-eye" onclick="togglePass('passNueva',this)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>
+       </div>
+      </div>
+      <div style="margin-bottom:18px">
+       <label style="font-size:13px;font-weight:500;color:var(--tx2);display:block;margin-bottom:6px">Confirmar nueva contraseña</label>
+       <div class="pass-wrap">
+        <input type="password" name="confirm" id="passConfirm" class="form-input" required>
+        <button type="button" class="pass-eye" onclick="togglePass('passConfirm',this)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>
+       </div>
+      </div>
+      <button type="submit" class="btn btn-primary">Guardar nueva contraseña</button>
+     </form>
+    </div>
    </div>
   </div>
  </div>
 </div>
+<script>function togglePass(id,btn){var i=document.getElementById(id);if(!i)return;i.type=i.type==='password'?'text':'password';}</script>
 <script src="js/script.js"></script>
 </body>
 </html>

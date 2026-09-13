@@ -135,8 +135,6 @@ function alertas() {
  const list = document.getElementById('alertasList');
  if (!list) return;
  list.innerHTML = '';
- const filtered = ad.filter(a => af === 'todas' ? true : a.status === af.slice(0,-1) || a.status === af);
- 
  const toShow = ad.filter(a => {
    if (af==='todas') return true;
    if (af==='activas') return a.status==='activo' || a.status==='en-revision';
@@ -150,21 +148,54 @@ function alertas() {
  toShow.forEach((a, i) => {
   const d = document.createElement('div'); d.className = 'alert-item'; d.style.animationDelay = `${i * 0.06}s`;
   const ic = a.icon === 'warning' ? (a.type === 'danger' ? 'danger-icon' : 'warning-icon') : a.icon === 'info' ? 'info-icon' : 'success-icon';
-  d.innerHTML = `<div class="alert-icon ${ic}">${alertIcon(a.icon)}</div><div class="alert-content"><div class="alert-name">${a.title}</div><div class="alert-desc">${a.desc}</div></div><div class="alert-meta"><div class="alert-date">${a.date}</div><div class="alert-badge ${a.status}">${a.status === 'activo' ? 'Activo' : (a.status==='en-revision'?'En revisión':'Resuelta')}</div></div>`;
+  const badgeText = a.status === 'activo' ? 'Activo' : (a.status==='en-revision'?'En revisión':'Resuelta');
+   const resolveBtn = (a.status==='activo' || a.status==='en-revision')
+    ? `<button class="alert-resolve-btn" onclick="resolverAlerta(${a.id||0},this)">Resolver</button>`
+    : '';
+  d.innerHTML = `<div class="alert-icon ${ic}">${alertIcon(a.icon)}</div><div class="alert-content"><div class="alert-name">${a.title}</div><div class="alert-desc">${a.desc}</div></div><div class="alert-meta"><div class="alert-date">${a.date}</div><div class="alert-badge ${a.status}">${badgeText}</div>${resolveBtn}</div>`;
   list.appendChild(d);
  });
+}
+function resolverAlerta(id, btn) {
+ if (!id || !btn) return;
+ btn.disabled = true;
+ btn.textContent = 'Resolviendo...';
+ fetch('api/resolver_alerta.php', {
+   method: 'POST',
+   headers: {'Content-Type': 'application/json'},
+   body: JSON.stringify({id_alerta: id})
+ }).then(r => r.json()).then(res => {
+   if (res.ok) {
+     const a = ad.find(x => x.id === id);
+     if (a) { a.status = 'resuelta'; a.estadoRaw = 'RESUELTA'; }
+     showToast('Alerta resuelta', 'success');
+     alertas();
+   } else {
+     btn.disabled = false;
+     btn.textContent = 'Resolver';
+     showToast(res.error || 'Error al resolver', 'error');
+   }
+ }).catch(() => {
+   btn.disabled = false;
+   btn.textContent = 'Resolver';
+   showToast('Error de conexión', 'error');
+ });
+}
+function showToast(msg, type) {
+ let t = document.getElementById('evaToast');
+ if (!t) { t = document.createElement('div'); t.id = 'evaToast'; document.body.appendChild(t); }
+ t.className = 'eva-toast ' + (type||'info');
+ t.textContent = msg;
+ t.style.display = 'block';
+ t.style.opacity = '1';
+ setTimeout(() => { t.style.opacity = '0'; setTimeout(() => { t.style.display = 'none'; }, 400); }, 2500);
 } 
 document.querySelectorAll('.alertas-filter').forEach(b => b.addEventListener('click', () => {
   document.querySelectorAll('.alertas-filter').forEach(x => x.classList.remove('active')); b.classList.add('active'); af = b.dataset.filter;
-
-  if (typeof window.EVA_ALERTAS !== 'undefined' && window.EVA_ALERTAS.length>0) {
-    alertas();
-  } else {
-    fetch(`api/alertas.php?filter=${encodeURIComponent(af)}`).then(r=>r.json()).then(data=>{
-      if(Array.isArray(data)){ ad=data; alertas(); }
-      else alertas();
-    }).catch(()=> alertas());
-  }
+  fetch(`api/alertas.php?filter=${encodeURIComponent(af)}`).then(r=>r.json()).then(data=>{
+    if(Array.isArray(data)){ ad=data; alertas(); }
+    else alertas();
+  }).catch(()=> alertas());
 }));
 
 const sL = document.getElementById('sliderLow'), sH = document.getElementById('sliderHigh');
