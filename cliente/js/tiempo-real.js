@@ -5,6 +5,26 @@ let evaPollTimer = null;
 let evaErrorCount = 0;
 let evaLastSuccessData = null;
 
+function evaTraducirDeviceStatus(raw) {
+  if (!raw) return 'Desconectado';
+  var s = String(raw).toLowerCase().trim();
+  if (s === 'online' || s === 'activo' || s === 'conectado' || s === 'operativo') return 'Conectado';
+  return 'Desconectado';
+}
+function evaAplicarDeviceStatus(texto) {
+  var sEl = document.querySelector('.status-text');
+  if (!sEl) return;
+  sEl.textContent = texto;
+  var esConectado = texto === 'Conectado';
+  sEl.style.color = esConectado ? '#4caf50' : '#f44336';
+  var icon = document.querySelector('.wifi-icon');
+  if (icon) icon.setAttribute('stroke', esConectado ? '#4caf50' : '#f44336');
+  var box = document.querySelector('.device-status');
+  if (box) {
+    box.style.background = esConectado ? 'rgba(76,175,80,0.08)' : 'rgba(244,67,54,0.08)';
+    box.style.borderColor = esConectado ? 'rgba(76,175,80,0.15)' : 'rgba(244,67,54,0.15)';
+  }
+}
 function evaActualizarDashboard(d) {
   if (!d || d.error) return;
   evaErrorCount = 0;
@@ -41,13 +61,10 @@ function evaActualizarDashboard(d) {
       if (typeof status === 'function') status();
       if (d.lastUpdate) { var el = document.getElementById('lastUpdate'); if (el) el.textContent = d.lastUpdate; }
       if (d.barsData && typeof bars === 'function') { if (typeof bd !== 'undefined') bd = d.barsData; bars(); }
-      var dStatus = document.querySelector('.status-text');
-      if (dStatus && d.deviceStatus) dStatus.textContent = d.deviceStatus;
     }
   }
   if (typeof d.deviceStatus === 'string') {
-    var sEl = document.querySelector('.status-text');
-    if (sEl) sEl.textContent = d.deviceStatus;
+    evaAplicarDeviceStatus(evaTraducirDeviceStatus(d.deviceStatus));
   }
 }
 

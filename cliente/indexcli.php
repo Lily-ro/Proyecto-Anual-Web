@@ -174,7 +174,7 @@ try {
     </div>
    </div>
    <div class="card resumen-chart-card anim-bounce3">
-    <div class="resumen-chart-header"><div class="card-title">Consumo de agua (litros)</div>
+     <div class="resumen-chart-header"><div class="card-title consumo-title" data-full="Consumo de agua (litros)" data-short="Consumo (L)">Consumo de agua (litros)</div>
      <select class="resumen-chart-select" id="resumenChartSelect"><option value="semana">Esta semana</option><option value="mes">Este mes</option><option value="anio">Este año</option></select>
     </div>
     <svg class="resumen-mini-chart" id="resumenMiniChart" viewBox="0 0 500 170" preserveAspectRatio="xMidYMid meet"></svg>

@@ -555,11 +555,11 @@ function mtTabla(data) {
    <td>${s.problema}</td>
    <td><span class="alert-badge ${mtEstadoClass(s.estado)}">${s.estado}</span></td>
    <td style="font-size:12px;color:var(--tx5)">${s.actualizacion}</td>
-   <td>
-    <button class="mt-info-btn" title="Ver detalles">
-     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
-    </button>
-   </td>
+    <td>
+     <button class="mt-info-btn" title="Ver historial" onclick="evaAbrirHistorial(${s.id})">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+     </button>
+    </td>
   </tr>`;
  }).join('');
 }
@@ -623,3 +623,70 @@ function mantenimientoInit() {
     }
   }
 }
+
+function evaAbrirHistorial(idSol) {
+  const modal = document.getElementById('mtHistorialModal');
+  if (!modal) return;
+  modal.style.display = 'flex';
+  document.body.style.overflow = 'hidden';
+  document.getElementById('mtHistTimeline').innerHTML = '<div style="text-align:center;padding:24px;color:var(--tx4)">Cargando...</div>';
+  document.getElementById('mtHistInfo').innerHTML = '';
+  fetch('api/historial_solicitud.php?id=' + idSol, {cache: 'no-store'})
+    .then(r => r.json())
+    .then(data => {
+      if (!data.ok) {
+        document.getElementById('mtHistTimeline').innerHTML = '<div style="text-align:center;padding:24px;color:var(--rd)">' + (data.error || 'Error') + '</div>';
+        return;
+      }
+      const s = data.solicitud;
+      const badgeEstado = s.estado === 'PENDIENTE' ? 'activo' : s.estado === 'FINALIZADA' ? 'resuelta' : 'en-revision';
+      document.getElementById('mtHistInfo').innerHTML =
+        '<div class="mt-hist-row"><span class="mt-hist-label">Solicitud</span><span class="mt-hist-val">#' + String(s.id).padStart(4, '0') + '</span></div>' +
+        '<div class="mt-hist-row"><span class="mt-hist-label">Tanque</span><span class="mt-hist-val">' + (s.tanque || '-') + '</span></div>' +
+        '<div class="mt-hist-row"><span class="mt-hist-label">Estado</span><span class="mt-hist-val"><span class="alert-badge ' + badgeEstado + '">' + s.estado + '</span></span></div>' +
+        '<div class="mt-hist-row"><span class="mt-hist-label">Problema</span><span class="mt-hist-val">' + (s.descripcion || '-') + '</span></div>' +
+        (s.imagen ? '<div class="mt-hist-row"><span class="mt-hist-label">Imagen</span><span class="mt-hist-val"><img src="' + s.imagen + '" style="max-width:100%;border-radius:8px;margin-top:4px" /></span></div>' : '');
+      const tl = data.timeline;
+      if (tl.length === 0) {
+        document.getElementById('mtHistTimeline').innerHTML = '<div style="text-align:center;padding:24px;color:var(--tx4)">Sin eventos registrados</div>';
+        return;
+      }
+      const icones = {
+        create: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>',
+        accept: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>',
+        process: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>',
+        done: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>',
+        cancel: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>',
+        note: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>'
+      };
+      const colores = {create:'var(--ac)',accept:'#4caf50',process:'#ff9800',done:'#4caf50',cancel:'var(--rd)',note:'#7a829a'};
+      let html = '<div class="mt-timeline-list">';
+      tl.forEach((item, i) => {
+        const ic = icones[item.icono] || icones.create;
+        const col = colores[item.icono] || 'var(--ac)';
+        html += '<div class="mt-tl-item" style="animation:slideUp .3s ' + (i * 0.08) + 's backwards">' +
+          '<div class="mt-tl-icon" style="background:' + col + ';border-color:' + col + '">' + ic + '</div>' +
+          '<div class="mt-tl-line"></div>' +
+          '<div class="mt-tl-content">' +
+            '<div class="mt-tl-title">' + item.estado + '</div>' +
+            '<div class="mt-tl-date">' + (item.fecha || '-') + '</div>' +
+            '<div class="mt-tl-desc">' + (item.descripcion || '') + '</div>' +
+          '</div>' +
+        '</div>';
+      });
+      html += '</div>';
+      document.getElementById('mtHistTimeline').innerHTML = html;
+    })
+    .catch(() => {
+      document.getElementById('mtHistTimeline').innerHTML = '<div style="text-align:center;padding:24px;color:var(--rd)">Error de conexión</div>';
+    });
+}
+
+function evaCerrarHistorial() {
+  const modal = document.getElementById('mtHistorialModal');
+  if (modal) { modal.style.display = 'none'; document.body.style.overflow = ''; }
+}
+
+document.addEventListener('click', function(e) {
+  if (e.target && e.target.id === 'mtHistorialModal') evaCerrarHistorial();
+});
