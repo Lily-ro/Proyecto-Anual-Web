@@ -83,7 +83,6 @@ if($_SERVER['REQUEST_METHOD'] === 'POST'){
     }
 }
 ?>
-
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -92,14 +91,13 @@ if($_SERVER['REQUEST_METHOD'] === 'POST'){
 <title>EVA | Iniciar Sesión</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',sans-serif}
-
 body{background:#0b1120;min-height:100vh;display:flex;padding:30px;gap:30px}
 
 .login-left{flex:1;display:flex;flex-direction:column;justify-content:center;align-items:center}
 .login-left svg{width:140px;height:auto}
 .login-left .brand{color:white;font-size:72px;letter-spacing:30px;font-weight:300;margin-top:30px}
 
-.login-right{width:460px;background:#111c30;display:flex;justify-content:center;align-items:center;border-radius:20px;padding:50px 40px;margin-right:120px}
+.login-right{width:460px;display:flex;justify-content:center;align-items:center;border-radius:20px;padding:50px 40px;margin-right:120px}
 
 .login-box{width:100%;max-width:340px}
 
@@ -107,35 +105,56 @@ body{background:#0b1120;min-height:100vh;display:flex;padding:30px;gap:30px}
 .login-header .logo-row{display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:12px}
 .login-header .logo-row svg{width:26px;height:auto}
 .login-header .logo-row span{color:#3C75C6;font-size:26px;letter-spacing:5px;font-weight:500}
-.login-header p{color:white;font-size:14px;line-height:1.6;font-weight:500}
+.login-header p{color:#c8d0dc;font-size:14px;line-height:1.6;font-weight:500}
 
 .form-group{margin-bottom:18px}
 .form-group label{color:#c8d0dc;display:block;margin-bottom:8px;font-size:14px;font-weight:500}
 
 .input-wrap{position:relative}
+<<<<<<< HEAD
 .input-wrap input{width:100%;padding:12px 40px 12px 14px;background:#0d1525;border:1px solid #1e293b;border-radius:8px;color:#e2e8f0;outline:none;transition:border-color .2s}
+=======
+.input-wrap input{width:100%;padding:12px 40px 12px 14px;background:#0d1525;border:1px solid #1e2d4a;border-radius:8px;color:#e2e8f0;font-size:14px;outline:none;transition:border-color .2s}
+>>>>>>> 9377b99b358083fc68b48733685dd42fd3da9c99
 .input-wrap input::placeholder{color:#4a5568}
 .input-wrap input:focus{border-color:#2563eb}
 
-.eye-btn{position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;padding:0;width:20px;height:20px}
-.eye-btn svg{width:18px;height:18px;fill:none;stroke:#4a5568;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.eye-btn{position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;padding:0;width:20px;height:20px;display:flex;align-items:center;justify-content:center}
+.eye-btn svg{width:18px;height:18px;fill:none;stroke:#4a5568;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;transition:stroke .2s}
+.eye-btn:hover svg{stroke:#8892a4}
 
-.extras{display:flex;justify-content:space-between;align-items:center;margin-bottom:24px;font-size:13px}
-.extras label{display:flex;align-items:center;gap:6px;color:#8892a4;cursor:pointer}
-.extras input[type="checkbox"]{width:16px;height:16px;accent-color:#2563eb;cursor:pointer}
+.extras{display:flex;justify-content:flex-end;align-items:center;margin-bottom:24px;font-size:13px}
 .extras a{color:#2563eb;text-decoration:none;font-size:13px}
 .extras a:hover{text-decoration:underline}
 
 .btn-submit{width:100%;padding:13px;border:none;border-radius:8px;background:#2563eb;color:white;cursor:pointer;font-weight:600;font-size:15px;transition:background .2s}
 .btn-submit:hover{background:#1d4ed8}
 
-.error-msg{background:#dc2626;color:white;padding:10px;border-radius:6px;margin-bottom:15px;font-size:13px;text-align:center}
+.error-msg{background:rgba(220,38,38,0.12);color:#f87171;padding:10px;border-radius:8px;margin-bottom:15px;font-size:13px;text-align:center;border:1px solid rgba(220,38,38,0.2)}
 
 .login-footer{text-align:center;margin-top:24px;color:#8892a4;font-size:13px}
 .login-footer a{color:#2563eb;text-decoration:none;font-weight:500}
 .login-footer a:hover{text-decoration:underline}
 
+<<<<<<< HEAD
 
+=======
+@media(max-width:900px){
+    body{flex-direction:column;padding:20px;gap:20px;align-items:center}
+    .login-left{display:none}
+    .login-right{width:100%;max-width:460px;margin-right:0;border-radius:20px;padding:40px 30px;background:#111c30}
+    .login-box{max-width:360px}
+}
+@media(max-width:480px){
+    body{padding:12px;gap:12px}
+    .login-right{padding:28px 20px;border-radius:16px}
+    .login-header .logo-row span{font-size:22px;letter-spacing:4px}
+    .login-header p{font-size:13px}
+    .form-group label{font-size:13px}
+    .input-wrap input{padding:11px 38px 11px 12px;font-size:13px}
+    .btn-submit{padding:12px;font-size:14px}
+}
+>>>>>>> 9377b99b358083fc68b48733685dd42fd3da9c99
 </style>
 </head>
 <body>
@@ -163,38 +182,52 @@ body{background:#0b1120;min-height:100vh;display:flex;padding:30px;gap:30px}
         </div>
 
         <?php if(!empty($error)){ ?>
-            <div class="error-msg"><?php echo $error; ?></div>
+            <div class="error-msg"><?php echo htmlspecialchars($error); ?></div>
         <?php } ?>
 
-        <form method="POST">
+        <form method="POST" id="loginForm">
             <div class="form-group">
                 <label>Email</label>
                 <div class="input-wrap">
-                    <input type="email" name="email" placeholder="tucorreo@gmail.com" required>
+                    <input type="email" name="email" id="loginEmail" placeholder="tucorreo@gmail.com" required>
                 </div>
             </div>
             <div class="form-group">
                 <label>Contraseña</label>
                 <div class="input-wrap">
-                    <input type="password" name="password" id="pass" placeholder="Ingresa tu Contraseña" required>
-                    <button type="button" class="eye-btn" onclick="var p=document.getElementById('pass');p.type=p.type==='password'?'text':'password';">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="#4a5568" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                    <input type="password" name="password" id="loginPass" placeholder="Ingresa tu contraseña" required>
+                    <button type="button" class="eye-btn" id="eyeBtn" aria-label="Mostrar contraseña">
+                        <svg id="eyeOpen" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                        <svg id="eyeClosed" viewBox="0 0 24 24" style="display:none"><path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
                     </button>
                 </div>
             </div>
             <div class="extras">
-                <label><input type="checkbox" name="recordar"> Recordarme</label>
-                <a href="auth/recuperar.php">¿Olvidé mi contraseña?</a>
+                <a href="auth/recuperar.php">¿Olvidaste tu contraseña?</a>
             </div>
             <button type="submit" class="btn-submit">Iniciar sesión</button>
         </form>
 
         <div class="login-footer">
-            ¿No tenés cuenta? <a href="#">Contáctanos</a>
+            ¿No tenés cuenta? <a href="https://elvigilantedeagua.com/" target="_blank">Contáctanos</a>
         </div>
 
     </div>
 </div>
 
+<script>
+(function(){
+    var passInput = document.getElementById('loginPass');
+    var eyeBtn = document.getElementById('eyeBtn');
+    var eyeOpen = document.getElementById('eyeOpen');
+    var eyeClosed = document.getElementById('eyeClosed');
+    eyeBtn.addEventListener('click', function(){
+        var isPass = passInput.type === 'password';
+        passInput.type = isPass ? 'text' : 'password';
+        eyeOpen.style.display = isPass ? 'none' : 'block';
+        eyeClosed.style.display = isPass ? 'block' : 'none';
+    });
+})();
+</script>
 </body>
 </html>

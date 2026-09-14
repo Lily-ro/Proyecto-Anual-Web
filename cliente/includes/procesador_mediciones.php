@@ -260,7 +260,9 @@ function eva_dashboard_datos(PDO $pdo, int $idTanque): array {
             $st = $pdo->prepare("SELECT estado, ultima_conexion FROM dispositivos WHERE id_tanque=:id LIMIT 1");
             $st->execute([':id' => $idTanque]);
             $d = $st->fetch();
-            $out['deviceStatus'] = $d ? ($d['estado'] ?? 'Desconectado') : 'Desconectado';
+            $rawEstado = $d ? strtolower(trim((string)($d['estado'] ?? ''))) : '';
+            if (in_array($rawEstado, ['activo', 'online', 'conectado', 'operativo'], true)) $out['deviceStatus'] = 'Conectado';
+            else $out['deviceStatus'] = 'Desconectado';
         } catch (Throwable $e) { $out['deviceStatus'] = 'Desconectado'; }
     } catch (Throwable $e) {}
     return $out;

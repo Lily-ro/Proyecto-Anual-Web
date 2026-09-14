@@ -199,11 +199,11 @@ try {
    <li class="active anim-slide6"><a href="mantenimiento.php"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/></svg><span>Mantenimiento</span></a></li>
   </ul>
  </nav>
- <div class="device-status">
+ <div class="device-status" style="<?php echo $deviceStatus==='Conectado' ? 'background:rgba(76,175,80,0.08);border-color:rgba(76,175,80,0.15)' : 'background:rgba(244,67,54,0.08);border-color:rgba(244,67,54,0.15)'; ?>">
   <h4>Dispositivo</h4>
   <div class="status-row">
-   <svg class="wifi-icon anim-pulse" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12.55a11 11 0 0114.08 0"/><path d="M1.42 9a16 16 0 0121.16 0"/><path d="M8.53 16.11a6 6 0 016.95 0"/><line x1="12" y1="20" x2="12.01" y2="20"/></svg>
-   <span class="status-text"><?php echo h($deviceStatus); ?></span>
+   <svg class="wifi-icon anim-pulse" viewBox="0 0 24 24" fill="none" stroke="<?php echo $deviceStatus==='Conectado' ? '#4caf50' : '#f44336'; ?>" stroke-width="2"><path d="M5 12.55a11 11 0 0114.08 0"/><path d="M1.42 9a16 16 0 0121.16 0"/><path d="M8.53 16.11a6 6 0 016.95 0"/><line x1="12" y1="20" x2="12.01" y2="20"/></svg>
+    <span class="status-text" style="color:<?php echo $deviceStatus==='Conectado' ? '#4caf50' : '#f44336'; ?>;font-weight:700"><?php echo $deviceStatus==='Conectado' ? 'Conectado' : 'Desconectado'; ?></span>
   </div>
  </div>
 </aside>
@@ -228,7 +228,10 @@ try {
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
         <span>Mi perfil</span>
        </a>
+<<<<<<< HEAD
 
+=======
+>>>>>>> 9377b99b358083fc68b48733685dd42fd3da9c99
        <a class="user-menu-item" href="../config/logout.php">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
         <span>Cerrar sesión</span>
@@ -323,11 +326,11 @@ try {
        <td><?php echo $s['problema']; ?></td>
        <td><span class="alert-badge <?php echo h($s['estadoClass']); ?>"><?php echo h($s['estado']); ?></span></td>
        <td style="font-size:12px;color:var(--tx5)"><?php echo h($s['actualizacion']); ?></td>
-       <td>
-        <button class="mt-info-btn" title="Ver detalles">
-         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
-        </button>
-       </td>
+        <td>
+         <button class="mt-info-btn" title="Ver historial" onclick="evaAbrirHistorial(<?php echo (int)$s['id']; ?>)">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+         </button>
+        </td>
       </tr>
      <?php endforeach; endif; ?>
      </tbody>
@@ -335,7 +338,20 @@ try {
    </div>
   </div>
  </div>
+
+<div class="mt-modal-overlay" id="mtHistorialModal" style="display:none">
+ <div class="mt-modal">
+  <div class="mt-modal-header">
+   <div class="mt-modal-title" id="mtHistTitulo">Historial de solicitud</div>
+   <button class="mt-modal-close" onclick="evaCerrarHistorial()">&times;</button>
+  </div>
+  <div class="mt-modal-body">
+   <div class="mt-hist-info" id="mtHistInfo"></div>
+   <div class="mt-timeline" id="mtHistTimeline"></div>
+  </div>
+ </div>
 </div>
+
 <script>
 window.EVA_MT_TANQUES = <?php echo json_encode(array_map(fn($t)=>['id'=>(int)($t['id_tanque']??0),'nombre'=>$t['nombre']??''], $tanques), JSON_UNESCAPED_UNICODE); ?>;
 </script>

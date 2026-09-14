@@ -102,7 +102,7 @@ function eva_device_status(PDO $pdo, int $id_tanque): string {
     $st->execute([':id'=>$id_tanque]); $r=$st->fetch(); if(!$r) return 'Desconectado';
     $estado=strtolower((string)($r['estado']??'')); if(in_array($estado,['activo','online','conectado','operativo'],true)) return 'Conectado'; if(in_array($estado,['inactivo','offline','desconectado'],true)) return 'Desconectado';
     if(!empty($r['ultima_conexion'])){ $ts=strtotime((string)$r['ultima_conexion']); if($ts && (time()-$ts)<600) return 'Conectado'; }
-    return h($r['estado']??'Desconectado');
+    return 'Desconectado';
   }catch(Throwable $e){ return 'Conectado'; }
 }
 function eva_tanque_capacidad_efectiva(array $tanque): float {
